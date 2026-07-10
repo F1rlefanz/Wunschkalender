@@ -122,8 +122,18 @@ export default function App() {
   const handleExport = () => {
     const doc = new jsPDF();
     
+    const formatMonthDE = (monthStr: string) => {
+      const [year, month] = monthStr.split('-');
+      return `${month}/${year}`;
+    };
+
+    const formatDateDE = (dateStr: string) => {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}.${month}.${year}`;
+    };
+
     doc.setFontSize(16);
-    doc.text(`Wunschkalender - ${currentMonth}`, 14, 20);
+    doc.text(`Wunschkalender - ${formatMonthDE(currentMonth)}`, 14, 20);
     
     const tableData = wishes
       .filter(w => w.date.startsWith(currentMonth))
@@ -131,9 +141,9 @@ export default function App() {
       .map(w => {
         const u = users.find(user => user.id === w.userId);
         return [
-          w.date,
+          formatDateDE(w.date),
           u?.name || 'Unbekannt',
-          w.shiftType,
+          w.shiftType === 'Früh' ? 'Frühdienst' : w.shiftType === 'Spät' ? 'Spätdienst' : w.shiftType === 'Nacht' ? 'Nachtdienst' : w.shiftType === 'Frei' ? 'Frei' : w.shiftType,
           w.comment || '-'
         ];
       });
