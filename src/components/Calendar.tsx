@@ -1,17 +1,20 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react';
-import { Wish, ShiftType, MonthlyComment } from '../types';
+import { ChevronLeft, ChevronRight, Plus, Check, Trash2 } from 'lucide-react';
+import { Wish, ShiftType, MonthlyComment, User, Settings } from '../types';
 
 interface CalendarProps {
   wishes: Wish[];
   monthlyComments: MonthlyComment[];
-  currentUser: string | null;
+  currentUser: User | null;
+  settings: Settings | null;
+  users: User[];
   onAddWishes: (dates: string[], shift: ShiftType, comment: string) => void;
+  onDeleteWish: (id: string) => void;
   onSaveMonthlyComment: (month: string, text: string) => void;
   onMonthChange: (month: string) => void;
 }
 
-export function Calendar({ wishes, monthlyComments, currentUser, onAddWishes, onSaveMonthlyComment, onMonthChange }: CalendarProps) {
+export function Calendar({ wishes, monthlyComments, currentUser, settings, users, onAddWishes, onDeleteWish, onSaveMonthlyComment, onMonthChange }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,9 +28,9 @@ export function Calendar({ wishes, monthlyComments, currentUser, onAddWishes, on
 
   useEffect(() => {
     onMonthChange(currentMonthStr);
-    const myComment = monthlyComments.find(c => c.employeeName === currentUser && c.month === currentMonthStr);
+    const myComment = monthlyComments.find(c => c.userId === currentUser?.id && c.month === currentMonthStr);
     setLocalMonthlyComment(myComment?.text || '');
-  }, [currentDate, monthlyComments, currentUser]);
+  }, [currentDate, monthlyComments, currentUser, currentMonthStr]);
 
   const nextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -46,17 +49,60 @@ export function Calendar({ wishes, monthlyComments, currentUser, onAddWishes, on
 
   const monthYearString = currentDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
 
+  // Filter visibility based on role
+  const visibleWishes = useMemo(() => {
+    if (currentUser?.role === 'Employee') {
+      return wishes.filter(w => w.userId === currentUser.id);
+    }
+    return wishes;
+  }, [wishes, currentUser]);
+
+  const visibleMonthlyComments = useMemo(() => {
+    if (currentUser?.role === 'Employee') {
+      return monthlyComments.filter(c => c.userId === currentUser.id);
+    }
+    return monthlyComments;
+  }, [monthlyComments, currentUser]);
+
   // Map wishes by date string
   const wishesByDate = useMemo(() => {
     const map = new Map<string, Wish[]>();
-    wishes.forEach(w => {
+    visibleWishes.forEach(w => {
       const existing = map.get(w.date) || [];
       map.set(w.date, [...existing, w]);
     });
     return map;
-  }, [wishes]);
+  }, [visibleWishes]);
+
+  // Determine if booking is locked for the displayed month
+  const isMonthLocked = useMemo(() => {
+    if (!settings || !currentUser) return false;
+    if (currentUser.role === 'Manager') return false; // Managers bypass locks
+    
+    const now = new Date();
+    const currentMonthTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const displayedMonthTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getTime();
+    
+    // If displayed month is in the past, locked.
+    if (displayedMonthTime < currentMonthTime) return true;
+    
+    // If displayed month is exactly next month, and today is past deadline, locked.
+    if (
+      currentDate.getFullYear() === now.getFullYear() &&
+      currentDate.getMonth() === now.getMonth() + 1
+    ) {
+      if (now.getDate() >= settings.bookingDeadlineDay) {
+        return true;
+      }
+    }
+    return false;
+  }, [currentDate, settings, currentUser]);
 
   const toggleDateSelection = (dateStr: string) => {
+    if (isMonthLocked) {
+      alert(`Wunscheintragung für diesen Monat ist seit dem ${settings?.bookingDeadlineDay}. gesperrt.`);
+      return;
+    }
     const newSelection = new Set(selectedDates);
     if (newSelection.has(dateStr)) {
       newSelection.delete(dateStr);
@@ -77,7 +123,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, onAddWishes, on
     }
   };
 
-  const hasCurrentUserComment = monthlyComments.some(c => c.employeeName === currentUser);
+  const hasCurrentUserComment = monthlyComments.some(c => c.userId === currentUser?.id);
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -86,7 +132,12 @@ export function Calendar({ wishes, monthlyComments, currentUser, onAddWishes, on
         <button onClick={prevMonth} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ChevronLeft className="w-5 h-5 text-slate-600" />
         </button>
-        <h2 className="text-xl font-semibold text-slate-800 tracking-tight">{monthYearString}</h2>
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-slate-800 tracking-tight">{monthYearString}</h2>
+          {isMonthLocked && (
+            <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 mt-1 inline-block">Gesperrt</span>
+          )}
+        </div>
         <button onClick={nextMonth} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ChevronRight className="w-5 h-5 text-slate-600" />
         </button>
@@ -97,10 +148,13 @@ export function Calendar({ wishes, monthlyComments, currentUser, onAddWishes, on
         <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-sm font-semibold text-slate-800 mb-3">Allgemeine Hinweise für {monthYearString}</h3>
           <div className="space-y-4">
-            {monthlyComments.map(c => (
-              c.employeeName === currentUser ? (
+            {visibleMonthlyComments.map(c => {
+              const u = users.find(user => user.id === c.userId);
+              const name = u?.name || 'Unbekannt';
+              
+              return c.userId === currentUser.id ? (
                 <div key={c.id}>
-                  <span className="text-xs font-semibold text-blue-600 mb-1 block">{c.employeeName} (Sie)</span>
+                  <span className="text-xs font-semibold text-blue-600 mb-1 block">{name} (Sie)</span>
                   <textarea
                     className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
                     rows={2}
@@ -112,16 +166,16 @@ export function Calendar({ wishes, monthlyComments, currentUser, onAddWishes, on
                 </div>
               ) : (
                 <div key={c.id} className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="text-xs font-semibold text-slate-600 mb-1 block">{c.employeeName}</span>
+                  <span className="text-xs font-semibold text-slate-600 mb-1 block">{name}</span>
                   <p className="text-sm text-slate-800">{c.text}</p>
                 </div>
-              )
-            ))}
+              );
+            })}
             
             {/* If current user hasn't added a comment yet */}
             {!hasCurrentUserComment && (
               <div>
-                <span className="text-xs font-semibold text-blue-600 mb-1 block">{currentUser} (Sie)</span>
+                <span className="text-xs font-semibold text-blue-600 mb-1 block">{currentUser.name} (Sie)</span>
                 <textarea
                   className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
                   rows={2}
@@ -182,20 +236,39 @@ export function Calendar({ wishes, monthlyComments, currentUser, onAddWishes, on
                 </div>
 
                 <div className="mt-2 space-y-1">
-                  {dayWishes.map(wish => (
-                    <div 
-                      key={wish.id} 
-                      className={`text-xs px-2 py-1 rounded truncate border ${
-                        wish.shiftType === 'Frei' 
-                          ? isConflict ? 'bg-red-100 border-red-200 text-red-800' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                          : 'bg-slate-100 border-slate-200 text-slate-700'
-                      }`}
-                      title={`${wish.employeeName}: ${wish.shiftType} - ${wish.comment}`}
-                    >
-                      <span className="font-semibold">{wish.employeeName.split(' ')[0]}</span>
-                      <span className="opacity-75 ml-1">({wish.shiftType})</span>
-                    </div>
-                  ))}
+                  {dayWishes.map(wish => {
+                    const u = users.find(user => user.id === wish.userId);
+                    const name = u?.name || 'Unbekannt';
+                    const canDelete = currentUser?.role === 'Manager' || currentUser?.id === wish.userId;
+
+                    return (
+                      <div 
+                        key={wish.id} 
+                        className={`text-xs px-2 py-1 flex items-center justify-between rounded truncate border relative group ${
+                          wish.shiftType === 'Frei' 
+                            ? isConflict ? 'bg-red-100 border-red-200 text-red-800' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                            : 'bg-slate-100 border-slate-200 text-slate-700'
+                        }`}
+                        title={`${name}: ${wish.shiftType} - ${wish.comment || ''}`}
+                      >
+                        <div className="flex items-center truncate">
+                          <span className="font-semibold truncate">{name.split(' ')[0]}</span>
+                          <span className="opacity-75 ml-1 flex-shrink-0">({wish.shiftType})</span>
+                        </div>
+                        {canDelete && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteWish(wish.id);
+                            }}
+                            className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity ml-2 focus:outline-none"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
