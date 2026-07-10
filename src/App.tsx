@@ -7,14 +7,22 @@ import { useState, useEffect } from 'react';
 import { Gatekeeper } from './components/Gatekeeper';
 import { Header } from './components/Header';
 import { Calendar } from './components/Calendar';
+import { UserManagement } from './components/UserManagement';
+import { Profile } from './components/Profile';
 import { api } from './api/client';
-import { Wish, ShiftType, MonthlyComment } from './types';
+import { Wish, ShiftType, MonthlyComment, User, Settings } from './types';
+import { io } from 'socket.io-client';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentView, setCurrentView] = useState<'calendar' | 'users' | 'profile'>('calendar');
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [monthlyComments, setMonthlyComments] = useState<MonthlyComment[]>([]);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(() => {
     const d = new Date();
@@ -22,82 +30,126 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadData();
-    }
-  }, [isAuthenticated]);
+    if (!isAuthenticated) return;
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadMonthlyComments(currentMonth);
-    }
-  }, [currentMonth, isAuthenticated]);
+    setLoading(true);
+    const socket = io();
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const data = await api.getWishes();
-      setWishes(data);
-    } catch (error) {
-      console.error('Failed to load wishes:', error);
-    } finally {
+    api.getUsers().then(setUsers).catch(console.error);
+
+    socket.on('init', (data: { wishes: Wish[], monthlyComments: MonthlyComment[], settings: Settings }) => {
+      setWishes(data.wishes);
+      setMonthlyComments(data.monthlyComments);
+      setSettings(data.settings);
       setLoading(false);
-    }
-  };
+    });
 
-  const loadMonthlyComments = async (month: string) => {
-    try {
-      const data = await api.getMonthlyComments(month);
-      setMonthlyComments(data);
-    } catch (error) {
-      console.error('Failed to load monthly comments:', error);
-    }
-  };
+    socket.on('settings_updated', (newSettings: Settings) => {
+      setSettings(newSettings);
+    });
+
+    socket.on('users_updated', (newUsers: User[]) => {
+      setUsers(newUsers);
+    });
+
+    socket.on('wish_added', (wish: Wish) => {
+      setWishes(prev => {
+        if (prev.find(w => w.id === wish.id)) return prev;
+        return [...prev, wish];
+      });
+    });
+
+    socket.on('wish_deleted', (id: string) => {
+      setWishes(prev => prev.filter(w => w.id !== id));
+    });
+
+    socket.on('monthly_comment_added', (comment: MonthlyComment) => {
+      setMonthlyComments(prev => {
+        if (prev.find(c => c.id === comment.id)) return prev;
+        return [...prev, comment];
+      });
+    });
+
+    socket.on('monthly_comment_updated', (comment: MonthlyComment) => {
+      setMonthlyComments(prev => prev.map(c => c.id === comment.id ? comment : c));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [isAuthenticated]);
 
   const handleAddWishes = async (dates: string[], shiftType: ShiftType, comment: string) => {
     if (!currentUser) return;
     
     try {
-      const newWishes = await Promise.all(
+      await Promise.all(
         dates.map(date => api.addWish({
-          employeeName: currentUser,
+          userId: currentUser.id,
           date,
           shiftType,
           comment,
         }))
       );
-      setWishes(prev => [...prev, ...newWishes]);
     } catch (error) {
       console.error('Failed to add wishes:', error);
       alert('Fehler beim Speichern der Wünsche.');
     }
   };
 
+  const handleDeleteWish = async (id: string) => {
+    try {
+      await api.deleteWish(id);
+    } catch (error) {
+      console.error('Failed to delete wish:', error);
+      alert('Fehler beim Löschen des Wunsches.');
+    }
+  };
+
   const handleSaveMonthlyComment = async (month: string, text: string) => {
     if (!currentUser) return;
     try {
-      const savedComment = await api.saveMonthlyComment({
-        employeeName: currentUser,
+      await api.saveMonthlyComment({
+        userId: currentUser.id,
         month,
         text
-      });
-      setMonthlyComments(prev => {
-        const idx = prev.findIndex(c => c.employeeName === currentUser && c.month === month);
-        if (idx >= 0) {
-          const next = [...prev];
-          next[idx] = savedComment;
-          return next;
-        }
-        return [...prev, savedComment];
       });
     } catch (error) {
       console.error('Failed to save monthly comment:', error);
     }
   };
 
+  const handleExport = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(16);
+    doc.text(`Wunschkalender - ${currentMonth}`, 14, 20);
+    
+    const tableData = wishes
+      .filter(w => w.date.startsWith(currentMonth))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(w => {
+        const u = users.find(user => user.id === w.userId);
+        return [
+          w.date,
+          u?.name || 'Unbekannt',
+          w.shiftType,
+          w.comment || '-'
+        ];
+      });
+
+    autoTable(doc, {
+      startY: 30,
+      head: [['Datum', 'Name', 'Schicht', 'Kommentar']],
+      body: tableData,
+    });
+
+    doc.save(`Wunschkalender_${currentMonth}.pdf`);
+  };
+
   if (!isAuthenticated) {
-    return <Gatekeeper onSuccess={(userName) => {
-      setCurrentUser(userName);
+    return <Gatekeeper onSuccess={(user) => {
+      setCurrentUser(user);
       setIsAuthenticated(true);
     }} />;
   }
@@ -106,26 +158,45 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 font-sans pb-20">
       <Header 
         currentUser={currentUser} 
+        currentView={currentView}
+        onNavigate={setCurrentView}
         onLogout={() => {
           setIsAuthenticated(false);
           setCurrentUser(null);
+          setCurrentView('calendar');
         }}
+        onExport={handleExport}
       />
       
-      <main>
-        {loading && wishes.length === 0 ? (
+      <main className="py-6">
+        {loading ? (
           <div className="flex items-center justify-center p-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <Calendar 
-            wishes={wishes} 
-            monthlyComments={monthlyComments}
-            currentUser={currentUser} 
-            onAddWishes={handleAddWishes}
-            onSaveMonthlyComment={handleSaveMonthlyComment}
-            onMonthChange={setCurrentMonth}
-          />
+          <>
+            {currentView === 'calendar' && (
+              <Calendar 
+                wishes={wishes} 
+                monthlyComments={monthlyComments}
+                currentUser={currentUser} 
+                settings={settings}
+                users={users}
+                onAddWishes={handleAddWishes}
+                onDeleteWish={handleDeleteWish}
+                onSaveMonthlyComment={handleSaveMonthlyComment}
+                onMonthChange={setCurrentMonth}
+              />
+            )}
+            
+            {currentView === 'users' && currentUser?.role === 'Manager' && (
+              <UserManagement />
+            )}
+            
+            {currentView === 'profile' && currentUser && (
+              <Profile currentUser={currentUser} />
+            )}
+          </>
         )}
       </main>
     </div>
