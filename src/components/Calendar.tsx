@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Check, Trash2, List, X } from 'lucide-react';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from '../types';
 
 interface CalendarProps {
@@ -19,6 +19,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [localMonthlyComment, setLocalMonthlyComment] = useState('');
+  const [dayDetailsModal, setDayDetailsModal] = useState<string | null>(null);
   
   // Modal state
   const [shiftType, setShiftType] = useState<ShiftType>('Früh');
@@ -228,15 +229,26 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                   <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-blue-600 text-white' : 'text-slate-700'} ${isSelected ? 'bg-blue-100 text-blue-700' : ''}`}>
                     {day}
                   </span>
-                  {isSelected && (
-                    <div className="p-1 text-blue-600 bg-blue-100 rounded-full">
-                      <Check className="w-3 h-3" />
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-1">
+                    {currentUser?.role === 'Manager' && dayWishes.length > 0 && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setDayDetailsModal(dateStr); }}
+                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                        title="Tagesdetails anzeigen"
+                      >
+                        <List className="w-4 h-4" />
+                      </button>
+                    )}
+                    {isSelected && (
+                      <div className="p-1 text-blue-600 bg-blue-100 rounded-full">
+                        <Check className="w-3 h-3" />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-2 space-y-1">
-                  {dayWishes.map(wish => {
+                  {dayWishes.slice(0, 3).map(wish => {
                     const u = users.find(user => user.id === wish.userId);
                     const name = u?.name || 'Unbekannt';
                     const canDelete = currentUser?.role === 'Manager' || currentUser?.id === wish.userId;
@@ -269,6 +281,14 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                       </div>
                     );
                   })}
+                  {dayWishes.length > 3 && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setDayDetailsModal(dateStr); }}
+                      className="text-[10px] w-full text-center py-1 mt-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded font-medium transition-colors border border-slate-200"
+                    >
+                      + {dayWishes.length - 3} weitere
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -347,6 +367,69 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Day Details Modal */}
+      {dayDetailsModal && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Wünsche für den {dayDetailsModal.split('-').reverse().join('.')}
+              </h3>
+              <button 
+                onClick={() => setDayDetailsModal(null)}
+                className="text-slate-400 hover:text-slate-600 focus:outline-none"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              {['Früh', 'Spät', 'Nacht', 'Frei'].map(shift => {
+                const shiftWishes = (wishesByDate.get(dayDetailsModal) || []).filter(w => w.shiftType === shift);
+                if (shiftWishes.length === 0) return null;
+                return (
+                  <div key={shift} className="mb-6 last:mb-0">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center uppercase tracking-wider">
+                      {shift} {shift !== 'Frei' && 'schicht'} 
+                      <span className="ml-2 bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs">
+                        {shiftWishes.length}
+                      </span>
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {shiftWishes.map(wish => {
+                        const u = users.find(user => user.id === wish.userId);
+                        const canDelete = currentUser?.role === 'Manager' || currentUser?.id === wish.userId;
+                        return (
+                          <div key={wish.id} className="bg-white border border-slate-200 p-3 rounded-lg flex justify-between items-start shadow-sm">
+                            <div>
+                              <div className="font-medium text-slate-900 text-sm">{u?.name || 'Unbekannt'}</div>
+                              {wish.comment && <div className="text-xs text-slate-500 mt-1">{wish.comment}</div>}
+                            </div>
+                            {canDelete && (
+                              <button 
+                                onClick={() => onDeleteWish(wish.id)}
+                                className="text-red-400 hover:text-red-600 p-1"
+                                title="Wunsch löschen"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {(wishesByDate.get(dayDetailsModal) || []).length === 0 && (
+                <div className="text-center text-slate-500 py-8">
+                  Keine Wünsche für diesen Tag eingetragen.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
