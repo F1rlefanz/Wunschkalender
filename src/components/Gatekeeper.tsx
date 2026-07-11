@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Lock, User as UserIcon } from 'lucide-react';
 import { User } from '../types';

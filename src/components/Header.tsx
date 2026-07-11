@@ -1,4 +1,4 @@
-import { Calendar as CalendarIcon, Download, Users, User as UserIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Download, Users, User as UserIcon, LogOut } from 'lucide-react';
 import { User } from '../types';
 
 interface HeaderProps {
@@ -14,69 +14,78 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
   const isManager = currentUser?.role === 'Manager';
 
   return (
-    <header className="bg-slate-900 text-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-slate-950 text-white shadow-md">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-3">
-            <CalendarIcon className="h-6 w-6 text-blue-400" />
-            <h1 className="text-xl font-semibold tracking-tight cursor-pointer" onClick={() => onNavigate('calendar')}>Wunschkalender</h1>
+          <div className="flex items-center min-w-0">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 mr-3 sm:mr-4 cursor-pointer" onClick={() => onNavigate('calendar')}>
+              <CalendarIcon className="h-5 w-5 text-blue-400 flex-shrink-0" />
+              <h1 className="text-sm sm:text-base md:text-lg font-bold tracking-tight">Wunschkalender</h1>
+            </div>
             
             {currentUser && (
-              <nav className="hidden md:flex ml-8 space-x-4">
+              <nav className="flex space-x-1 sm:space-x-2">
                 <button
                   onClick={() => onNavigate('calendar')}
-                  className={`text-sm px-3 py-2 rounded-md transition-colors ${currentView === 'calendar' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+                  className={`text-xs px-2 py-1.5 rounded-lg transition-colors flex items-center ${currentView === 'calendar' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}
+                  title="Kalender"
                 >
-                  <div className="flex items-center"><CalendarIcon className="w-4 h-4 mr-2"/> Kalender</div>
+                  <CalendarIcon className="w-3.5 h-3.5 sm:mr-1" />
+                  <span className="hidden sm:inline">Kalender</span>
                 </button>
                 {isManager && (
                   <button
                     onClick={() => onNavigate('users')}
-                    className={`text-sm px-3 py-2 rounded-md transition-colors ${currentView === 'users' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+                    className={`text-xs px-2 py-1.5 rounded-lg transition-colors flex items-center ${currentView === 'users' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}
+                    title="Benutzerverwaltung"
                   >
-                    <div className="flex items-center"><Users className="w-4 h-4 mr-2"/> Benutzer</div>
+                    <Users className="w-3.5 h-3.5 sm:mr-1" />
+                    <span className="hidden sm:inline">Benutzer</span>
                   </button>
                 )}
               </nav>
             )}
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
             {canExport && currentView === 'calendar' && (
               <button
                 onClick={onExport}
-                className="flex items-center text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-md transition-colors"
+                className="flex items-center text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg transition-colors shadow-sm"
                 title="Als PDF exportieren"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Export
+                <Download className="w-3.5 h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Export</span>
               </button>
             )}
 
             {currentUser && (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => onNavigate('profile')}
-                  className={`flex items-center text-sm font-medium text-white px-3 py-1.5 rounded-md border transition-colors ${
-                    currentView === 'profile' ? 'ring-2 ring-blue-500 ' : ''
-                  }${
-                    currentUser.role === 'Employee' ? 'bg-red-800 border-red-700 hover:bg-red-700' :
-                    currentUser.role === 'Manager' ? 'bg-indigo-800 border-indigo-700 hover:bg-indigo-700' :
-                    'bg-slate-800 border-slate-700 hover:bg-slate-700'
-                  }`}
-                  title="Profil & Passwort"
-                >
-                  <UserIcon className="w-4 h-4 mr-2" />
-                  {currentUser.name} ({currentUser.role})
-                </button>
-              </div>
+              <button
+                onClick={() => onNavigate('profile')}
+                className={`flex items-center text-xs font-semibold text-white px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border transition-colors shadow-sm ${
+                  currentView === 'profile' ? 'ring-2 ring-blue-500' : ''
+                } ${
+                  currentUser.role === 'Employee' ? 'bg-emerald-800/80 border-emerald-700/80 hover:bg-emerald-700' :
+                  currentUser.role === 'Manager' ? 'bg-indigo-800/80 border-indigo-700/80 hover:bg-indigo-700' :
+                  'bg-slate-800/80 border-slate-700 hover:bg-slate-700'
+                }`}
+                title="Profil & Passwort"
+              >
+                <UserIcon className="w-3.5 h-3.5 sm:mr-1.5 flex-shrink-0" />
+                <span className="max-w-[65px] sm:max-w-[120px] truncate">
+                  {currentUser.name.split(' ')[0]}
+                </span>
+                <span className="hidden md:inline ml-1 opacity-75 text-[10px]">({currentUser.role})</span>
+              </button>
             )}
             
             <button
               onClick={onLogout}
-              className="text-sm text-slate-300 hover:text-white px-3 py-2 rounded-md transition-colors"
+              className="text-xs text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-900 transition-colors flex items-center"
+              title="Abmelden"
             >
-              Abmelden
+              <LogOut className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Abmelden</span>
             </button>
           </div>
         </div>
