@@ -75,7 +75,7 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
                 <span className="max-w-[65px] sm:max-w-[120px] truncate">
                   {currentUser.name.split(' ')[0]}
                 </span>
-                <span className="hidden md:inline ml-1 opacity-75 text-[10px]">({currentUser.role})</span>
+                <span className="hidden md:inline ml-1 opacity-75 text-[10px]">({currentUser.role === 'Manager' ? 'Leitung' : 'Mitarbeiter'})</span>
               </button>
             )}
             

@@ -500,7 +500,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                           {user.name}
                         </div>
                         {user.role === 'Manager' && (
-                          <span className="inline-block mt-0.5 text-[9px] bg-indigo-50 text-indigo-600 px-1 py-0.2 rounded font-bold">M</span>
+                          <span className="inline-block mt-0.5 text-[9px] bg-indigo-50 text-indigo-600 px-1 py-0.2 rounded font-bold" title="Leitung">L</span>
                         )}
                       </td>
                       {days.map(day => {
