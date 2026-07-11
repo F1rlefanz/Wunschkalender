@@ -148,7 +148,7 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
                   {users.map(user => {
                     return (
                       <option key={user.id} value={user.id}>
-                        {user.name} ({user.role})
+                        {user.name} ({user.role === 'Manager' ? 'Leitung' : 'Mitarbeiter'})
                       </option>
                     );
                   })}
@@ -229,7 +229,7 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
             disabled={loading || (!userId && mode !== 'reset')}
             className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Bitte warten...' : mode === 'login' ? 'Eintreten' : mode === 'forgot' ? 'Token anfordern' : 'Passwort zurücksetzen'}
+            {loading ? 'Bitte warten...' : mode === 'login' ? 'Login' : mode === 'forgot' ? 'Token anfordern' : 'Passwort zurücksetzen'}
           </button>
 
           {(mode === 'forgot' || mode === 'reset') && (

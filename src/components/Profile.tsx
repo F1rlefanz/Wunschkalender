@@ -41,7 +41,7 @@ export function Profile({ currentUser }: ProfileProps) {
       
       <div className="mb-6">
         <p className="text-sm text-slate-500 mb-1">Angemeldet als</p>
-        <p className="font-medium text-slate-900">{currentUser.name} <span className="text-sm font-normal text-slate-500 ml-2">({currentUser.role})</span></p>
+        <p className="font-medium text-slate-900">{currentUser.name} <span className="text-sm font-normal text-slate-500 ml-2">({currentUser.role === 'Manager' ? 'Leitung' : 'Mitarbeiter'})</span></p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
