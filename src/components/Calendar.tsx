@@ -543,21 +543,24 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
       {/* Floating Action Bar for Multi-Select */}
       {selectedDates.size > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 md:bottom-6 md:left-1/2 md:right-auto md:-translate-x-1/2 bg-slate-900 text-white px-4 py-3 md:px-6 md:py-4 rounded-2xl md:rounded-full shadow-2xl flex items-center justify-between gap-3 sm:gap-6 z-40 animate-in slide-in-from-bottom-10 fade-in duration-200 max-w-[calc(100%-2rem)] md:max-w-none">
-          <span className="font-semibold text-xs sm:text-sm whitespace-nowrap">{selectedDates.size} Tag{selectedDates.size > 1 ? 'e' : ''} ausgewählt</span>
-          <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="fixed bottom-4 left-3 right-3 sm:left-4 sm:right-4 md:bottom-6 md:left-1/2 md:right-auto md:-translate-x-1/2 bg-slate-950 text-white px-3 py-2.5 sm:px-6 sm:py-4 rounded-xl sm:rounded-full shadow-2xl flex items-center justify-between gap-2 sm:gap-6 z-40 animate-in slide-in-from-bottom-10 fade-in duration-200">
+          <span className="font-semibold text-xs sm:text-sm whitespace-nowrap">
+            {selectedDates.size} Tag{selectedDates.size > 1 ? 'e' : ''} <span className="hidden sm:inline">ausgewählt</span>
+          </span>
+          <div className="flex items-center space-x-1.5 sm:space-x-3">
             <button 
               onClick={() => setSelectedDates(new Set())}
-              className="text-slate-300 hover:text-white px-2.5 py-1.5 text-xs sm:text-sm font-semibold transition-colors"
+              className="text-slate-400 hover:text-white px-2 py-1.5 text-xs sm:text-sm font-semibold transition-colors"
             >
               Abbrechen
             </button>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 sm:px-5 sm:py-2 rounded-xl sm:rounded-full text-xs sm:text-sm font-semibold transition-colors shadow-sm flex items-center whitespace-nowrap"
+              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 sm:px-5 sm:py-2 rounded-lg sm:rounded-full text-xs sm:text-sm font-semibold transition-colors shadow-sm flex items-center whitespace-nowrap"
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
-              Wunsch eintragen
+              <span className="hidden sm:inline">Wunsch eintragen</span>
+              <span className="sm:hidden">Eintragen</span>
             </button>
           </div>
         </div>
