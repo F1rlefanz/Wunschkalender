@@ -16,6 +16,8 @@ umformuliert statt ein zweiter danebengestellt.
 
 ## [Unreleased]
 
+## [0.2.0] – 2026-08-19
+
 ### Hinzugefügt
 - Die Anmeldung bleibt bestehen. Ein Neuladen der Seite, ein geschlossener
   Browser oder ein Neustart des Servers meldet niemanden mehr ab. Beim Abmelden,
