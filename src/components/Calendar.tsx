@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Check, Trash2, List, X, Users, Calendar as CalendarIcon } from 'lucide-react';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from '../types';
 import { istMonatGesperrt } from '../sperrfrist';
+import { eigenerHinweis, fremdeHinweise, uebernehmeServerstand } from '../hinweise';
 
 interface CalendarProps {
   wishes: Wish[];
@@ -20,6 +21,9 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [localMonthlyComment, setLocalMonthlyComment] = useState('');
+  // Zuletzt aus den Daten uebernommener Feldinhalt: unterscheidet fremde
+  // Aktualisierungen von eigenem, noch ungespeichertem Text.
+  const uebernommenerHinweis = useRef({ schluessel: '', text: '' });
   const [dayDetailsModal, setDayDetailsModal] = useState<string | null>(null);
   const [viewType, setViewType] = useState<'grid' | 'list' | 'matrix'>('grid');
   
@@ -35,9 +39,25 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
   useEffect(() => {
     onMonthChange(currentMonthStr);
-    const myComment = monthlyComments.find(c => c.userId === currentUser?.id && c.month === currentMonthStr);
-    setLocalMonthlyComment(myComment?.text || '');
-  }, [currentDate, monthlyComments, currentUser, currentMonthStr]);
+  }, [currentMonthStr]);
+
+  const meinHinweis = useMemo(
+    () => eigenerHinweis(monthlyComments, currentMonthStr, currentUser),
+    [monthlyComments, currentMonthStr, currentUser],
+  );
+
+  const hinweisSchluessel = `${currentUser?.id ?? ''}|${currentMonthStr}`;
+
+  useEffect(() => {
+    const ergebnis = uebernehmeServerstand({
+      schluessel: hinweisSchluessel,
+      serverText: meinHinweis?.text ?? '',
+      feldText: localMonthlyComment,
+      uebernommen: uebernommenerHinweis.current,
+    });
+    uebernommenerHinweis.current = ergebnis.uebernommen;
+    if (ergebnis.feldText !== localMonthlyComment) setLocalMonthlyComment(ergebnis.feldText);
+  }, [meinHinweis, hinweisSchluessel, localMonthlyComment]);
 
   const nextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -64,12 +84,10 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
     return wishes;
   }, [wishes, currentUser]);
 
-  const visibleMonthlyComments = useMemo(() => {
-    if (currentUser?.role === 'Employee') {
-      return monthlyComments.filter(c => c.userId === currentUser.id);
-    }
-    return monthlyComments;
-  }, [monthlyComments, currentUser]);
+  const hinweiseAnderer = useMemo(
+    () => fremdeHinweise(monthlyComments, currentMonthStr, currentUser),
+    [monthlyComments, currentMonthStr, currentUser],
+  );
 
   // Map wishes by date string
   const wishesByDate = useMemo(() => {
@@ -117,8 +135,6 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
       setShiftType('Früh');
     }
   };
-
-  const hasCurrentUserComment = monthlyComments.some(c => c.userId === currentUser?.id);
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -182,44 +198,33 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
         <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-sm font-semibold text-slate-800 mb-3">Allgemeine Hinweise für {monthYearString}</h3>
           <div className="space-y-4">
-            {visibleMonthlyComments.map(c => {
+            {hinweiseAnderer.map(c => {
               const u = users.find(user => user.id === c.userId);
               const name = u?.name || 'Unbekannt';
-              
-              return c.userId === currentUser.id ? (
-                <div key={c.id}>
-                  <span className="text-xs font-semibold text-blue-600 mb-1 block">{name} (Sie)</span>
-                  <textarea
-                    className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
-                    rows={2}
-                    value={localMonthlyComment}
-                    onChange={(e) => setLocalMonthlyComment(e.target.value)}
-                    onBlur={() => onSaveMonthlyComment(currentMonthStr, localMonthlyComment)}
-                    placeholder='Z.B. "Max. 3 Nachtdienste pro Monat" oder "Urlaub vom 12. bis 15."'
-                  />
-                </div>
-              ) : (
+
+              return (
                 <div key={c.id} className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                   <span className="text-xs font-semibold text-slate-600 mb-1 block">{name}</span>
                   <p className="text-sm text-slate-800">{c.text}</p>
                 </div>
               );
             })}
-            
-            {/* If current user hasn't added a comment yet */}
-            {!hasCurrentUserComment && (
-              <div>
-                <span className="text-xs font-semibold text-blue-600 mb-1 block">{currentUser.name} (Sie)</span>
-                <textarea
-                  className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
-                  rows={2}
-                  value={localMonthlyComment}
-                  onChange={(e) => setLocalMonthlyComment(e.target.value)}
-                  onBlur={() => onSaveMonthlyComment(currentMonthStr, localMonthlyComment)}
-                  placeholder='Z.B. "Max. 3 Nachtdienste pro Monat" oder "Urlaub vom 12. bis 15."'
-                />
-              </div>
-            )}
+
+            {/* Das eigene Feld steht genau einmal da, ob schon etwas darin stand oder nicht. */}
+            <div>
+              <span className="text-xs font-semibold text-blue-600 mb-1 block">{currentUser.name} (Sie)</span>
+              <textarea
+                className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                rows={2}
+                value={localMonthlyComment}
+                onChange={(e) => setLocalMonthlyComment(e.target.value)}
+                onBlur={() => {
+                  if (localMonthlyComment === (meinHinweis?.text ?? '')) return;
+                  onSaveMonthlyComment(currentMonthStr, localMonthlyComment);
+                }}
+                placeholder='Z.B. "Max. 3 Nachtdienste pro Monat" oder "Urlaub vom 12. bis 15."'
+              />
+            </div>
           </div>
         </div>
       )}

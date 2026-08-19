@@ -16,6 +16,14 @@ umformuliert statt ein zweiter danebengestellt.
 
 ## [Unreleased]
 
+### Behoben
+- **Unter „Allgemeine Hinweise für <Monat>“ stehen jetzt nur die Hinweise dieses
+  Monats.** Bisher erschienen dort die Hinweise aller Monate, und das eigene
+  Eingabefeld tauchte mehrfach auf, sobald jemand in mehreren Monaten
+  kommentiert hatte.
+- **Getippter Hinweistext geht nicht mehr verloren.** Schrieb jemand anderes
+  gleichzeitig, wurde das eigene, noch nicht gespeicherte Feld geleert.
+
 ## [0.3.0] – 2026-08-19
 
 ### Geändert
