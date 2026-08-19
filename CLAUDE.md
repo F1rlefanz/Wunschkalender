@@ -42,10 +42,13 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
 - `src/App.tsx` — haelt den gesamten Anwendungszustand und die Socket-Verbindung.
   Schreiben laeuft ueber `src/api/client.ts` (REST); die Antwort wird **nicht** in den
   State geschrieben — die Aktualisierung kommt ueber das Socket-Ereignis zurueck.
-- `src/components/` — `Gatekeeper` (Anmeldung), `Header`, `Calendar` (Kernstueck, ~690 Zeilen),
+- `src/components/` — `Gatekeeper` (Anmeldung), `Header`, `Calendar` (Kernstueck, ~680 Zeilen),
   `UserManagement`, `Profile`. `Calendar` haelt drei Ansichten in einer Datei
   (`viewType`: `'grid' | 'list' | 'matrix'`); wer dort etwas aendert, prueft alle drei.
 - `src/types.ts` — gemeinsame Typen fuer Client und Server.
+- `src/hinweise.ts` — welche Monatshinweise unter der Ueberschrift eines Monats
+  stehen und wann ein eintreffendes Socket-Ereignis ein Eingabefeld ueberschreiben
+  darf. Getipptes hat Vorrang, sonst geht es beim Schreiben anderer verloren.
 - `src/sperrfrist.ts` — wann ein Monat gesperrt ist. **Server und Oberflaeche benutzen
   dieselbe Funktion**; zwei Fassungen waeren ein Fehler.
 - `tools/` — Sessionstart- und Schleusen-Skript (in `.claude/settings.json` als Hooks).
