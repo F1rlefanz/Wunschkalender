@@ -16,6 +16,17 @@ umformuliert statt ein zweiter danebengestellt.
 
 ## [Unreleased]
 
+### Geändert
+- **Der Server prüft jetzt jede Eingabe, bevor er sie speichert.** Ein Wunsch
+  braucht einen wirklichen Kalendertag und eine der vier Schichtarten, ein
+  Hinweis einen Monat im Format `JJJJ-MM`; Kommentare sind auf 500, Hinweise auf
+  2000 Zeichen begrenzt. Was der Server nicht kennt, übernimmt er nicht mehr —
+  bisher landete alles Mitgeschickte unverändert in der Datenbank.
+- **Nach zehn fehlgeschlagenen Anmeldeversuchen ist ein Konto eine
+  Viertelstunde lang gesperrt.** Damit lässt sich ein Passwort nicht mehr
+  durchprobieren. Wer das richtige Passwort eingibt, merkt von der Sperre
+  nichts.
+
 ## [0.2.0] – 2026-08-19
 
 ### Hinzugefügt

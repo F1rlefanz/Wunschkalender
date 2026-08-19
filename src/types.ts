@@ -5,7 +5,14 @@
  */
 export const MIN_PASSWORD_LENGTH = 8;
 
-export type ShiftType = 'Früh' | 'Spät' | 'Nacht' | 'Frei';
+/**
+ * Die Schichtarten als Wert, nicht nur als Typ: Der Server muss eingehende
+ * Angaben dagegen pruefen koennen, und zwei Listen liefen frueher oder spaeter
+ * auseinander.
+ */
+export const SHIFT_TYPES = ['Früh', 'Spät', 'Nacht', 'Frei'] as const;
+
+export type ShiftType = (typeof SHIFT_TYPES)[number];
 
 export type Role = 'Manager' | 'Employee';
 

@@ -12,6 +12,18 @@ import { SqliteSessionStore } from './src/server/session-store';
 import { resolveSessionSecret } from './src/server/session-secret';
 import { hashPassword, verifyPassword, MIN_PASSWORD_LENGTH } from './src/server/passwords';
 import { istMonatGesperrt, monatVon } from './src/sperrfrist';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
+import {
+  anmeldungSchema,
+  benutzerAendernSchema,
+  benutzerAnlegenSchema,
+  einstellungenSchema,
+  monatshinweisSchema,
+  passwortAendernSchema,
+  passwortZuruecksetzenSchema,
+  pruefe,
+  wunschSchema,
+} from './src/server/validierung';
 
 const DB_FILE = path.join(process.cwd(), 'data.sqlite');
 const LEGACY_JSON = path.join(process.cwd(), 'db.json');
@@ -69,7 +81,9 @@ async function startServer() {
   // Hinter einem Reverse Proxy muss Express der Weiterleitung glauben, sonst
   // greift `secure: 'auto'` nie. Siehe #30.
   app.set('trust proxy', 1);
-  app.use(express.json());
+  // Ohne Grenze nimmt Express Nutzlasten bis 100 kB entgegen. Der groesste
+  // echte Koerper hier sind ein paar hundert Zeichen Hinweistext.
+  app.use(express.json({ limit: '16kb' }));
 
   const sessionMiddleware = session({
     name: 'wunschkalender.sid',
@@ -128,13 +142,62 @@ async function startServer() {
 
   // ----- Anmeldung -----
 
-  app.post('/api/login', async (req, res) => {
-    const { name, password } = req.body ?? {};
-    const user = typeof name === 'string' ? store.findUserByName(name) : undefined;
+  /**
+   * Zwei Bremsen statt einer: Die erste haelt das Durchprobieren vieler
+   * Passwoerter zu *einem* Konto auf, auch wenn es von wechselnden Adressen
+   * kommt. Die zweite haelt das Durchprobieren vieler *Konten* mit einem
+   * beliebten Passwort von einer Adresse auf. Beide zaehlen nur
+   * fehlgeschlagene Versuche — wer das Passwort kennt, merkt nichts davon.
+   *
+   * Der Preis der Kontobremse: Wer den Namen einer Kollegin kennt, kann sie
+   * fuer eine Viertelstunde aussperren. Auf einer Station mit einer Handvoll
+   * Konten ist das hinnehmbar; die Alternative — nur nach Adresse zu bremsen —
+   * liesse ein Konto von wechselnden Adressen aus beliebig durchprobieren.
+   */
+  const ANMELDEFENSTER = 15 * 60 * 1000;
+  const zuVieleVersuche = (_req: Request, res: Response) =>
+    res.status(429).json({
+      success: false,
+      message: 'Zu viele Anmeldeversuche. Bitte in 15 Minuten noch einmal versuchen.',
+    });
+
+  const bremseProKonto = rateLimit({
+    windowMs: ANMELDEFENSTER,
+    limit: 10,
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    // Ohne Namen im Koerper faellt der Versuch auf einen gemeinsamen
+    // Schluessel zurueck; solche Anfragen scheitern ohnehin.
+    keyGenerator: (req) =>
+      typeof req.body?.name === 'string' ? `konto:${req.body.name.trim().toLowerCase()}` : 'konto:',
+    handler: zuVieleVersuche,
+  });
+
+  const bremseProAdresse = rateLimit({
+    windowMs: ANMELDEFENSTER,
+    limit: 50,
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    // ipKeyGenerator fasst IPv6-Adressen zu ihrem Praefix zusammen. Ohne das
+    // haette jemand mit einem /64-Netz beliebig viele Schluessel.
+    keyGenerator: (req) => ipKeyGenerator(req.ip ?? ''),
+    handler: zuVieleVersuche,
+  });
+
+  app.post('/api/login', bremseProAdresse, bremseProKonto, async (req, res) => {
+    const eingabe = pruefe(anmeldungSchema, req.body);
+    // Auch hier keine genaue Begruendung: was fehlt, sagt der Server nicht.
+    if (eingabe.art === 'fehler') {
+      return res.status(400).json({ success: false, message: 'Anmeldung fehlgeschlagen.' });
+    }
+    const { name, password } = eingabe.wert;
+    const user = store.findUserByName(name);
 
     // Bewusst dieselbe Antwort fuer unbekanntes Konto und falsches Passwort:
     // Der Server gibt keine Auskunft darueber, wer existiert.
-    if (!user || !(await verifyPassword(user.passwordHash, String(password ?? '')))) {
+    if (!user || !(await verifyPassword(user.passwordHash, password))) {
       return res.status(401).json({ success: false, message: 'Anmeldung fehlgeschlagen.' });
     }
 
@@ -208,10 +271,10 @@ async function startServer() {
   });
 
   app.post('/api/users', requireManager, async (req, res) => {
-    const { name, role, password } = req.body ?? {};
-    if (typeof name !== 'string' || name.trim() === '') {
-      return res.status(400).json({ error: 'Name fehlt.' });
-    }
+    const eingabe = pruefe(benutzerAnlegenSchema, req.body);
+    if (eingabe.art === 'fehler') return res.status(400).json({ error: eingabe.fehler });
+    const { name, role, password } = eingabe.wert;
+
     if (store.findUserByName(name)) {
       return res.status(409).json({
         error: `Der Name "${name.trim()}" ist bereits vergeben. Namen muessen eindeutig sein.`,
@@ -219,12 +282,8 @@ async function startServer() {
     }
 
     try {
-      const passwordHash = await hashPassword(String(password ?? ''));
-      const user = store.createUser({
-        name,
-        role: role === 'Manager' ? 'Manager' : 'Employee',
-        passwordHash,
-      });
+      const passwordHash = await hashPassword(password);
+      const user = store.createUser({ name, role, passwordHash });
       broadcastUsers();
       res.json({ success: true, user });
     } catch (fehler) {
@@ -235,19 +294,18 @@ async function startServer() {
   app.put('/api/users/:id', requireManager, (req, res) => {
     // Nimmt bewusst kein `password` mehr entgegen: Frueher umging dieses Feld
     // die Pruefung des alten Passworts, die /password vornimmt.
-    const { name, role } = req.body ?? {};
+    const eingabe = pruefe(benutzerAendernSchema, req.body);
+    if (eingabe.art === 'fehler') return res.status(400).json({ error: eingabe.fehler });
+    const { name, role } = eingabe.wert;
 
-    if (typeof name === 'string' && name.trim() !== '') {
+    if (name !== undefined) {
       const belegt = store.findUserByName(name);
       if (belegt && belegt.id !== req.params.id) {
         return res.status(409).json({ error: `Der Name "${name.trim()}" ist bereits vergeben.` });
       }
     }
 
-    const geaendert = store.updateUser(req.params.id, {
-      name: typeof name === 'string' ? name : undefined,
-      role: role === 'Manager' || role === 'Employee' ? role : undefined,
-    });
+    const geaendert = store.updateUser(req.params.id, { name, role });
     if (!geaendert) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
 
     broadcastUsers();
@@ -260,15 +318,17 @@ async function startServer() {
       return res.status(403).json({ error: 'Nur das eigene Passwort laesst sich so aendern.' });
     }
 
-    const { oldPassword, newPassword } = req.body ?? {};
+    const eingabe = pruefe(passwortAendernSchema, req.body);
+    if (eingabe.art === 'fehler') return res.status(400).json({ success: false, message: eingabe.fehler });
+    const { oldPassword, newPassword } = eingabe.wert;
     const user = store.findUserWithHash(req.params.id)!;
 
-    if (!(await verifyPassword(user.passwordHash, String(oldPassword ?? '')))) {
+    if (!(await verifyPassword(user.passwordHash, oldPassword))) {
       return res.status(401).json({ success: false, message: 'Altes Passwort ist falsch.' });
     }
 
     try {
-      store.setPasswordHash(user.id, await hashPassword(String(newPassword ?? '')));
+      store.setPasswordHash(user.id, await hashPassword(newPassword));
       // Andere Geraete abmelden — aber nicht die Sitzung, die gerade aendert.
       // Sonst meldete die Oberflaeche Erfolg, waehrend der Server bereits 401 gibt.
       trenneSockets(sessionStore.destroyByUser(user.id, { except: req.sessionID }));
@@ -280,13 +340,16 @@ async function startServer() {
 
   /** Die Leitung setzt ein neues Passwort — ersetzt den entfernten Reset-Weg. */
   app.put('/api/users/:id/reset-password', requireManager, async (req, res) => {
-    const { newPassword } = req.body ?? {};
+    const eingabe = pruefe(passwortZuruecksetzenSchema, req.body);
+    if (eingabe.art === 'fehler') return res.status(400).json({ success: false, message: eingabe.fehler });
+    const { newPassword } = eingabe.wert;
+
     if (!store.findUserById(req.params.id)) {
       return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
     }
 
     try {
-      store.setPasswordHash(req.params.id, await hashPassword(String(newPassword ?? '')));
+      store.setPasswordHash(req.params.id, await hashPassword(newPassword));
       trenneSockets(sessionStore.destroyByUser(req.params.id, { except: req.sessionID }));
       res.json({ success: true });
     } catch (fehler) {
@@ -317,11 +380,10 @@ async function startServer() {
   });
 
   app.post('/api/settings', requireManager, (req, res) => {
-    const { bookingDeadlineDay } = req.body ?? {};
-    if (!Number.isInteger(bookingDeadlineDay) || bookingDeadlineDay < 1 || bookingDeadlineDay > 31) {
-      return res.status(400).json({ error: 'bookingDeadlineDay muss eine Zahl zwischen 1 und 31 sein.' });
-    }
-    const settings = store.setBookingDeadlineDay(bookingDeadlineDay);
+    const eingabe = pruefe(einstellungenSchema, req.body);
+    if (eingabe.art === 'fehler') return res.status(400).json({ error: eingabe.fehler });
+
+    const settings = store.setBookingDeadlineDay(eingabe.wert.bookingDeadlineDay);
     io.emit('settings_updated', settings);
     res.json(settings);
   });
@@ -335,15 +397,14 @@ async function startServer() {
   app.post('/api/wishes', (req, res) => {
     // Die userId stammt aus der Sitzung, niemals aus dem Koerper.
     const userId = req.session.userId!;
-    const { date, shiftType, comment } = req.body ?? {};
-    if (!date || !shiftType) {
-      return res.status(400).json({ error: 'date und shiftType sind erforderlich.' });
-    }
+    const eingabe = pruefe(wunschSchema, req.body);
+    if (eingabe.art === 'fehler') return res.status(400).json({ error: eingabe.fehler });
+    const { date, shiftType, comment } = eingabe.wert;
 
-    const gesperrt = sperrfristVerletzt(req, monatVon(String(date)));
+    const gesperrt = sperrfristVerletzt(req, monatVon(date));
     if (gesperrt) return res.status(403).json({ error: gesperrt });
 
-    const wish = store.addWish({ userId, date, shiftType, comment: comment ?? '' });
+    const wish = store.addWish({ userId, date, shiftType, comment });
     io.emit('wish_added', wish);
     res.json(wish);
   });
@@ -381,14 +442,15 @@ async function startServer() {
 
   app.post('/api/monthly-comments', (req, res) => {
     const userId = req.session.userId!;
-    const { month, text } = req.body ?? {};
-    if (!month) return res.status(400).json({ error: 'month ist erforderlich.' });
+    const eingabe = pruefe(monatshinweisSchema, req.body);
+    if (eingabe.art === 'fehler') return res.status(400).json({ error: eingabe.fehler });
+    const { month, text } = eingabe.wert;
 
-    const gesperrt = sperrfristVerletzt(req, String(month));
+    const gesperrt = sperrfristVerletzt(req, month);
     if (gesperrt) return res.status(403).json({ error: gesperrt });
 
     const vorher = store.listMonthlyComments().some((c) => c.userId === userId && c.month === month);
-    const comment = store.saveMonthlyComment({ userId, month, text: text ?? '' });
+    const comment = store.saveMonthlyComment({ userId, month, text });
     io.emit(vorher ? 'monthly_comment_updated' : 'monthly_comment_added', comment);
     res.json(comment);
   });
