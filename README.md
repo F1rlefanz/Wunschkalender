@@ -1,20 +1,38 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Wunschkalender
 
-# Run and deploy your AI Studio app
+Dienstwunsch-Kalender für Pflegestationen. Mitarbeitende tragen ihre Schichtwünsche
+(Früh, Spät, Nacht, Frei) für einen Monat ein; die Stationsleitung sieht alle Wünsche,
+erkennt Überschneidungen und exportiert den Stand als PDF für die Dienstplanung.
 
-This contains everything you need to run your app locally.
+> **Status:** in Umbau. Der Stand ist noch nicht produktionsreif — siehe die offenen
+> Issues. Insbesondere fehlt eine serverseitige Authentifizierung; die Anwendung
+> gehört derzeit in kein offenes Netz.
 
-View your app in AI Studio: https://ai.studio/apps/9a0dbf88-d300-4ce9-83a7-61f7711650c3
+## Rollen
 
-## Run Locally
+| Rolle | Darf |
+|---|---|
+| **Mitarbeiter** | eigene Wünsche eintragen und löschen, eigenen Monatshinweis pflegen |
+| **Manager** (Stationsleitung) | alle Wünsche sehen und löschen, Benutzer verwalten, PDF exportieren |
 
-**Prerequisites:**  Node.js
+## Entwicklung
 
+**Voraussetzung:** Node.js 20 oder neuer.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm install
+npm run dev      # Server + Vite unter http://localhost:3000
+npm run lint     # Typprüfung (tsc --noEmit)
+npm test         # Unit-Tests (vitest)
+npm run build    # Produktions-Build nach dist/
+```
+
+Die Daten liegen lokal in `db.json` (wird beim ersten Start angelegt und ist bewusst
+nicht im Repository, da sie Benutzerkonten enthält).
+
+## Arbeitsweise
+
+Offene Aufgaben stehen als **GitHub Issues**, nicht in Dateien im Repo.
+Nutzersichtbare Änderungen stehen im [CHANGELOG](CHANGELOG.md).
+Wie in diesem Projekt gearbeitet wird, steht in [CLAUDE.md](CLAUDE.md) und in
+`.claude/skills/`.

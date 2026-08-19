@@ -6,3 +6,10 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Lokale Datenbank: enthaelt Benutzerdaten und Passwoerter, gehoert nie ins Repo
+db.json
+db.json.tmp
+
+# Interne Arbeitsdateien (Notizen, Analysen) - nicht fuer GitHub
+..Projektdateien/
