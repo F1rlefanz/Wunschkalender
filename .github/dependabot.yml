@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: saturday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+    groups:
+      # Kleine Updates gebuendelt, damit nicht jede Patch-Version einen eigenen PR erzeugt.
+      # Major-Updates bleiben einzeln - die will man einzeln ansehen.
+      nicht-breaking:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
