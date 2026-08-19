@@ -26,14 +26,3 @@ export interface MonthlyComment {
 export interface Settings {
   bookingDeadlineDay: number; // Day of month when booking locks for next month
 }
-
-// Demo data
-export const DEMO_USERS: User[] = [
-  { id: 'u1', name: 'Max Mustermann', role: 'Employee' },
-  { id: 'u2', name: 'Anna Schmidt', role: 'Manager' },
-  { id: 'u3', name: 'Thomas Müller', role: 'Employee' },
-  { id: 'u4', name: 'Laura Weber', role: 'Employee' },
-  { id: 'u5', name: 'Jan Becker', role: 'Manager' },
-];
-
-
