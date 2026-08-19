@@ -1,4 +1,5 @@
-import express from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
+import session from 'express-session';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { Server as SocketIOServer } from 'socket.io';
@@ -7,10 +8,16 @@ import { createDatabase } from './src/server/database';
 import { migrateFromJson } from './src/server/migration';
 import { ensureManagerAccount } from './src/server/seed';
 import { createStore } from './src/server/store';
+import { SqliteSessionStore } from './src/server/session-store';
+import { resolveSessionSecret } from './src/server/session-secret';
 import { hashPassword, verifyPassword, MIN_PASSWORD_LENGTH } from './src/server/passwords';
 
 const DB_FILE = path.join(process.cwd(), 'data.sqlite');
 const LEGACY_JSON = path.join(process.cwd(), 'db.json');
+const SECRET_FILE = path.join(process.cwd(), 'sitzungsgeheimnis');
+
+/** Zehn Jahre. "Kein Ablauf" gaebe ein Cookie, das beim Schliessen des Browsers stirbt. */
+const COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60 * 1000;
 
 async function startServer() {
   const db = createDatabase(DB_FILE);
@@ -45,13 +52,62 @@ async function startServer() {
   }
 
   const store = createStore(db);
+  const sessionStore = new SqliteSessionStore(db);
+  const secret = resolveSessionSecret(SECRET_FILE, process.env.SESSION_SECRET);
+  if (secret.source === 'erzeugt') {
+    console.log(`Sitzungsgeheimnis erzeugt und abgelegt unter ${SECRET_FILE}.`);
+  }
 
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
   const httpServer = http.createServer(app);
+  // Ohne cors-Option bedient Socket.IO nur die eigene Herkunft. Frueher stand
+  // hier origin: '*' — damit konnte jede beliebige Website mitlesen.
   const io = new SocketIOServer(httpServer);
 
+  // Hinter einem Reverse Proxy muss Express der Weiterleitung glauben, sonst
+  // greift `secure: 'auto'` nie. Siehe #30.
+  app.set('trust proxy', 1);
   app.use(express.json());
+
+  const sessionMiddleware = session({
+    name: 'wunschkalender.sid',
+    secret: secret.secret,
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    // `proxy` liest express-session aus den eigenen Optionen, nicht aus app.set.
+    proxy: true,
+    cookie: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: 'auto',
+      maxAge: COOKIE_MAX_AGE,
+    },
+  });
+  app.use(sessionMiddleware);
+
+  // ----- Sitzung und Sockets -----
+
+  /** Trennt offene Socket-Verbindungen zu Sitzungen, die es nicht mehr gibt. */
+  const trenneSockets = (sids: string[]) => {
+    if (sids.length === 0) return;
+    for (const socket of io.sockets.sockets.values()) {
+      const sid = (socket.request as any).sessionID;
+      if (sid && sids.includes(sid)) socket.disconnect(true);
+    }
+  };
+
+  // Traegt die Sitzung an socket.request. Weist aber NICHTS ab: engine.use
+  // bricht nur bei next(err) ab, und express-session ruft das nie auf.
+  io.engine.use(sessionMiddleware);
+
+  // Deshalb hier die eigentliche Abweisung.
+  io.use((socket, next) => {
+    const userId = (socket.request as any).session?.userId;
+    if (!userId) return next(new Error('nicht angemeldet'));
+    next();
+  });
 
   io.on('connection', (socket) => {
     socket.emit('init', {
@@ -62,16 +118,18 @@ async function startServer() {
   });
 
   const broadcastUsers = () => io.emit('users_updated', store.listUsers());
+  const broadcastAll = () =>
+    io.emit('init', {
+      wishes: store.listWishes(),
+      monthlyComments: store.listMonthlyComments(),
+      settings: store.getSettings(),
+    });
 
-  // ----- Benutzer -----
-
-  app.get('/api/users', (_req, res) => {
-    res.json(store.listUsers());
-  });
+  // ----- Anmeldung -----
 
   app.post('/api/login', async (req, res) => {
-    const { userId, password } = req.body ?? {};
-    const user = typeof userId === 'string' ? store.findUserWithHash(userId) : undefined;
+    const { name, password } = req.body ?? {};
+    const user = typeof name === 'string' ? store.findUserByName(name) : undefined;
 
     // Bewusst dieselbe Antwort fuer unbekanntes Konto und falsches Passwort:
     // Der Server gibt keine Auskunft darueber, wer existiert.
@@ -79,10 +137,64 @@ async function startServer() {
       return res.status(401).json({ success: false, message: 'Anmeldung fehlgeschlagen.' });
     }
 
-    res.json({ success: true, user: { id: user.id, name: user.name, role: user.role } });
+    // Neue Sitzungskennung nach erfolgreicher Anmeldung (gegen Session-Fixation).
+    req.session.regenerate((fehler) => {
+      if (fehler) return res.status(500).json({ success: false, message: 'Anmeldung fehlgeschlagen.' });
+      req.session.userId = user.id;
+      req.session.save((speicherFehler) => {
+        if (speicherFehler) {
+          return res.status(500).json({ success: false, message: 'Anmeldung fehlgeschlagen.' });
+        }
+        res.json({ success: true, user: { id: user.id, name: user.name, role: user.role } });
+      });
+    });
   });
 
-  app.post('/api/users', async (req, res) => {
+  app.post('/api/logout', (req, res) => {
+    const sid = req.sessionID;
+    req.session.destroy(() => {
+      trenneSockets([sid]);
+      res.clearCookie('wunschkalender.sid');
+      res.json({ success: true });
+    });
+  });
+
+  /** Sagt der Oberflaeche beim Start, wer angemeldet ist — Grundlage dafuer,
+   *  dass ein Neuladen nicht mehr aus der Anwendung wirft. */
+  app.get('/api/me', (req, res) => {
+    const userId = req.session.userId;
+    const user = userId ? store.findUserById(userId) : undefined;
+    if (!user) return res.status(401).json({ user: null });
+    res.json({ user });
+  });
+
+  // ----- Ab hier ist eine Anmeldung Pflicht -----
+
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId || !store.findUserById(req.session.userId)) {
+      return res.status(401).json({ error: 'Nicht angemeldet.' });
+    }
+    next();
+  };
+
+  const requireManager = (req: Request, res: Response, next: NextFunction) => {
+    const user = req.session.userId ? store.findUserById(req.session.userId) : undefined;
+    if (!user) return res.status(401).json({ error: 'Nicht angemeldet.' });
+    if (user.role !== 'Manager') {
+      return res.status(403).json({ error: 'Diese Aktion ist der Stationsleitung vorbehalten.' });
+    }
+    next();
+  };
+
+  app.use('/api', requireAuth);
+
+  // ----- Benutzer -----
+
+  app.get('/api/users', (_req, res) => {
+    res.json(store.listUsers());
+  });
+
+  app.post('/api/users', requireManager, async (req, res) => {
     const { name, role, password } = req.body ?? {};
     if (typeof name !== 'string' || name.trim() === '') {
       return res.status(400).json({ error: 'Name fehlt.' });
@@ -107,7 +219,7 @@ async function startServer() {
     }
   });
 
-  app.put('/api/users/:id', (req, res) => {
+  app.put('/api/users/:id', requireManager, (req, res) => {
     // Nimmt bewusst kein `password` mehr entgegen: Frueher umging dieses Feld
     // die Pruefung des alten Passworts, die /password vornimmt.
     const { name, role } = req.body ?? {};
@@ -129,10 +241,14 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  /** Das eigene Passwort aendern. Nur fuer das eigene Konto. */
   app.put('/api/users/:id/password', async (req, res) => {
+    if (req.params.id !== req.session.userId) {
+      return res.status(403).json({ error: 'Nur das eigene Passwort laesst sich so aendern.' });
+    }
+
     const { oldPassword, newPassword } = req.body ?? {};
-    const user = store.findUserWithHash(req.params.id);
-    if (!user) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+    const user = store.findUserWithHash(req.params.id)!;
 
     if (!(await verifyPassword(user.passwordHash, String(oldPassword ?? '')))) {
       return res.status(401).json({ success: false, message: 'Altes Passwort ist falsch.' });
@@ -140,6 +256,9 @@ async function startServer() {
 
     try {
       store.setPasswordHash(user.id, await hashPassword(String(newPassword ?? '')));
+      // Andere Geraete abmelden — aber nicht die Sitzung, die gerade aendert.
+      // Sonst meldete die Oberflaeche Erfolg, waehrend der Server bereits 401 gibt.
+      trenneSockets(sessionStore.destroyByUser(user.id, { except: req.sessionID }));
       res.json({ success: true });
     } catch (fehler) {
       res.status(400).json({ success: false, message: (fehler as Error).message });
@@ -147,7 +266,7 @@ async function startServer() {
   });
 
   /** Die Leitung setzt ein neues Passwort — ersetzt den entfernten Reset-Weg. */
-  app.put('/api/users/:id/reset-password', async (req, res) => {
+  app.put('/api/users/:id/reset-password', requireManager, async (req, res) => {
     const { newPassword } = req.body ?? {};
     if (!store.findUserById(req.params.id)) {
       return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
@@ -155,24 +274,26 @@ async function startServer() {
 
     try {
       store.setPasswordHash(req.params.id, await hashPassword(String(newPassword ?? '')));
+      trenneSockets(sessionStore.destroyByUser(req.params.id, { except: req.sessionID }));
       res.json({ success: true });
     } catch (fehler) {
       res.status(400).json({ success: false, message: (fehler as Error).message });
     }
   });
 
-  app.delete('/api/users/:id', (req, res) => {
+  app.delete('/api/users/:id', requireManager, (req, res) => {
+    if (req.params.id === req.session.userId) {
+      return res.status(400).json({ error: 'Das eigene Konto laesst sich nicht loeschen.' });
+    }
+
+    const sids = sessionStore.destroyByUser(req.params.id);
     if (!store.deleteUser(req.params.id)) {
       return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
     }
+    trenneSockets(sids);
     broadcastUsers();
-    // Wuensche und Hinweise sind per ON DELETE CASCADE mitgegangen; die Clients
-    // brauchen deshalb einen frischen Stand.
-    io.emit('init', {
-      wishes: store.listWishes(),
-      monthlyComments: store.listMonthlyComments(),
-      settings: store.getSettings(),
-    });
+    // Wuensche und Hinweise sind per ON DELETE CASCADE mitgegangen.
+    broadcastAll();
     res.json({ success: true });
   });
 
@@ -182,7 +303,7 @@ async function startServer() {
     res.json(store.getSettings());
   });
 
-  app.post('/api/settings', (req, res) => {
+  app.post('/api/settings', requireManager, (req, res) => {
     const { bookingDeadlineDay } = req.body ?? {};
     if (!Number.isInteger(bookingDeadlineDay) || bookingDeadlineDay < 1 || bookingDeadlineDay > 31) {
       return res.status(400).json({ error: 'bookingDeadlineDay muss eine Zahl zwischen 1 und 31 sein.' });
@@ -199,12 +320,11 @@ async function startServer() {
   });
 
   app.post('/api/wishes', (req, res) => {
-    const { userId, date, shiftType, comment } = req.body ?? {};
-    if (!userId || !date || !shiftType) {
-      return res.status(400).json({ error: 'userId, date und shiftType sind erforderlich.' });
-    }
-    if (!store.findUserById(userId)) {
-      return res.status(400).json({ error: 'Unbekannter Benutzer.' });
+    // Die userId stammt aus der Sitzung, niemals aus dem Koerper.
+    const userId = req.session.userId!;
+    const { date, shiftType, comment } = req.body ?? {};
+    if (!date || !shiftType) {
+      return res.status(400).json({ error: 'date und shiftType sind erforderlich.' });
     }
 
     const wish = store.addWish({ userId, date, shiftType, comment: comment ?? '' });
@@ -213,9 +333,14 @@ async function startServer() {
   });
 
   app.delete('/api/wishes/:id', (req, res) => {
-    if (!store.findWish(req.params.id)) {
-      return res.status(404).json({ error: 'Wunsch nicht gefunden.' });
+    const wish = store.findWish(req.params.id);
+    if (!wish) return res.status(404).json({ error: 'Wunsch nicht gefunden.' });
+
+    const user = store.findUserById(req.session.userId!)!;
+    if (wish.userId !== user.id && user.role !== 'Manager') {
+      return res.status(403).json({ error: 'Nur eigene Wuensche lassen sich loeschen.' });
     }
+
     store.deleteWish(req.params.id);
     io.emit('wish_deleted', req.params.id);
     res.json({ success: true });
@@ -233,13 +358,9 @@ async function startServer() {
   });
 
   app.post('/api/monthly-comments', (req, res) => {
-    const { userId, month, text } = req.body ?? {};
-    if (!userId || !month) {
-      return res.status(400).json({ error: 'userId und month sind erforderlich.' });
-    }
-    if (!store.findUserById(userId)) {
-      return res.status(400).json({ error: 'Unbekannter Benutzer.' });
-    }
+    const userId = req.session.userId!;
+    const { month, text } = req.body ?? {};
+    if (!month) return res.status(400).json({ error: 'month ist erforderlich.' });
 
     const vorher = store.listMonthlyComments().some((c) => c.userId === userId && c.month === month);
     const comment = store.saveMonthlyComment({ userId, month, text: text ?? '' });
@@ -264,7 +385,10 @@ async function startServer() {
   }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server laeuft auf Port ${PORT} (Mindestlaenge fuer Passwoerter: ${MIN_PASSWORD_LENGTH})`);
+    console.log(
+      `Server laeuft auf Port ${PORT} (Mindestlaenge fuer Passwoerter: ${MIN_PASSWORD_LENGTH}, ` +
+        `Sitzungsgeheimnis: ${secret.source})`,
+    );
   });
 }
 

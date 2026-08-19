@@ -28,6 +28,22 @@ export default function App() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // Beim Start fragen, wer angemeldet ist. Ohne das erschiene nach jedem
+  // Neuladen wieder der Anmeldebildschirm, obwohl die Sitzung noch gilt.
+  useEffect(() => {
+    api
+      .me()
+      .then((user) => {
+        if (user) {
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => setCheckingSession(false));
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -84,12 +100,7 @@ export default function App() {
     
     try {
       await Promise.all(
-        dates.map(date => api.addWish({
-          userId: currentUser.id,
-          date,
-          shiftType,
-          comment,
-        }))
+        dates.map(date => api.addWish({ date, shiftType, comment }))
       );
     } catch (error) {
       console.error('Failed to add wishes:', error);
@@ -109,11 +120,7 @@ export default function App() {
   const handleSaveMonthlyComment = async (month: string, text: string) => {
     if (!currentUser) return;
     try {
-      await api.saveMonthlyComment({
-        userId: currentUser.id,
-        month,
-        text
-      });
+      await api.saveMonthlyComment({ month, text });
     } catch (error) {
       console.error('Failed to save monthly comment:', error);
     }
@@ -157,6 +164,14 @@ export default function App() {
     doc.save(`Wunschkalender_${currentMonth}.pdf`);
   };
 
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <Gatekeeper onSuccess={(user) => {
       setCurrentUser(user);
@@ -170,7 +185,8 @@ export default function App() {
         currentUser={currentUser} 
         currentView={currentView}
         onNavigate={setCurrentView}
-        onLogout={() => {
+        onLogout={async () => {
+          await api.logout().catch(() => undefined);
           setIsAuthenticated(false);
           setCurrentUser(null);
           setCurrentView('calendar');

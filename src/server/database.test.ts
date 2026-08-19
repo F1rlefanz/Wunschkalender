@@ -1,5 +1,31 @@
 import { describe, expect, test } from 'vitest';
+import Database from 'better-sqlite3';
 import { createDatabase } from './database';
+
+describe('Schemaanpassung', () => {
+  test('ergaenzt eine sessions-Tabelle aus einer aelteren Fassung', () => {
+    // CREATE TABLE IF NOT EXISTS ruehrt eine vorhandene Tabelle nicht an. Ohne
+    // ausdrueckliche Anpassung liefe der Server gegen ein veraltetes Schema und
+    // scheiterte erst beim ersten Anmelden.
+    const db = new Database(':memory:');
+    db.exec(`
+      CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, role TEXT NOT NULL, password_hash TEXT NOT NULL);
+      CREATE TABLE sessions (sid TEXT PRIMARY KEY, sess TEXT NOT NULL, expire INTEGER NOT NULL);
+      INSERT INTO users (id, name, role, password_hash) VALUES ('u1', 'Anna', 'Manager', 'h');
+      INSERT INTO sessions (sid, sess, expire) VALUES ('alt', '{}', 99999999999999);
+    `);
+
+    createDatabase(':memory:', db);
+
+    const spalten = db
+      .prepare('PRAGMA table_info(sessions)')
+      .all()
+      .map((s: any) => s.name);
+    expect(spalten).toContain('user_id');
+    // Die Benutzer muessen erhalten bleiben — nur Sitzungen sind wegwerfbar.
+    expect(db.prepare('SELECT count(*) AS n FROM users').get()).toEqual({ n: 1 });
+  });
+});
 
 describe('createDatabase', () => {
   test('legt alle benoetigten Tabellen an', () => {

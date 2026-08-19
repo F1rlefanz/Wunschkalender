@@ -39,7 +39,7 @@ export const api = {
     return response.json();
   },
 
-  async addWish(wish: Omit<Wish, 'id'>): Promise<Wish> {
+  async addWish(wish: Omit<Wish, 'id' | 'userId'>): Promise<Wish> {
     const response = await fetch('/api/wishes', {
       method: 'POST',
       headers: {
@@ -68,7 +68,7 @@ export const api = {
     return response.json();
   },
 
-  async saveMonthlyComment(comment: Omit<MonthlyComment, 'id'>): Promise<MonthlyComment> {
+  async saveMonthlyComment(comment: Omit<MonthlyComment, 'id' | 'userId'>): Promise<MonthlyComment> {
     const response = await fetch('/api/monthly-comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -84,13 +84,28 @@ export const api = {
     return response.json();
   },
 
-  async login(userId: string, password: string): Promise<{ success: boolean; user?: any; message?: string }> {
+  async login(name: string, password: string): Promise<{ success: boolean; user?: any; message?: string }> {
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, password }),
+      body: JSON.stringify({ name, password }),
     });
     return response.json();
+  },
+
+  /**
+   * Fragt beim Start, wer angemeldet ist. Ohne das erschiene nach jedem
+   * Neuladen wieder der Anmeldebildschirm, obwohl die Sitzung noch gilt.
+   */
+  async me(): Promise<any | null> {
+    const response = await fetch('/api/me');
+    if (!response.ok) return null;
+    const koerper = await response.json();
+    return koerper.user ?? null;
+  },
+
+  async logout(): Promise<void> {
+    await fetch('/api/logout', { method: 'POST' });
   },
 
   async createUser(user: any): Promise<void> {
