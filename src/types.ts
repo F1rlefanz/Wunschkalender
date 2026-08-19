@@ -1,3 +1,10 @@
+/**
+ * Mindestlaenge fuer Passwoerter. Steht hier und nicht im Servermodul, weil die
+ * Oberflaeche sie nennen muss — und weil das Servermodul argon2 mitbraechte,
+ * das nichts im Browser-Bundle zu suchen hat.
+ */
+export const MIN_PASSWORD_LENGTH = 8;
+
 export type ShiftType = 'Früh' | 'Spät' | 'Nacht' | 'Frei';
 
 export type Role = 'Manager' | 'Employee';

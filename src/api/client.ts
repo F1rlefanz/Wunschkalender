@@ -1,5 +1,19 @@
 import { Wish, MonthlyComment, Settings } from '../types';
 
+/**
+ * Holt die Begruendung aus der Serverantwort. Ohne das bliebe von einer
+ * praezisen Meldung ("Name bereits vergeben", "Passwort zu kurz") nur ein
+ * allgemeines "Fehler" uebrig, mit dem niemand etwas anfangen kann.
+ */
+async function fehlermeldung(response: Response, fallback: string): Promise<string> {
+  try {
+    const koerper = await response.json();
+    return koerper?.error || koerper?.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const api = {
   async getSettings(): Promise<Settings> {
     const response = await fetch('/api/settings');
@@ -25,7 +39,7 @@ export const api = {
     return response.json();
   },
 
-  async addWish(wish: Omit<Wish, 'id'>): Promise<Wish> {
+  async addWish(wish: Omit<Wish, 'id' | 'userId'>): Promise<Wish> {
     const response = await fetch('/api/wishes', {
       method: 'POST',
       headers: {
@@ -54,7 +68,7 @@ export const api = {
     return response.json();
   },
 
-  async saveMonthlyComment(comment: Omit<MonthlyComment, 'id'>): Promise<MonthlyComment> {
+  async saveMonthlyComment(comment: Omit<MonthlyComment, 'id' | 'userId'>): Promise<MonthlyComment> {
     const response = await fetch('/api/monthly-comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -70,13 +84,28 @@ export const api = {
     return response.json();
   },
 
-  async login(userId: string, password: string): Promise<{ success: boolean; user?: any; message?: string }> {
+  async login(name: string, password: string): Promise<{ success: boolean; user?: any; message?: string }> {
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, password }),
+      body: JSON.stringify({ name, password }),
     });
     return response.json();
+  },
+
+  /**
+   * Fragt beim Start, wer angemeldet ist. Ohne das erschiene nach jedem
+   * Neuladen wieder der Anmeldebildschirm, obwohl die Sitzung noch gilt.
+   */
+  async me(): Promise<any | null> {
+    const response = await fetch('/api/me');
+    if (!response.ok) return null;
+    const koerper = await response.json();
+    return koerper.user ?? null;
+  },
+
+  async logout(): Promise<void> {
+    await fetch('/api/logout', { method: 'POST' });
   },
 
   async createUser(user: any): Promise<void> {
@@ -85,7 +114,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(user),
     });
-    if (!response.ok) throw new Error('Failed to create user');
+    if (!response.ok) throw new Error(await fehlermeldung(response, 'Der Benutzer konnte nicht angelegt werden.'));
   },
 
   async updateUser(id: string, user: any): Promise<void> {
@@ -94,7 +123,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(user),
     });
-    if (!response.ok) throw new Error('Failed to update user');
+    if (!response.ok) throw new Error(await fehlermeldung(response, 'Die Aenderung konnte nicht gespeichert werden.'));
   },
 
   async changePassword(id: string, oldPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
@@ -113,21 +142,16 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete user');
   },
 
-  async requestPasswordReset(userId: string): Promise<{ success: boolean; simulatedEmailToken?: string; message?: string }> {
-    const response = await fetch('/api/forgot-password', {
-      method: 'POST',
+  /**
+   * Die Leitung setzt ein neues Passwort. Ersetzt den frueheren Weg ueber
+   * `updateUser({ password })`, der die Pruefung des alten Passworts umging.
+   */
+  async resetUserPassword(id: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
+    const response = await fetch(`/api/users/${id}/reset-password`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ newPassword }),
     });
     return response.json();
   },
-
-  async resetPassword(userId: string, token: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
-    const response = await fetch('/api/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, token, newPassword }),
-    });
-    return response.json();
-  }
 };

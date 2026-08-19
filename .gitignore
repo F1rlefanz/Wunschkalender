@@ -7,9 +7,13 @@ coverage/
 .env*
 !.env.example
 
-# Lokale Datenbank: enthaelt Benutzerdaten und Passwoerter, gehoert nie ins Repo
-db.json
-db.json.tmp
+# Lokale Datenbank und Sitzungsgeheimnis: enthalten Benutzerdaten und
+# Passwoerter, gehoeren nie ins Repo. Die Muster sind bewusst weit: db.json.tmp
+# und db.json.migriert entstehen beim Speichern bzw. bei der Migration,
+# data.sqlite-wal und -shm im WAL-Betrieb.
+db.json*
+data.sqlite*
+sitzungsgeheimnis
 
 # Interne Arbeitsdateien (Notizen, Analysen) - nicht fuer GitHub
 ..Projektdateien/
