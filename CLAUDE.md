@@ -60,6 +60,9 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   `userId` von Wuenschen und Hinweisen stammt **aus der Sitzung**, nie aus dem Koerper.
   Wer einen neuen Endpunkt baut, ordnet ihm ausdruecklich eine Middleware zu — ohne die
   fehlt der Rollenschutz, und `PUT /api/users/:id` waere ein Weg zur eigenen Befoerderung.
+  Ebenso bekommt jeder schreibende Endpunkt ein Schema aus `src/server/validierung.ts`:
+  Die Schemata sind streng, unbekannte Felder sind ein Fehler. Ohne das wandert alles
+  Mitgeschickte in die Datenbank.
 - **Sitzungswiderruf muss den Socket mitnehmen.** `io.engine.use()` weist **nichts** ab
   (es bricht nur bei `next(err)` ab, und `express-session` ruft das nie); dafuer gibt es
   ein zusaetzliches `io.use()`. Und nach dem WebSocket-Upgrade laeuft keine Middleware
@@ -84,3 +87,5 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   `import()`.
 - **`tsconfig` ist nicht `strict`.** Fehlende Typen fallen erst spaet auf. An der API-Grenze
   (`src/api/client.ts`) steht bewusst noch `any` — das ist Schuld, kein Vorbild (Issue #19).
+  Ohne `strictNullChecks` grenzt TypeScript ausserdem eine Union ueber ein Boolean-Feld nicht
+  ein; Ergebnistypen unterscheiden ihre Faelle deshalb ueber Zeichenketten (`art: 'gut'`).
