@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Check, Trash2, List, X, Users, Calendar as CalendarIcon } from 'lucide-react';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from '../types';
+import { istMonatGesperrt } from '../sperrfrist';
 
 interface CalendarProps {
   wishes: Wish[];
@@ -80,29 +81,17 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
     return map;
   }, [visibleWishes]);
 
-  // Determine if booking is locked for the displayed month
+  // Dieselbe Funktion, die auch der Server benutzt. Zwei getrennte Fassungen
+  // waeren hier ein Fehler: Der Client zeigte sonst Eingaben an, die der Server
+  // ablehnt — oder umgekehrt.
   const isMonthLocked = useMemo(() => {
     if (!settings || !currentUser) return false;
-    if (currentUser.role === 'Manager') return false; // Managers bypass locks
-    
-    const now = new Date();
-    const currentMonthTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const displayedMonthTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getTime();
-    
-    // If displayed month is in the past, locked.
-    if (displayedMonthTime < currentMonthTime) return true;
-    
-    // If displayed month is exactly next month, and today is past deadline, locked.
-    if (
-      currentDate.getFullYear() === now.getFullYear() &&
-      currentDate.getMonth() === now.getMonth() + 1
-    ) {
-      if (now.getDate() >= settings.bookingDeadlineDay) {
-        return true;
-      }
-    }
-    return false;
-  }, [currentDate, settings, currentUser]);
+    return istMonatGesperrt({
+      monat: currentMonthStr,
+      stichtag: settings.bookingDeadlineDay,
+      rolle: currentUser.role,
+    });
+  }, [currentMonthStr, settings, currentUser]);
 
   const toggleDateSelection = (dateStr: string) => {
     if (isMonthLocked) {

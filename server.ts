@@ -11,6 +11,7 @@ import { createStore } from './src/server/store';
 import { SqliteSessionStore } from './src/server/session-store';
 import { resolveSessionSecret } from './src/server/session-secret';
 import { hashPassword, verifyPassword, MIN_PASSWORD_LENGTH } from './src/server/passwords';
+import { istMonatGesperrt, monatVon } from './src/sperrfrist';
 
 const DB_FILE = path.join(process.cwd(), 'data.sqlite');
 const LEGACY_JSON = path.join(process.cwd(), 'db.json');
@@ -188,6 +189,18 @@ async function startServer() {
 
   app.use('/api', requireAuth);
 
+  /**
+   * Prueft die Sperrfrist serverseitig. Bisher stand sie nur in der Oberflaeche
+   * und liess sich mit einem direkten Aufruf umgehen.
+   */
+  const sperrfristVerletzt = (req: Request, monat: string): string | null => {
+    const user = store.findUserById(req.session.userId!)!;
+    if (!istMonatGesperrt({ monat, stichtag: store.getSettings().bookingDeadlineDay, rolle: user.role })) {
+      return null;
+    }
+    return `Der Monat ${monat} ist fuer Eintragungen gesperrt.`;
+  };
+
   // ----- Benutzer -----
 
   app.get('/api/users', (_req, res) => {
@@ -327,6 +340,9 @@ async function startServer() {
       return res.status(400).json({ error: 'date und shiftType sind erforderlich.' });
     }
 
+    const gesperrt = sperrfristVerletzt(req, monatVon(String(date)));
+    if (gesperrt) return res.status(403).json({ error: gesperrt });
+
     const wish = store.addWish({ userId, date, shiftType, comment: comment ?? '' });
     io.emit('wish_added', wish);
     res.json(wish);
@@ -340,6 +356,12 @@ async function startServer() {
     if (wish.userId !== user.id && user.role !== 'Manager') {
       return res.status(403).json({ error: 'Nur eigene Wuensche lassen sich loeschen.' });
     }
+
+    // Auch das Loeschen faellt unter die Sperrfrist. Nur das Anlegen zu pruefen
+    // liesse eine Hintertuer: Ein bereits eingeplanter Wunsch verschwaende
+    // nachtraeglich aus dem Monat, den die Leitung schon bearbeitet.
+    const gesperrt = sperrfristVerletzt(req, monatVon(wish.date));
+    if (gesperrt) return res.status(403).json({ error: gesperrt });
 
     store.deleteWish(req.params.id);
     io.emit('wish_deleted', req.params.id);
@@ -361,6 +383,9 @@ async function startServer() {
     const userId = req.session.userId!;
     const { month, text } = req.body ?? {};
     if (!month) return res.status(400).json({ error: 'month ist erforderlich.' });
+
+    const gesperrt = sperrfristVerletzt(req, String(month));
+    if (gesperrt) return res.status(403).json({ error: gesperrt });
 
     const vorher = store.listMonthlyComments().some((c) => c.userId === userId && c.month === month);
     const comment = store.saveMonthlyComment({ userId, month, text: text ?? '' });
