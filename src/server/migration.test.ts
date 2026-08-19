@@ -125,6 +125,29 @@ describe('migrateFromJson', () => {
     await expect(migrateFromJson(db, jsonPath)).rejects.toThrow(/Anna Schmidt/);
   });
 
+  test('kommt mit einer unvollstaendigen Datei zurecht, statt zu scheitern', async () => {
+    // Eine aeltere db.json kann Felder gar nicht enthalten. Fehlende Abschnitte
+    // sind kein Fehler — anders als eine beschaedigte Datei, siehe naechster Test.
+    const db = createDatabase(':memory:');
+    schreibeJson({ users: [{ id: 'u1', name: 'Allein', role: 'Manager', password: 'password' }] });
+
+    const ergebnis = await migrateFromJson(db, jsonPath);
+
+    expect(ergebnis.migrated).toBe(true);
+    expect(db.prepare('SELECT count(*) AS n FROM users').get()).toEqual({ n: 1 });
+    expect(db.prepare('SELECT count(*) AS n FROM wishes').get()).toEqual({ n: 0 });
+  });
+
+  test('kommt mit einer voellig leeren Datei zurecht', async () => {
+    const db = createDatabase(':memory:');
+    schreibeJson({});
+
+    const ergebnis = await migrateFromJson(db, jsonPath);
+
+    expect(ergebnis.migrated).toBe(true);
+    expect(db.prepare('SELECT count(*) AS n FROM users').get()).toEqual({ n: 0 });
+  });
+
   test('bricht bei beschaedigter Datei ab und laesst sie unangetastet', async () => {
     const db = createDatabase(':memory:');
     fs.writeFileSync(jsonPath, '{ das ist kein gueltiges JSON', 'utf-8');
