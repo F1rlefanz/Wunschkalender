@@ -34,39 +34,53 @@ npm run build    # Client nach dist/, Server nach dist/server.cjs
 Ein Prozess bedient beides: `server.ts` ist ein Express-Server, der im Entwicklungsmodus
 Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefert.
 
-- `server.ts` — REST unter `/api/*` und Socket.IO. Zustand liegt in `memoryStore` im
-  Arbeitsspeicher und wird nach jeder Mutation komplett nach `db.json` geschrieben.
+- `server.ts` — REST unter `/api/*` und Socket.IO, sonst nichts. Der Datenzugriff liegt
+  in `src/server/store.ts`, damit er testbar ist.
+- `src/server/` — Serverbausteine mit Tests: `database` (Schema), `store` (Datenzugriff),
+  `migration` (einmalig aus `db.json`), `passwords` (Argon2), `session-store`,
+  `session-secret`, `seed` (Leitungskonto beim Erststart).
 - `src/App.tsx` — haelt den gesamten Anwendungszustand und die Socket-Verbindung.
   Schreiben laeuft ueber `src/api/client.ts` (REST); die Antwort wird **nicht** in den
   State geschrieben — die Aktualisierung kommt ueber das Socket-Ereignis zurueck.
 - `src/components/` — `Gatekeeper` (Anmeldung), `Header`, `Calendar` (Kernstueck, ~690 Zeilen),
   `UserManagement`, `Profile`. `Calendar` haelt drei Ansichten in einer Datei
   (`viewType`: `'grid' | 'list' | 'matrix'`); wer dort etwas aendert, prueft alle drei.
-- `src/types.ts` — gemeinsame Typen. Der Server kennt sie nicht, er arbeitet mit `any`.
+- `src/types.ts` — gemeinsame Typen fuer Client und Server.
+- `src/sperrfrist.ts` — wann ein Monat gesperrt ist. **Server und Oberflaeche benutzen
+  dieselbe Funktion**; zwei Fassungen waeren ein Fehler.
 - `tools/` — Sessionstart- und Schleusen-Skript (in `.claude/settings.json` als Hooks).
 
 ## Fallstricke
 
-- **`db.json` gehoert nie ins Repository.** Sie enthaelt Benutzerkonten samt Passwoertern
-  (derzeit im Klartext). Sie ist in `.gitignore`, und die Schleuse prueft es zusaetzlich.
-- **Es gibt keine serverseitige Authentifizierung.** Der Login ist React-State
-  (`isAuthenticated` in `App.tsx`); kein `/api`-Endpunkt prueft, wer die Anfrage stellt.
-  Alle Rollenpruefungen sind reine Anzeigelogik. Die Anwendung gehoert in kein offenes Netz.
-  Verlasse dich beim Bauen neuer Endpunkte **nicht** auf die vorhandenen als Vorbild.
+- **`data.sqlite` und `sitzungsgeheimnis` gehoeren nie ins Repository.** Sie enthalten
+  Benutzerkonten und Sitzungen. Beide sind in `.gitignore`, und die Schleuse prueft es
+  zusaetzlich — samt `db.json*`, denn `db.json.migriert` traegt die alten Klartext-Passwoerter.
+- **Wer anfragt, entscheidet der Server.** Alles unter `/api` ausser `POST /api/login`
+  liegt hinter `requireAuth`, Verwaltungswege zusaetzlich hinter `requireManager`. Die
+  `userId` von Wuenschen und Hinweisen stammt **aus der Sitzung**, nie aus dem Koerper.
+  Wer einen neuen Endpunkt baut, ordnet ihm ausdruecklich eine Middleware zu — ohne die
+  fehlt der Rollenschutz, und `PUT /api/users/:id` waere ein Weg zur eigenen Befoerderung.
+- **Sitzungswiderruf muss den Socket mitnehmen.** `io.engine.use()` weist **nichts** ab
+  (es bricht nur bei `next(err)` ab, und `express-session` ruft das nie); dafuer gibt es
+  ein zusaetzliches `io.use()`. Und nach dem WebSocket-Upgrade laeuft keine Middleware
+  mehr — wer eine Sitzung beendet, trennt die zugehoerigen Sockets ausdruecklich.
 - **Datumsstrings sind die Wahrheit, nicht `Date`.** Wuensche haengen an `YYYY-MM-DD`,
   Monatskommentare an `YYYY-MM`, jeweils als String. `new Date(...)` wird nur zur Anzeige
-  und zur Rasterberechnung benutzt. Wer Datumslogik anfasst, prueft den Jahreswechsel —
-  dort steckt bereits ein Fehler in der Sperrfrist (`Calendar.tsx`).
+  und zur Anzeige benutzt. Wer Datumslogik anfasst, prueft den Jahreswechsel: Die
+  Sperrfrist rechnet deshalb mit `jahr * 12 + monat` und ausdruecklich in `Europe/Berlin`
+  — ein Kalendertag ist kein Zeitpunkt.
 - **Der Kalender startet montags.** `getDay()` liefert Sonntag als 0; die Umrechnung
   (`emptyDays`) ist leicht zu uebersehen.
 - **Schreiben ist optimistisch ueber Sockets.** Wer eine neue Mutation baut, muss sowohl den
   REST-Endpunkt als auch das passende `io.emit` und den Listener in `App.tsx` bedienen —
   sonst sehen andere Angemeldete die Aenderung erst nach einem Neuladen.
-- **Die Ansicht ist nach Rolle gefiltert, die Daten sind es nicht.** `Calendar.tsx` filtert
-  fuer Mitarbeitende auf die eigenen Eintraege, aber der Server hat vorher alles geschickt.
-  Berechnungen ueber „alle Wuensche eines Tages" stimmen deshalb in der Mitarbeitersicht nicht.
+- **Alle Angemeldeten sehen alle Wuensche — das ist entschieden, kein Versehen.** Die
+  Plaene liegen auf der Station in einem offenen Hefter; die App strenger zu machen als
+  das Papier loest kein Problem. Dass die Rasteransicht fuer Mitarbeitende nur die eigenen
+  Eintraege zeigt, ist **Uebersichtlichkeit beim Eintragen**, keine Sicherheitsmassnahme.
+  Wer daran etwas aendert, aendert Bedienkomfort. Spaetere Anonymisierung: Issue #31.
 - **Der Erststart wiegt ~713 kB** (gzip ~226 kB), vor allem `jspdf` und `html2canvas` fuer den
   PDF-Export, den nur die Leitung braucht. Neue schwere Abhaengigkeiten gehoeren hinter ein
   `import()`.
 - **`tsconfig` ist nicht `strict`.** Fehlende Typen fallen erst spaet auf. An der API-Grenze
-  (`src/api/client.ts`) steht bewusst noch `any` — das ist Schuld, kein Vorbild.
+  (`src/api/client.ts`) steht bewusst noch `any` — das ist Schuld, kein Vorbild (Issue #19).

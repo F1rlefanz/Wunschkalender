@@ -16,7 +16,28 @@ umformuliert statt ein zweiter danebengestellt.
 
 ## [Unreleased]
 
+### Hinzugefügt
+- Die Anmeldung bleibt bestehen. Ein Neuladen der Seite, ein geschlossener
+  Browser oder ein Neustart des Servers meldet niemanden mehr ab. Beim Abmelden,
+  beim Ändern des Passworts (auf allen anderen Geräten) und beim Löschen eines
+  Kontos endet sie sofort.
+
+### Behoben
+- Die Sperrfrist griff über den Jahreswechsel nicht: Wünsche für den Januar
+  blieben im Dezember unbegrenzt änderbar, obwohl die Stationsleitung den Monat
+  bereits plante.
+- Die Sperrfrist gilt jetzt auch für das **Löschen**. Bisher ließ sich ein
+  bereits eingeplanter Wunsch nachträglich aus einem gesperrten Monat entfernen.
+
 ### Geändert
+- **Ohne Anmeldung ist nichts mehr abrufbar.** Bisher konnte jede Person, die
+  die Adresse kannte, sämtliche Dienstwünsche lesen, verändern und Benutzer
+  anlegen — ganz ohne Passwort.
+- Was jemand darf, entscheidet jetzt der Server statt der Oberfläche. Nur die
+  Stationsleitung kann Konten verwalten und den Stichtag ändern; Wünsche löscht
+  nur, wem sie gehören, oder die Leitung.
+- Die Anmeldung erfolgt über ein Namensfeld statt einer Auswahlliste. Die Liste
+  aller Mitarbeitenden war ohne Anmeldung abrufbar, samt Rollen.
 - Passwörter werden nicht mehr im Klartext gespeichert, sondern nur noch als
   Prüfsumme. Auch wer die Datenbank in die Hand bekommt, kann sie nicht mehr lesen.
 - Ein neues Passwort muss mindestens acht Zeichen lang sein.
