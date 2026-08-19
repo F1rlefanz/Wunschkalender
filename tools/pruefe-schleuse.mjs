@@ -55,7 +55,14 @@ const tests = lauf('npm test --silent');
 if (!tests.ok) probleme.push(`\`npm test\` schlaegt fehl:\n${tests.ausgabe.trim().split('\n').slice(-15).join('\n')}`);
 
 // 4. Changelog und Version — nur, wenn die Aenderungen ueberhaupt nutzersichtbar sind.
-const basis = lauf('git merge-base HEAD main');
+//
+// Die Vergleichsbasis haengt davon ab, wo wir stehen: auf einem Feature-Branch ist es
+// `main`, auf `main` selbst muss es `origin/main` sein. Sonst waere die Basis gleich HEAD,
+// die Commit-Liste leer und die Pruefung wuerde ausgerechnet beim Push stillschweigend
+// durchwinken.
+const branch = lauf('git rev-parse --abbrev-ref HEAD').ausgabe?.trim();
+const referenz = branch === 'main' ? 'origin/main' : 'main';
+const basis = lauf(`git merge-base HEAD ${referenz}`);
 if (basis.ok && basis.ausgabe.trim()) {
   const betreffs = lauf(`git log ${basis.ausgabe.trim()}..HEAD --format=%s`);
   const nachrichten = betreffs.ok ? betreffs.ausgabe.trim().split('\n').filter(Boolean) : [];
