@@ -16,6 +16,8 @@ umformuliert statt ein zweiter danebengestellt.
 
 ## [Unreleased]
 
+## [0.3.0] – 2026-08-19
+
 ### Geändert
 - **Der Server prüft jetzt jede Eingabe, bevor er sie speichert.** Ein Wunsch
   braucht einen wirklichen Kalendertag und eine der vier Schichtarten, ein
