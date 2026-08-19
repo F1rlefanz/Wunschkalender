@@ -41,9 +41,12 @@ if (!/\bgit\s+(merge|push)\b/.test(befehl) || /--dry-run/.test(befehl)) process.
 const probleme = [];
 
 // 1. Nie Zugangsdaten veroeffentlichen.
-const getrackt = lauf('git ls-files db.json');
+//    Die Muster decken auch db.json.migriert (Klartext-Passwoerter aus der
+//    Migration), die WAL-Begleitdateien und das Sitzungsgeheimnis ab.
+const getrackt = lauf('git ls-files db.json* data.sqlite* sitzungsgeheimnis');
 if (getrackt.ok && getrackt.ausgabe.trim()) {
-  probleme.push('`db.json` ist von Git getrackt. Die Datei enthaelt Benutzerkonten und Passwoerter und darf nicht ins Repository. Entfernen mit `git rm --cached db.json`.');
+  const dateien = getrackt.ausgabe.trim().split(/\s+/).join(', ');
+  probleme.push(`Diese Dateien sind von Git getrackt: ${dateien}. Sie enthalten Benutzerkonten, Passwoerter oder das Sitzungsgeheimnis und duerfen nicht ins Repository. Entfernen mit \`git rm --cached <datei>\`.`);
 }
 
 // 2. Typpruefung.
