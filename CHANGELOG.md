@@ -16,6 +16,8 @@ umformuliert statt ein zweiter danebengestellt.
 
 ## [Unreleased]
 
+## [0.3.1] – 2026-08-19
+
 ### Behoben
 - **Unter „Allgemeine Hinweise für <Monat>“ stehen jetzt nur die Hinweise dieses
   Monats.** Bisher erschienen dort die Hinweise aller Monate, und das eigene
