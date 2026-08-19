@@ -16,6 +16,26 @@ umformuliert statt ein zweiter danebengestellt.
 
 ## [Unreleased]
 
+### Geändert
+- Passwörter werden nicht mehr im Klartext gespeichert, sondern nur noch als
+  Prüfsumme. Auch wer die Datenbank in die Hand bekommt, kann sie nicht mehr lesen.
+- Ein neues Passwort muss mindestens acht Zeichen lang sein.
+- Bei einer fehlgeschlagenen Anmeldung nennt die Meldung keinen Grund mehr. Sie
+  verriet bisher, ob es ein Konto überhaupt gibt.
+- Namen müssen eindeutig sein. Ein bereits vergebener Name wird beim Anlegen und
+  Umbenennen abgelehnt.
+- Die Daten liegen jetzt in einer Datenbank statt in einer Textdatei. Ein Absturz
+  während des Speicherns kann den Bestand nicht mehr beschädigen.
+
+### Entfernt
+- Die Funktion „Passwort vergessen" mit Zurücksetz-Code. Jede beliebige Person
+  konnte damit ohne Anmeldung ein fremdes Konto übernehmen, auch ein Leitungskonto.
+  Wer sein Passwort vergisst, bekommt von der Stationsleitung in der
+  Benutzerverwaltung ein neues gesetzt.
+- Die fünf vorangelegten Demo-Konten mit dem gemeinsamen Passwort. Eine neue
+  Installation startet stattdessen mit einem einzelnen Leitungskonto, dessen
+  Passwort einmalig beim Start angezeigt wird.
+
 ## [0.1.0] – 2026-08-19
 
 Erste versionierte Fassung. Der Funktionsumfang stammt aus der bisherigen Entwicklung;

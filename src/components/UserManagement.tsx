@@ -68,8 +68,8 @@ export function UserManagement() {
     const newPwd = prompt('Bitte neues Passwort für den Benutzer eingeben:');
     if (!newPwd) return;
     try {
-      await api.updateUser(id, { password: newPwd });
-      alert('Passwort erfolgreich geändert.');
+      const antwort = await api.resetUserPassword(id, newPwd);
+      alert(antwort.success ? 'Passwort erfolgreich geändert.' : antwort.message || 'Fehler beim Ändern des Passworts.');
     } catch (err) {
       alert('Fehler beim Ändern des Passworts.');
     }

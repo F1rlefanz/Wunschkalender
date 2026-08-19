@@ -3,235 +3,252 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { Server as SocketIOServer } from 'socket.io';
 import http from 'http';
-import fs from 'fs';
+import { createDatabase } from './src/server/database';
+import { migrateFromJson } from './src/server/migration';
+import { ensureManagerAccount } from './src/server/seed';
+import { createStore } from './src/server/store';
+import { hashPassword, verifyPassword, MIN_PASSWORD_LENGTH } from './src/server/passwords';
 
-const DB_FILE = path.join(process.cwd(), 'db.json');
-
-// Simulated Vercel KV storage (File-based)
-let memoryStore = {
-  settings: {
-    bookingDeadlineDay: 15, // Lock bookings for next month on the 15th of current month
-  },
-  users: [
-    { id: 'u1', name: 'Max Mustermann', role: 'Employee', password: 'password' },
-    { id: 'u2', name: 'Anna Schmidt', role: 'Manager', password: 'password' },
-    { id: 'u3', name: 'Thomas Müller', role: 'Employee', password: 'password' },
-    { id: 'u4', name: 'Laura Weber', role: 'Employee', password: 'password' },
-    { id: 'u5', name: 'Jan Becker', role: 'Manager', password: 'password' },
-  ] as any[],
-  wishes: [] as any[],
-  monthlyComments: [] as any[],
-};
-
-if (fs.existsSync(DB_FILE)) {
-  try {
-    const data = fs.readFileSync(DB_FILE, 'utf-8');
-    memoryStore = JSON.parse(data);
-  } catch (err) {
-    console.error('Error reading db.json:', err);
-  }
-}
-
-function saveDb() {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing db.json:', err);
-  }
-}
+const DB_FILE = path.join(process.cwd(), 'data.sqlite');
+const LEGACY_JSON = path.join(process.cwd(), 'db.json');
 
 async function startServer() {
+  const db = createDatabase(DB_FILE);
+
+  const migration = await migrateFromJson(db, LEGACY_JSON);
+  if (migration.migrated) {
+    console.log(
+      `Migration abgeschlossen: ${migration.users} Benutzer, ${migration.wishes} Wuensche, ` +
+        `${migration.comments} Hinweise aus db.json uebernommen.`,
+    );
+    for (const warnung of migration.warnings) console.warn(`  Achtung: ${warnung}`);
+  }
+
+  const seed = await ensureManagerAccount(db);
+  if (seed.created) {
+    console.log(
+      [
+        '',
+        '  ┌────────────────────────────────────────────────┐',
+        '  │  Erststart: Leitungskonto angelegt             │',
+        '  │                                                │',
+        `  │    Name:     ${(seed.name ?? '').padEnd(34)}│`,
+        `  │    Passwort: ${(seed.password ?? '').padEnd(34)}│`,
+        '  │                                                │',
+        '  │  Bitte notieren und nach der ersten Anmeldung  │',
+        '  │  im Profil aendern.                            │',
+        '  │  Diese Meldung erscheint nur einmal.           │',
+        '  └────────────────────────────────────────────────┘',
+        '',
+      ].join('\n'),
+    );
+  }
+
+  const store = createStore(db);
+
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
   const httpServer = http.createServer(app);
-  const io = new SocketIOServer(httpServer, {
-    cors: { origin: '*' }
-  });
+  const io = new SocketIOServer(httpServer);
 
   app.use(express.json());
 
-  // Socket.IO
   io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
-    // Send initial state on connection
     socket.emit('init', {
-      wishes: memoryStore.wishes,
-      monthlyComments: memoryStore.monthlyComments,
-      settings: memoryStore.settings
-    });
-    
-    socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
+      wishes: store.listWishes(),
+      monthlyComments: store.listMonthlyComments(),
+      settings: store.getSettings(),
     });
   });
 
-  // API Routes
-  app.get('/api/users', (req, res) => {
-    // Return users without passwords
-    const safeUsers = memoryStore.users.map(u => ({ id: u.id, name: u.name, role: u.role }));
-    res.json(safeUsers);
+  const broadcastUsers = () => io.emit('users_updated', store.listUsers());
+
+  // ----- Benutzer -----
+
+  app.get('/api/users', (_req, res) => {
+    res.json(store.listUsers());
   });
 
-  app.post('/api/login', (req, res) => {
-    const { userId, password } = req.body;
-    const user = memoryStore.users.find(u => u.id === userId);
-    
-    if (user && user.password === password) {
-      res.json({ success: true, user: { id: user.id, name: user.name, role: user.role } });
-    } else {
-      res.status(401).json({ success: false, message: 'Falsches Passwort' });
+  app.post('/api/login', async (req, res) => {
+    const { userId, password } = req.body ?? {};
+    const user = typeof userId === 'string' ? store.findUserWithHash(userId) : undefined;
+
+    // Bewusst dieselbe Antwort fuer unbekanntes Konto und falsches Passwort:
+    // Der Server gibt keine Auskunft darueber, wer existiert.
+    if (!user || !(await verifyPassword(user.passwordHash, String(password ?? '')))) {
+      return res.status(401).json({ success: false, message: 'Anmeldung fehlgeschlagen.' });
     }
+
+    res.json({ success: true, user: { id: user.id, name: user.name, role: user.role } });
   });
 
-  app.post('/api/users', (req, res) => {
-    const { name, role, password } = req.body;
-    const newUser = {
-      id: 'u' + Date.now(),
-      name,
-      role,
-      password: password || 'start123'
-    };
-    memoryStore.users.push(newUser);
-    saveDb();
-    
-    // Notify clients about user changes so they can update their view
-    io.emit('users_updated', memoryStore.users.map(u => ({ id: u.id, name: u.name, role: u.role })));
-    res.json({ success: true });
+  app.post('/api/users', async (req, res) => {
+    const { name, role, password } = req.body ?? {};
+    if (typeof name !== 'string' || name.trim() === '') {
+      return res.status(400).json({ error: 'Name fehlt.' });
+    }
+    if (store.findUserByName(name)) {
+      return res.status(409).json({
+        error: `Der Name "${name.trim()}" ist bereits vergeben. Namen muessen eindeutig sein.`,
+      });
+    }
+
+    try {
+      const passwordHash = await hashPassword(String(password ?? ''));
+      const user = store.createUser({
+        name,
+        role: role === 'Manager' ? 'Manager' : 'Employee',
+        passwordHash,
+      });
+      broadcastUsers();
+      res.json({ success: true, user });
+    } catch (fehler) {
+      res.status(400).json({ error: (fehler as Error).message });
+    }
   });
 
   app.put('/api/users/:id', (req, res) => {
-    const { name, role, password } = req.body;
-    const userIndex = memoryStore.users.findIndex(u => u.id === req.params.id);
-    if (userIndex >= 0) {
-      if (name) memoryStore.users[userIndex].name = name;
-      if (role) memoryStore.users[userIndex].role = role;
-      if (password) memoryStore.users[userIndex].password = password;
-      saveDb();
-      io.emit('users_updated', memoryStore.users.map(u => ({ id: u.id, name: u.name, role: u.role })));
-      res.json({ success: true });
-    } else {
-      res.status(404).json({ error: 'User not found' });
-    }
-  });
+    // Nimmt bewusst kein `password` mehr entgegen: Frueher umging dieses Feld
+    // die Pruefung des alten Passworts, die /password vornimmt.
+    const { name, role } = req.body ?? {};
 
-  app.put('/api/users/:id/password', (req, res) => {
-    const { oldPassword, newPassword } = req.body;
-    const userIndex = memoryStore.users.findIndex(u => u.id === req.params.id);
-    if (userIndex >= 0) {
-      if (memoryStore.users[userIndex].password === oldPassword) {
-        memoryStore.users[userIndex].password = newPassword;
-        saveDb();
-        res.json({ success: true });
-      } else {
-        res.status(401).json({ success: false, message: 'Altes Passwort ist falsch' });
+    if (typeof name === 'string' && name.trim() !== '') {
+      const belegt = store.findUserByName(name);
+      if (belegt && belegt.id !== req.params.id) {
+        return res.status(409).json({ error: `Der Name "${name.trim()}" ist bereits vergeben.` });
       }
-    } else {
-      res.status(404).json({ error: 'User not found' });
-    }
-  });
-
-  app.post('/api/forgot-password', (req, res) => {
-    const { userId } = req.body;
-    const user = memoryStore.users.find(u => u.id === userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit
-    user.resetToken = token;
-    user.resetTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 mins
-    saveDb();
-
-    // Return the token to simulate an email
-    res.json({ success: true, simulatedEmailToken: token });
-  });
-
-  app.post('/api/reset-password', (req, res) => {
-    const { userId, token, newPassword } = req.body;
-    const user = memoryStore.users.find(u => u.id === userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    if (user.resetToken !== token || Date.now() > (user.resetTokenExpiry || 0)) {
-      return res.status(400).json({ success: false, message: 'Token ungültig oder abgelaufen' });
     }
 
-    user.password = newPassword;
-    delete user.resetToken;
-    delete user.resetTokenExpiry;
-    saveDb();
+    const geaendert = store.updateUser(req.params.id, {
+      name: typeof name === 'string' ? name : undefined,
+      role: role === 'Manager' || role === 'Employee' ? role : undefined,
+    });
+    if (!geaendert) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
 
+    broadcastUsers();
     res.json({ success: true });
+  });
+
+  app.put('/api/users/:id/password', async (req, res) => {
+    const { oldPassword, newPassword } = req.body ?? {};
+    const user = store.findUserWithHash(req.params.id);
+    if (!user) return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+
+    if (!(await verifyPassword(user.passwordHash, String(oldPassword ?? '')))) {
+      return res.status(401).json({ success: false, message: 'Altes Passwort ist falsch.' });
+    }
+
+    try {
+      store.setPasswordHash(user.id, await hashPassword(String(newPassword ?? '')));
+      res.json({ success: true });
+    } catch (fehler) {
+      res.status(400).json({ success: false, message: (fehler as Error).message });
+    }
+  });
+
+  /** Die Leitung setzt ein neues Passwort — ersetzt den entfernten Reset-Weg. */
+  app.put('/api/users/:id/reset-password', async (req, res) => {
+    const { newPassword } = req.body ?? {};
+    if (!store.findUserById(req.params.id)) {
+      return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+    }
+
+    try {
+      store.setPasswordHash(req.params.id, await hashPassword(String(newPassword ?? '')));
+      res.json({ success: true });
+    } catch (fehler) {
+      res.status(400).json({ success: false, message: (fehler as Error).message });
+    }
   });
 
   app.delete('/api/users/:id', (req, res) => {
-    memoryStore.users = memoryStore.users.filter(u => u.id !== req.params.id);
-    saveDb();
-    io.emit('users_updated', memoryStore.users.map(u => ({ id: u.id, name: u.name, role: u.role })));
+    if (!store.deleteUser(req.params.id)) {
+      return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+    }
+    broadcastUsers();
+    // Wuensche und Hinweise sind per ON DELETE CASCADE mitgegangen; die Clients
+    // brauchen deshalb einen frischen Stand.
+    io.emit('init', {
+      wishes: store.listWishes(),
+      monthlyComments: store.listMonthlyComments(),
+      settings: store.getSettings(),
+    });
     res.json({ success: true });
   });
 
-  app.get('/api/settings', (req, res) => {
-    res.json(memoryStore.settings);
+  // ----- Einstellungen -----
+
+  app.get('/api/settings', (_req, res) => {
+    res.json(store.getSettings());
   });
 
   app.post('/api/settings', (req, res) => {
-    const { bookingDeadlineDay } = req.body;
-    if (typeof bookingDeadlineDay === 'number') {
-      memoryStore.settings.bookingDeadlineDay = bookingDeadlineDay;
-      saveDb();
-      io.emit('settings_updated', memoryStore.settings);
-      res.json(memoryStore.settings);
-    } else {
-      res.status(400).json({ error: 'Invalid settings' });
+    const { bookingDeadlineDay } = req.body ?? {};
+    if (!Number.isInteger(bookingDeadlineDay) || bookingDeadlineDay < 1 || bookingDeadlineDay > 31) {
+      return res.status(400).json({ error: 'bookingDeadlineDay muss eine Zahl zwischen 1 und 31 sein.' });
     }
+    const settings = store.setBookingDeadlineDay(bookingDeadlineDay);
+    io.emit('settings_updated', settings);
+    res.json(settings);
   });
 
-  app.get('/api/wishes', (req, res) => {
-    res.json(memoryStore.wishes);
+  // ----- Wuensche -----
+
+  app.get('/api/wishes', (_req, res) => {
+    res.json(store.listWishes());
   });
 
   app.post('/api/wishes', (req, res) => {
-    const wish = req.body;
-    wish.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    memoryStore.wishes.push(wish);
-    saveDb();
+    const { userId, date, shiftType, comment } = req.body ?? {};
+    if (!userId || !date || !shiftType) {
+      return res.status(400).json({ error: 'userId, date und shiftType sind erforderlich.' });
+    }
+    if (!store.findUserById(userId)) {
+      return res.status(400).json({ error: 'Unbekannter Benutzer.' });
+    }
+
+    const wish = store.addWish({ userId, date, shiftType, comment: comment ?? '' });
     io.emit('wish_added', wish);
     res.json(wish);
   });
 
   app.delete('/api/wishes/:id', (req, res) => {
-    const id = req.params.id;
-    memoryStore.wishes = memoryStore.wishes.filter(w => w.id !== id);
-    saveDb();
-    io.emit('wish_deleted', id);
+    if (!store.findWish(req.params.id)) {
+      return res.status(404).json({ error: 'Wunsch nicht gefunden.' });
+    }
+    store.deleteWish(req.params.id);
+    io.emit('wish_deleted', req.params.id);
     res.json({ success: true });
   });
 
+  // ----- Monatshinweise -----
+
   app.get('/api/monthly-comments', (req, res) => {
-    const month = req.query.month as string;
-    const userId = req.query.userId as string;
-    let comments = memoryStore.monthlyComments;
-    if (month) comments = comments.filter(c => c.month === month);
-    if (userId) comments = comments.filter(c => c.userId === userId);
+    const month = req.query.month as string | undefined;
+    const userId = req.query.userId as string | undefined;
+    let comments = store.listMonthlyComments();
+    if (month) comments = comments.filter((c) => c.month === month);
+    if (userId) comments = comments.filter((c) => c.userId === userId);
     res.json(comments);
   });
 
   app.post('/api/monthly-comments', (req, res) => {
-    const { userId, month, text } = req.body;
-    const existingIndex = memoryStore.monthlyComments.findIndex(c => c.userId === userId && c.month === month);
-    if (existingIndex >= 0) {
-      memoryStore.monthlyComments[existingIndex].text = text;
-      saveDb();
-      io.emit('monthly_comment_updated', memoryStore.monthlyComments[existingIndex]);
-      res.json(memoryStore.monthlyComments[existingIndex]);
-    } else {
-      const newComment = { id: Date.now().toString(), userId, month, text };
-      memoryStore.monthlyComments.push(newComment);
-      saveDb();
-      io.emit('monthly_comment_added', newComment);
-      res.json(newComment);
+    const { userId, month, text } = req.body ?? {};
+    if (!userId || !month) {
+      return res.status(400).json({ error: 'userId und month sind erforderlich.' });
     }
+    if (!store.findUserById(userId)) {
+      return res.status(400).json({ error: 'Unbekannter Benutzer.' });
+    }
+
+    const vorher = store.listMonthlyComments().some((c) => c.userId === userId && c.month === month);
+    const comment = store.saveMonthlyComment({ userId, month, text: text ?? '' });
+    io.emit(vorher ? 'monthly_comment_updated' : 'monthly_comment_added', comment);
+    res.json(comment);
   });
 
-  // Vite middleware for development
+  // ----- Auslieferung -----
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -241,13 +258,13 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server laeuft auf Port ${PORT} (Mindestlaenge fuer Passwoerter: ${MIN_PASSWORD_LENGTH})`);
   });
 }
 

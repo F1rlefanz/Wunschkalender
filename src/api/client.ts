@@ -113,21 +113,16 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete user');
   },
 
-  async requestPasswordReset(userId: string): Promise<{ success: boolean; simulatedEmailToken?: string; message?: string }> {
-    const response = await fetch('/api/forgot-password', {
-      method: 'POST',
+  /**
+   * Die Leitung setzt ein neues Passwort. Ersetzt den frueheren Weg ueber
+   * `updateUser({ password })`, der die Pruefung des alten Passworts umging.
+   */
+  async resetUserPassword(id: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
+    const response = await fetch(`/api/users/${id}/reset-password`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ newPassword }),
     });
     return response.json();
   },
-
-  async resetPassword(userId: string, token: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
-    const response = await fetch('/api/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, token, newPassword }),
-    });
-    return response.json();
-  }
 };
