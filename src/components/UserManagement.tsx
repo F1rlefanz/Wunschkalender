@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { User } from '../types';
+import { User, MIN_PASSWORD_LENGTH } from '../types';
 import { Edit2, Trash2, KeyRound, Plus, X } from 'lucide-react';
 
 export function UserManagement() {
@@ -43,6 +43,7 @@ export function UserManagement() {
   };
 
   const handleCreate = async () => {
+    setError('');
     try {
       await api.createUser({ name: newName, role: newRole, password: newPassword });
       setIsCreating(false);
@@ -50,17 +51,18 @@ export function UserManagement() {
       setNewPassword('');
       await loadUsers();
     } catch (err) {
-      alert('Fehler beim Erstellen');
+      setError((err as Error).message);
     }
   };
 
   const handleUpdate = async (id: string) => {
+    setError('');
     try {
       await api.updateUser(id, { name: editName, role: editRole });
       setIsEditing(null);
       await loadUsers();
     } catch (err) {
-      alert('Fehler beim Speichern');
+      setError((err as Error).message);
     }
   };
 
@@ -111,11 +113,14 @@ export function UserManagement() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Initiales Passwort</label>
-              <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" placeholder="Passwort" />
+              <label htmlFor="initiales-passwort" className="block text-xs font-medium text-slate-500 mb-1">Initiales Passwort</label>
+              <input id="initiales-passwort" type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} aria-describedby="initiales-passwort-hinweis" className="w-full min-h-[44px] px-3 py-2 border rounded-md text-base sm:text-sm" placeholder="Passwort" />
+              <p id="initiales-passwort-hinweis" className={`mt-1 text-xs ${newPassword && newPassword.length < MIN_PASSWORD_LENGTH ? 'text-amber-700' : 'text-slate-500'}`}>
+                Mindestens {MIN_PASSWORD_LENGTH} Zeichen. Die Person kann es im Profil selbst aendern.
+              </p>
             </div>
             <div className="flex space-x-2">
-              <button onClick={handleCreate} disabled={!newName} className="bg-emerald-600 text-white px-3 py-2 rounded-md text-sm hover:bg-emerald-700 w-full disabled:opacity-50">Speichern</button>
+              <button onClick={handleCreate} disabled={!newName.trim() || newPassword.length < MIN_PASSWORD_LENGTH} className="bg-emerald-600 text-white px-3 py-2 rounded-md text-sm hover:bg-emerald-700 w-full disabled:opacity-50">Speichern</button>
               <button onClick={() => setIsCreating(false)} className="bg-slate-200 text-slate-700 px-3 py-2 rounded-md text-sm hover:bg-slate-300"><X className="w-4 h-4" /></button>
             </div>
           </div>

@@ -1,10 +1,8 @@
 import { hash, verify } from '@node-rs/argon2';
 
-/**
- * Kuerzere Passwoerter laesst der Server nicht zu. Die Oberflaeche nennt diese
- * Zahl im Formular, damit niemand raten muss.
- */
-export const MIN_PASSWORD_LENGTH = 8;
+// Die Zahl steht in src/types.ts, damit Server und Oberflaeche dieselbe nennen.
+export { MIN_PASSWORD_LENGTH } from '../types';
+import { MIN_PASSWORD_LENGTH } from '../types';
 
 export async function hashPassword(
   password: string,

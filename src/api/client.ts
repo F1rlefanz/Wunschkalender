@@ -1,5 +1,19 @@
 import { Wish, MonthlyComment, Settings } from '../types';
 
+/**
+ * Holt die Begruendung aus der Serverantwort. Ohne das bliebe von einer
+ * praezisen Meldung ("Name bereits vergeben", "Passwort zu kurz") nur ein
+ * allgemeines "Fehler" uebrig, mit dem niemand etwas anfangen kann.
+ */
+async function fehlermeldung(response: Response, fallback: string): Promise<string> {
+  try {
+    const koerper = await response.json();
+    return koerper?.error || koerper?.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const api = {
   async getSettings(): Promise<Settings> {
     const response = await fetch('/api/settings');
@@ -85,7 +99,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(user),
     });
-    if (!response.ok) throw new Error('Failed to create user');
+    if (!response.ok) throw new Error(await fehlermeldung(response, 'Der Benutzer konnte nicht angelegt werden.'));
   },
 
   async updateUser(id: string, user: any): Promise<void> {
@@ -94,7 +108,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(user),
     });
-    if (!response.ok) throw new Error('Failed to update user');
+    if (!response.ok) throw new Error(await fehlermeldung(response, 'Die Aenderung konnte nicht gespeichert werden.'));
   },
 
   async changePassword(id: string, oldPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> {

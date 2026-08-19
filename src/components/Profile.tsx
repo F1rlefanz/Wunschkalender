@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../api/client';
-import { User } from '../types';
+import { User, MIN_PASSWORD_LENGTH } from '../types';
 
 interface ProfileProps {
   currentUser: User;
@@ -64,18 +64,36 @@ export function Profile({ currentUser }: ProfileProps) {
         </div>
         
         <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Neues Passwort</label>
-          <input 
-            type="password" 
-            value={newPassword} 
+          <label htmlFor="neues-passwort" className="block text-xs font-medium text-slate-700 mb-1">
+            Neues Passwort
+          </label>
+          <input
+            id="neues-passwort"
+            type="password"
+            autoComplete="new-password"
+            value={newPassword}
             onChange={e => setNewPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            aria-describedby="passwort-hinweis"
+            className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base sm:text-sm"
           />
+          <p
+            id="passwort-hinweis"
+            className={`mt-1 text-xs ${
+              newPassword && newPassword.length < MIN_PASSWORD_LENGTH
+                ? 'text-amber-700'
+                : 'text-slate-500'
+            }`}
+          >
+            Mindestens {MIN_PASSWORD_LENGTH} Zeichen
+            {newPassword && newPassword.length < MIN_PASSWORD_LENGTH
+              ? ` — noch ${MIN_PASSWORD_LENGTH - newPassword.length} fehlen.`
+              : '.'}
+          </p>
         </div>
 
         <button
           type="submit"
-          disabled={loading || !oldPassword || !newPassword}
+          disabled={loading || !oldPassword || newPassword.length < MIN_PASSWORD_LENGTH}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
         >
           {loading ? 'Wird gespeichert...' : 'Passwort aktualisieren'}
