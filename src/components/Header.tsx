@@ -1,10 +1,12 @@
-import { Calendar as CalendarIcon, Download, Users, User as UserIcon, LogOut } from 'lucide-react';
+import { Calendar as CalendarIcon, Download, Users, User as UserIcon, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { User } from '../types';
+
+export type Ansicht = 'calendar' | 'users' | 'profile' | 'settings';
 
 interface HeaderProps {
   currentUser: User | null;
-  currentView: 'calendar' | 'users' | 'profile';
-  onNavigate: (view: 'calendar' | 'users' | 'profile') => void;
+  currentView: Ansicht;
+  onNavigate: (view: Ansicht) => void;
   onLogout: () => void;
   onExport: () => void;
 }
@@ -20,7 +22,10 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
           <div className="flex items-center min-w-0">
             <div className="flex items-center space-x-1.5 sm:space-x-2 mr-3 sm:mr-4 cursor-pointer" onClick={() => onNavigate('calendar')}>
               <CalendarIcon className="h-5 w-5 text-blue-400 flex-shrink-0" />
-              <h1 className="text-sm sm:text-base md:text-lg font-bold tracking-tight">Wunschkalender</h1>
+              {/* Der Name weicht auf dem Telefon: Er ist Beschriftung, die
+                  Navigationspunkte dahinter sind Zugang. Das Logo bleibt als
+                  Weg zurueck zum Kalender. */}
+              <h1 className="hidden sm:block text-sm sm:text-base md:text-lg font-bold tracking-tight">Wunschkalender</h1>
             </div>
             
             {currentUser && (
@@ -31,7 +36,7 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
                   title="Kalender"
                 >
                   <CalendarIcon className="w-3.5 h-3.5 sm:mr-1" />
-                  <span className="hidden sm:inline">Kalender</span>
+                  <span className="hidden lg:inline">Kalender</span>
                 </button>
                 {isManager && (
                   <button
@@ -40,7 +45,17 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
                     title="Benutzerverwaltung"
                   >
                     <Users className="w-3.5 h-3.5 sm:mr-1" />
-                    <span className="hidden sm:inline">Benutzer</span>
+                    <span className="hidden lg:inline">Benutzer</span>
+                  </button>
+                )}
+                {isManager && (
+                  <button
+                    onClick={() => onNavigate('settings')}
+                    className={`text-xs px-2 py-1.5 rounded-lg transition-colors flex items-center ${currentView === 'settings' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}
+                    title="Einstellungen"
+                  >
+                    <SettingsIcon className="w-3.5 h-3.5 sm:mr-1" />
+                    <span className="hidden lg:inline">Einstellungen</span>
                   </button>
                 )}
               </nav>

@@ -45,6 +45,15 @@ function monatsZahl(jahr: number, monat: number): number {
   return jahr * 12 + (monat - 1);
 }
 
+/**
+ * Anzahl der Tage eines Monats. Tag 0 des Folgemonats ist der letzte Tag des
+ * gesuchten — in UTC gerechnet, weil hier nur Kalenderfelder zaehlen und keine
+ * Ortszeit; die kommt aus `heuteInStationszeit`.
+ */
+export function tageImMonat(jahr: number, monat: number): number {
+  return new Date(Date.UTC(jahr, monat, 0)).getUTCDate();
+}
+
 function zerlege(monat: string): { jahr: number; monat: number } | null {
   const treffer = /^(\d{4})-(\d{2})$/.exec(monat);
   if (!treffer) return null;
@@ -64,7 +73,8 @@ export function monatVon(datum: string): string {
  * - Die Leitung ist nie gesperrt; sie plant.
  * - Der laufende Monat und alles davor sind gesperrt: Der Dienstplan haengt
  *   bereits, eine nachtraegliche Eintragung aendert daran nichts mehr (#33).
- * - Der Folgemonat schliesst **am** Stichtag, nicht erst danach.
+ * - Der Folgemonat schliesst **am** Stichtag, nicht erst danach. Ist der
+ *   Stichtag laenger als der laufende Monat, gilt dessen letzter Tag.
  * - Weiter entfernte Monate sind offen.
  */
 export function istMonatGesperrt({ monat, stichtag, rolle, jetzt }: SperrfristEingabe): boolean {
@@ -81,6 +91,13 @@ export function istMonatGesperrt({ monat, stichtag, rolle, jetzt }: SperrfristEi
   // `<= 0` schliesst den laufenden Monat ein. Das ist entschieden (#33), kein
   // Fluechtigkeitsfehler: Der Plan des laufenden Monats steht schon.
   if (abstand <= 0) return true;
-  if (abstand === 1) return heute.tag >= stichtag;
+  if (abstand === 1) {
+    // Die Leitung darf jeden Tag von 1 bis 31 waehlen, ohne die Laenge der
+    // einzelnen Monate im Kopf zu haben. Einen Stichtag, den es im laufenden
+    // Monat nicht gibt, holt der letzte Tag dieses Monats ein — sonst bliebe
+    // der Maerz bei Stichtag 31 den ganzen Februar ueber offen.
+    const wirksam = Math.min(stichtag, tageImMonat(heute.jahr, heute.monat));
+    return heute.tag >= wirksam;
+  }
   return false;
 }

@@ -5,10 +5,11 @@
 
 import { useState, useEffect } from 'react';
 import { Gatekeeper } from './components/Gatekeeper';
-import { Header } from './components/Header';
+import { Header, type Ansicht } from './components/Header';
 import { Calendar } from './components/Calendar';
 import { UserManagement } from './components/UserManagement';
 import { Profile } from './components/Profile';
+import { Einstellungen } from './components/Einstellungen';
 import { api } from './api/client';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from './types';
 import { hinweisZeilen, monatDE, wunschZeilen } from './export';
@@ -19,7 +20,7 @@ import autoTable from 'jspdf-autotable';
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'calendar' | 'users' | 'profile'>('calendar');
+  const [currentView, setCurrentView] = useState<Ansicht>('calendar');
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [monthlyComments, setMonthlyComments] = useState<MonthlyComment[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -214,6 +215,10 @@ export default function App() {
               <UserManagement />
             )}
             
+            {currentView === 'settings' && currentUser?.role === 'Manager' && (
+              <Einstellungen settings={settings} />
+            )}
+
             {currentView === 'profile' && currentUser && (
               <Profile currentUser={currentUser} />
             )}
