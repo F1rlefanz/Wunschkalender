@@ -21,6 +21,21 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.6.0] – 2026-08-20
+
+### Hinzugefügt
+- **Die Stationsleitung stellt den Stichtag selbst ein.** Unter „Einstellungen"
+  steht, ab welchem Tag des Monats Mitarbeitende den Folgemonat nicht mehr
+  ändern können. Bisher stand diese Zahl fest im Programm und liess sich nur
+  durch einen Eingriff in die Datenbank ändern. Die Änderung gilt sofort für
+  alle Angemeldeten, ohne dass jemand die Seite neu lädt.
+
+### Behoben
+- **Ein Stichtag am Monatsende greift jetzt in jedem Monat.** Wer den 29., 30.
+  oder 31. wählt, hätte im Februar sonst gar keine Sperre gehabt – der
+  März wäre bis zum 1. März offen geblieben. In Monaten ohne diesen Tag
+  greift die Sperre nun am letzten Tag des Monats.
+
 ## [0.5.0] – 2026-08-20
 
 ### Geändert

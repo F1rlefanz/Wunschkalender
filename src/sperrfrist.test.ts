@@ -99,3 +99,33 @@ describe('Rollen und Randfaelle', () => {
     expect(pruefe('2026-9', jetzt)).toBe(true);
   });
 });
+
+describe('Stichtag jenseits der Monatslaenge', () => {
+  // Die Leitung soll jeden Tag von 1 bis 31 waehlen duerfen, ohne die Laenge
+  // der einzelnen Monate im Kopf zu haben. Ein Stichtag, den es im laufenden
+  // Monat nicht gibt, bedeutet deshalb den letzten Tag dieses Monats — sonst
+  // bliebe der Maerz im Februar bis zum 1. Maerz offen.
+  test('greift im Februar am 28., wenn der Stichtag der 31. ist', () => {
+    expect(pruefe('2027-03', berlinerZeit('2027-02-28T00:00:00+01:00'), 31)).toBe(true);
+  });
+
+  test('greift im Februar noch nicht am 27., wenn der Stichtag der 31. ist', () => {
+    expect(pruefe('2027-03', berlinerZeit('2027-02-27T23:59:00+01:00'), 31)).toBe(false);
+  });
+
+  test('beachtet das Schaltjahr: 2028 ist der 29. der letzte Februartag', () => {
+    expect(pruefe('2028-03', berlinerZeit('2028-02-28T12:00:00+01:00'), 31)).toBe(false);
+    expect(pruefe('2028-03', berlinerZeit('2028-02-29T00:00:00+01:00'), 31)).toBe(true);
+  });
+
+  test('greift im 30-Tage-Monat am 30., wenn der Stichtag der 31. ist', () => {
+    expect(pruefe('2026-05', berlinerZeit('2026-04-30T00:00:00+02:00'), 31)).toBe(true);
+    expect(pruefe('2026-05', berlinerZeit('2026-04-29T23:59:00+02:00'), 31)).toBe(false);
+  });
+
+  test('laesst einen Stichtag, den es im Monat gibt, unveraendert', () => {
+    // Der 31. ist im Dezember ein echter Kalendertag und wird nicht vorgezogen.
+    expect(pruefe('2027-01', berlinerZeit('2026-12-30T12:00:00+01:00'), 31)).toBe(false);
+    expect(pruefe('2027-01', berlinerZeit('2026-12-31T00:00:00+01:00'), 31)).toBe(true);
+  });
+});
