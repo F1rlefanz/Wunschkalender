@@ -14,6 +14,7 @@ Wuensche, die Leitung sieht alle und verwaltet Benutzer.
 | Was ist offen und warum? | **GitHub Issues** (`gh issue list`) — nicht in Dateien im Repo |
 | Was hat sich fuer Nutzer geaendert? | `CHANGELOG.md` |
 | Wie funktioniert die Codebasis? | diese Datei |
+| Wo laeuft das, wer sichert? | `docs/betrieb.md` (Vorlage fuer die IT, Issue #30) |
 | Wie wird hier gearbeitet? | `.claude/skills/` |
 
 Diese Datei liegt in **jeder** Nachricht im Kontext. Deshalb gilt ein Zeichenbudget, das
