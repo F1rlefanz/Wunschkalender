@@ -21,6 +21,8 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.5.0] – 2026-08-20
+
 ### Geändert
 - **Der laufende Monat ist für Mitarbeitende gesperrt.** Bisher liessen sich am
   19. August noch Wünsche für den 25. August eintragen – obwohl der Dienstplan
