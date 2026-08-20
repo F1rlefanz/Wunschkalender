@@ -88,6 +88,10 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   das Papier loest kein Problem. Dass die Rasteransicht fuer Mitarbeitende nur die eigenen
   Eintraege zeigt, ist **Uebersichtlichkeit beim Eintragen**, keine Sicherheitsmassnahme.
   Wer daran etwas aendert, aendert Bedienkomfort. Spaetere Anonymisierung: Issue #31.
+- **Eine geloeschte Person ist weg, samt Wuenschen und Hinweisen.** Das haelt das
+  Datenbankschema selbst ein (`ON DELETE CASCADE`), nicht Aufraeumcode im Endpunkt.
+  Deaktivieren statt Loeschen wurde geprueft und verworfen (Issue #5): Vergangene
+  Monate zeigen dann Luecken statt Namen — das ist entschieden, kein Versehen.
 - **Der Erststart wiegt ~713 kB** (gzip ~226 kB), vor allem `jspdf` und `html2canvas` fuer den
   PDF-Export, den nur die Leitung braucht. Neue schwere Abhaengigkeiten gehoeren hinter ein
   `import()`.
