@@ -10,6 +10,7 @@ import { ensureManagerAccount } from './src/server/seed';
 import { createStore } from './src/server/store';
 import { SqliteSessionStore } from './src/server/session-store';
 import { resolveSessionSecret } from './src/server/session-secret';
+import { leseBetriebsmodus } from './src/server/betriebsmodus';
 import { hashPassword, verifyPassword, MIN_PASSWORD_LENGTH } from './src/server/passwords';
 import { istMonatGesperrt, monatVon } from './src/sperrfrist';
 import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
@@ -78,9 +79,19 @@ async function startServer() {
   // hier origin: '*' — damit konnte jede beliebige Website mitlesen.
   const io = new SocketIOServer(httpServer);
 
+  // Wie die Anwendung erreichbar ist, sagt der Betrieb ueber die Umgebung —
+  // die Vorgabe ist kein Proxy und kein HSTS. Siehe docs/betrieb.md.
+  const betrieb = leseBetriebsmodus(process.env);
   // Hinter einem Reverse Proxy muss Express der Weiterleitung glauben, sonst
-  // greift `secure: 'auto'` nie. Siehe #30.
-  app.set('trust proxy', 1);
+  // greift `secure: 'auto'` nie. Ohne Proxy waere dasselbe Vertrauen eine
+  // Luecke: Dann faelscht jeder Aufrufer `X-Forwarded-Proto` selbst.
+  app.set('trust proxy', betrieb.proxyHops > 0 ? betrieb.proxyHops : false);
+  if (betrieb.hsts) {
+    app.use((_req, res, next) => {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      next();
+    });
+  }
   // Ohne Grenze nimmt Express Nutzlasten bis 100 kB entgegen. Der groesste
   // echte Koerper hier sind ein paar hundert Zeichen Hinweistext.
   app.use(express.json({ limit: '16kb' }));
@@ -92,7 +103,7 @@ async function startServer() {
     resave: false,
     saveUninitialized: false,
     // `proxy` liest express-session aus den eigenen Optionen, nicht aus app.set.
-    proxy: true,
+    proxy: betrieb.proxyHops > 0,
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
@@ -471,10 +482,15 @@ async function startServer() {
     });
   }
 
+  if (betrieb.warnung) {
+    console.warn(`WARNUNG: ${betrieb.warnung}`);
+  }
+
   httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(
       `Server laeuft auf Port ${PORT} (Mindestlaenge fuer Passwoerter: ${MIN_PASSWORD_LENGTH}, ` +
-        `Sitzungsgeheimnis: ${secret.source})`,
+        `Sitzungsgeheimnis: ${secret.source}, vertraute Proxys: ${betrieb.proxyHops}, ` +
+        `HSTS: ${betrieb.hsts ? 'an' : 'aus'})`,
     );
   });
 }
