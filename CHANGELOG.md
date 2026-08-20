@@ -16,6 +16,8 @@ umformuliert statt ein zweiter danebengestellt.
 
 ## [Unreleased]
 
+## [0.4.0] – 2026-08-20
+
 ### Hinzugefügt
 - **Der PDF-Export enthält jetzt die Monatshinweise.** Unter der Wunschliste
   steht eine Tabelle mit den Hinweisen aller Personen zum ausgewählten Monat
