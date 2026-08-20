@@ -14,8 +14,14 @@ describe('Vergangenheit und Zukunft', () => {
     expect(pruefe('2026-07', jetzt)).toBe(true);
   });
 
-  test('sperrt den laufenden Monat nicht', () => {
-    expect(pruefe('2026-08', jetzt)).toBe(false);
+  test('sperrt den laufenden Monat', () => {
+    // Entschieden in #33: Der Dienstplan des laufenden Monats haengt bereits.
+    // Eine nachtraegliche Eintragung aendert daran nichts mehr.
+    expect(pruefe('2026-08', jetzt)).toBe(true);
+  });
+
+  test('sperrt den laufenden Monat schon an seinem ersten Tag', () => {
+    expect(pruefe('2026-08', berlinerZeit('2026-08-01T00:00:00+02:00'))).toBe(true);
   });
 
   test('laesst den uebernaechsten Monat offen, auch nach dem Stichtag', () => {

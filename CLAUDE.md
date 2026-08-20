@@ -52,8 +52,12 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   darf. Getipptes hat Vorrang, sonst geht es beim Schreiben anderer verloren.
 - `src/export.ts` — welche Zeilen im PDF stehen. Reine Funktionen ohne jsPDF,
   damit der Inhalt des Exports ohne PDF pruefbar ist.
-- `src/sperrfrist.ts` — wann ein Monat gesperrt ist. **Server und Oberflaeche benutzen
-  dieselbe Funktion**; zwei Fassungen waeren ein Fehler.
+- `src/sperrfrist.ts` — wann ein Monat gesperrt ist: der laufende Monat und alles
+  davor, dazu der Folgemonat ab dem Stichtag. **Dass der laufende Monat mitgesperrt
+  ist, ist entschieden (#33), kein Versehen** — der Plan haengt dann schon. **Server
+  und Oberflaeche benutzen dieselbe Funktion**; zwei Fassungen waeren ein Fehler.
+  Wer die Sperre erweitert, prueft die Oberflaeche mit: Loeschknoepfe und das
+  Hinweisfeld muessen verschwinden, sonst laufen sie in einen 403.
 - `tools/` — Sessionstart- und Schleusen-Skript (in `.claude/settings.json` als Hooks).
 
 ## Fallstricke
