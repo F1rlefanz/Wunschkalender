@@ -14,6 +14,11 @@ Einträge unter `[Unreleased]` werden **überarbeitet, nicht angehängt**: Betri
 neue Änderung denselben Sachverhalt wie ein bestehender Eintrag, wird dieser
 umformuliert statt ein zweiter danebengestellt.
 
+**Beim Veröffentlichen** wandern die Einträge aus `[Unreleased]` unter eine datierte
+Überschrift (`## [0.4.0] – 2026-08-20`). Das darf im selben Push geschehen wie die
+Änderung selbst: Die Schleuse fragt, ob zu den Commits ein Eintrag *hinzugekommen* ist —
+nicht, unter welcher Überschrift er steht.
+
 ## [Unreleased]
 
 ## [0.4.0] – 2026-08-20
