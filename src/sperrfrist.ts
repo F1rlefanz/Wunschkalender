@@ -62,7 +62,8 @@ export function monatVon(datum: string): string {
  * Entscheidet, ob ein Monat fuer Eintragungen gesperrt ist.
  *
  * - Die Leitung ist nie gesperrt; sie plant.
- * - Vergangene Monate sind gesperrt.
+ * - Der laufende Monat und alles davor sind gesperrt: Der Dienstplan haengt
+ *   bereits, eine nachtraegliche Eintragung aendert daran nichts mehr (#33).
  * - Der Folgemonat schliesst **am** Stichtag, nicht erst danach.
  * - Weiter entfernte Monate sind offen.
  */
@@ -77,7 +78,9 @@ export function istMonatGesperrt({ monat, stichtag, rolle, jetzt }: SperrfristEi
   const heute = heuteInStationszeit(jetzt);
   const abstand = monatsZahl(ziel.jahr, ziel.monat) - monatsZahl(heute.jahr, heute.monat);
 
-  if (abstand < 0) return true;
+  // `<= 0` schliesst den laufenden Monat ein. Das ist entschieden (#33), kein
+  // Fluechtigkeitsfehler: Der Plan des laufenden Monats steht schon.
+  if (abstand <= 0) return true;
   if (abstand === 1) return heute.tag >= stichtag;
   return false;
 }

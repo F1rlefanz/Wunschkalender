@@ -111,9 +111,14 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
     });
   }, [currentMonthStr, settings, currentUser]);
 
+  // Im gesperrten Monat lehnt der Server auch das Loeschen ab. Ohne diese
+  // Bedingung stuende der Knopf da und liefe jedes Mal in eine Fehlermeldung.
+  const darfLoeschen = (wish: Wish) =>
+    !isMonthLocked && (currentUser?.role === 'Manager' || currentUser?.id === wish.userId);
+
   const toggleDateSelection = (dateStr: string) => {
     if (isMonthLocked) {
-      alert(`Wunscheintragung für diesen Monat ist seit dem ${settings?.bookingDeadlineDay}. gesperrt.`);
+      alert(`Für ${monthYearString} sind keine Wunscheintragungen mehr möglich.`);
       return;
     }
     const newSelection = new Set(selectedDates);
@@ -214,9 +219,10 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
             <div>
               <span className="text-xs font-semibold text-blue-600 mb-1 block">{currentUser.name} (Sie)</span>
               <textarea
-                className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                 rows={2}
                 value={localMonthlyComment}
+                disabled={isMonthLocked}
                 onChange={(e) => setLocalMonthlyComment(e.target.value)}
                 onBlur={() => {
                   if (localMonthlyComment === (meinHinweis?.text ?? '')) return;
@@ -291,7 +297,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                     {dayWishes.slice(0, 3).map(wish => {
                       const u = users.find(user => user.id === wish.userId);
                       const name = u?.name || 'Unbekannt';
-                      const canDelete = currentUser?.role === 'Manager' || currentUser?.id === wish.userId;
+                      const canDelete = darfLoeschen(wish);
 
                       return (
                         <div 
@@ -418,7 +424,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                             <ul className="space-y-1.5">
                               {shiftWishes.map(wish => {
                                 const u = users.find(user => user.id === wish.userId);
-                                const canDelete = currentUser?.role === 'Manager' || currentUser?.id === wish.userId;
+                                const canDelete = darfLoeschen(wish);
                                 return (
                                   <li key={wish.id} className="text-sm bg-white p-2 rounded border border-slate-100 flex justify-between items-start shadow-sm">
                                     <div className="min-w-0 flex-1">
@@ -643,7 +649,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {shiftWishes.map(wish => {
                         const u = users.find(user => user.id === wish.userId);
-                        const canDelete = currentUser?.role === 'Manager' || currentUser?.id === wish.userId;
+                        const canDelete = darfLoeschen(wish);
                         return (
                           <div key={wish.id} className="bg-white border border-slate-200 p-3 rounded-lg flex justify-between items-start shadow-sm">
                             <div>
