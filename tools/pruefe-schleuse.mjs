@@ -10,6 +10,7 @@
  */
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { neueChangelogEintraege } from './changelog-pruefung.mjs';
 
 const CLAUDE_MD_BUDGET = 12000; // Zeichen. Die Datei liegt in JEDER Nachricht im Kontext.
 
@@ -67,21 +68,27 @@ const branch = lauf('git rev-parse --abbrev-ref HEAD').ausgabe?.trim();
 const referenz = branch === 'main' ? 'origin/main' : 'main';
 const basis = lauf(`git merge-base HEAD ${referenz}`);
 if (basis.ok && basis.ausgabe.trim()) {
-  const betreffs = lauf(`git log ${basis.ausgabe.trim()}..HEAD --format=%s`);
+  const basisHash = basis.ausgabe.trim();
+  const betreffs = lauf(`git log ${basisHash}..HEAD --format=%s`);
   const nachrichten = betreffs.ok ? betreffs.ausgabe.trim().split('\n').filter(Boolean) : [];
   const nurIntern = nachrichten.length > 0 && nachrichten.every((n) => /^(chore|refactor|test|docs|ci|style|build|merge)(\(.+\))?!?:/i.test(n));
 
   if (nachrichten.length > 0 && !nurIntern) {
     if (existsSync('CHANGELOG.md')) {
-      const changelog = readFileSync('CHANGELOG.md', 'utf8');
-      const unreleased = changelog.split(/^## \[Unreleased\]/m)[1] ?? '';
-      const inhalt = unreleased.split(/^## /m)[0].trim();
-      if (!inhalt) {
-        probleme.push('Der Branch enthaelt nutzersichtbare Aenderungen (feat/fix), aber `## [Unreleased]` im CHANGELOG ist leer.\nEintrag aus Nutzersicht ergaenzen — oder, wenn wirklich nichts sichtbar ist, die Commits als chore/refactor kennzeichnen.');
+      // Gefragt ist nicht "steht etwas unter [Unreleased]", sondern "kam zu diesen
+      // Commits ein Eintrag hinzu". Sonst blockiert das Datieren einer Version den
+      // eigenen Push: Es leert genau den Abschnitt, den die Pruefung ansah (#34).
+      const changelogBasis = lauf(`git show ${basisHash}:CHANGELOG.md`);
+      const neueEintraege = neueChangelogEintraege(
+        changelogBasis.ok ? changelogBasis.ausgabe : null,
+        readFileSync('CHANGELOG.md', 'utf8'),
+      );
+      if (neueEintraege.length === 0) {
+        probleme.push('Der Branch enthaelt nutzersichtbare Aenderungen (feat/fix), aber im CHANGELOG steht dazu kein neuer Eintrag.\nEintrag aus Nutzersicht unter `## [Unreleased]` ergaenzen — eine im selben Zug datierte Ueberschrift zaehlt genauso. Oder, wenn wirklich nichts sichtbar ist, die Commits als chore/refactor kennzeichnen.');
       }
     }
     const versionJetzt = JSON.parse(readFileSync('package.json', 'utf8')).version;
-    const versionBasis = lauf(`git show ${basis.ausgabe.trim()}:package.json`);
+    const versionBasis = lauf(`git show ${basisHash}:package.json`);
     if (versionBasis.ok) {
       try {
         if (JSON.parse(versionBasis.ausgabe).version === versionJetzt) {

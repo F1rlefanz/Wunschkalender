@@ -44,6 +44,11 @@ Issue-Kommentar mit Begruendung, nicht ins Stillschweigen.
 `package.json`, nach Semver: Patch fuer Fixes, Minor fuer Features, Major nur nach Ruecksprache.
 Nur auf `main` bzw. beim Merge dorthin, nicht auf Feature-Branches durchreichen.
 
+Dazu gehoert das **Datieren im Changelog**: Die Eintraege aus `[Unreleased]` wandern unter eine
+Ueberschrift `## [<version>] – <JJJJ-MM-TT>`, `[Unreleased]` bleibt leer stehen. Das darf im
+selben Push passieren wie die Aenderung — die Schleuse prueft, ob ein Eintrag hinzugekommen
+ist, nicht unter welcher Ueberschrift er steht.
+
 ### 4. Doku dort korrigieren, wo sie falsch geworden ist
 
 Der Kern gegen Drift. Wenn die Aenderung eine bestehende Aussage widerlegt — in `CLAUDE.md`,
