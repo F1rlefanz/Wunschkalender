@@ -16,6 +16,14 @@ umformuliert statt ein zweiter danebengestellt.
 
 ## [Unreleased]
 
+### Hinzugefügt
+- **Der PDF-Export enthält jetzt die Monatshinweise.** Unter der Wunschliste
+  steht eine Tabelle mit den Hinweisen aller Personen zum ausgewählten Monat
+  („höchstens 3 Nachtdienste“, „Urlaub 12.–15.“). Bisher standen im PDF nur die
+  einzelnen Wünsche, und die Randbedingungen, die die Dienstplanung eigentlich
+  braucht, mussten am Bildschirm nachgeschlagen werden. Lange Hinweise werden
+  umbrochen, viele Hinweise laufen auf die nächste Seite.
+
 ## [0.3.1] – 2026-08-19
 
 ### Behoben
