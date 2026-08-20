@@ -50,6 +50,8 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
 - `src/hinweise.ts` — welche Monatshinweise unter der Ueberschrift eines Monats
   stehen und wann ein eintreffendes Socket-Ereignis ein Eingabefeld ueberschreiben
   darf. Getipptes hat Vorrang, sonst geht es beim Schreiben anderer verloren.
+- `src/export.ts` — welche Zeilen im PDF stehen. Reine Funktionen ohne jsPDF,
+  damit der Inhalt des Exports ohne PDF pruefbar ist.
 - `src/sperrfrist.ts` — wann ein Monat gesperrt ist. **Server und Oberflaeche benutzen
   dieselbe Funktion**; zwei Fassungen waeren ein Fehler.
 - `tools/` — Sessionstart- und Schleusen-Skript (in `.claude/settings.json` als Hooks).

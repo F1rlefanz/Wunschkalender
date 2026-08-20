@@ -11,6 +11,7 @@ import { UserManagement } from './components/UserManagement';
 import { Profile } from './components/Profile';
 import { api } from './api/client';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from './types';
+import { hinweisZeilen, monatDE, wunschZeilen } from './export';
 import { io } from 'socket.io-client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -128,38 +129,32 @@ export default function App() {
 
   const handleExport = () => {
     const doc = new jsPDF();
-    
-    const formatMonthDE = (monthStr: string) => {
-      const [year, month] = monthStr.split('-');
-      return `${month}/${year}`;
-    };
-
-    const formatDateDE = (dateStr: string) => {
-      const [year, month, day] = dateStr.split('-');
-      return `${day}.${month}.${year}`;
-    };
 
     doc.setFontSize(16);
-    doc.text(`Wunschkalender - ${formatMonthDE(currentMonth)}`, 14, 20);
-    
-    const tableData = wishes
-      .filter(w => w.date.startsWith(currentMonth))
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map(w => {
-        const u = users.find(user => user.id === w.userId);
-        return [
-          formatDateDE(w.date),
-          u?.name || 'Unbekannt',
-          w.shiftType === 'Früh' ? 'Frühdienst' : w.shiftType === 'Spät' ? 'Spätdienst' : w.shiftType === 'Nacht' ? 'Nachtdienst' : w.shiftType === 'Frei' ? 'Frei' : w.shiftType,
-          w.comment || '-'
-        ];
-      });
+    doc.text(`Wunschkalender - ${monatDE(currentMonth)}`, 14, 20);
 
     autoTable(doc, {
       startY: 30,
       head: [['Datum', 'Name', 'Schicht', 'Kommentar']],
-      body: tableData,
+      body: wunschZeilen(wishes, users, currentMonth),
     });
+
+    // Die Monatshinweise stehen hinter den Wuenschen, nicht davor: Sonst
+    // schoebe ein hinweisreicher Monat die Wunschtabelle auf die zweite Seite.
+    const hinweise = hinweisZeilen(monthlyComments, users, currentMonth);
+    if (hinweise.length > 0) {
+      const nachTabelle = (doc as any).lastAutoTable?.finalY ?? 30;
+      doc.setFontSize(12);
+      doc.text('Monatshinweise', 14, nachTabelle + 12);
+      autoTable(doc, {
+        startY: nachTabelle + 16,
+        head: [['Name', 'Hinweis']],
+        body: hinweise,
+        // Der Hinweis bekommt den Rest der Breite und wird umbrochen statt
+        // abgeschnitten; lange Hinweise bleiben so lesbar.
+        columnStyles: { 0: { cellWidth: 40 } },
+      });
+    }
 
     doc.save(`Wunschkalender_${currentMonth}.pdf`);
   };
