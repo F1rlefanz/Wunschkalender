@@ -132,8 +132,11 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   bekommen. Eine eingestreute Farbe (`bg-white`, `text-slate-700`) bricht ihn still —
   sichtbar wird das erst nachts auf dem Telefon. Deshalb: neue Rolle anlegen statt
   Wert einstreuen.
-- **Der Erststart wiegt ~713 kB** (gzip ~226 kB), vor allem `jspdf` und `html2canvas` fuer den
-  PDF-Export, den nur die Leitung braucht. Neue schwere Abhaengigkeiten gehoeren hinter ein
+- **Der Erststart wiegt ~301 kB** (gzip ~90 kB). Der PDF-Export liegt seit #14 in
+  `src/pdf.ts` und wird per `import()` erst beim Klick nachgeladen — `jspdf` und
+  `html2canvas` (zusammen ~625 kB) zahlt so nur, wer exportiert. `src/pdf.ts` ist die
+  einzige Stelle mit einem `jspdf`-Import; ein statischer Import von dort holt beides
+  zurueck in den Erststart. Neue schwere Abhaengigkeiten gehoeren ebenso hinter ein
   `import()`.
 - **`tsconfig` ist nicht `strict`.** Fehlende Typen fallen erst spaet auf. An der API-Grenze
   (`src/api/client.ts`) steht bewusst noch `any` — das ist Schuld, kein Vorbild (Issue #19).

@@ -86,9 +86,10 @@ Eine Aenderung an der Oberflaeche gilt erst als fertig, wenn sie diese nicht bri
 - Service Worker: die App startet offline und zeigt einen verstaendlichen Zustand, wenn der
   Server nicht erreichbar ist — kein weisser Bildschirm.
 - `viewport-fit` und sichere Bereiche (Notch, Gestenleiste) beruecksichtigt.
-- **Startgewicht im Blick behalten.** Der Hauptbundle liegt bei ~700 kB, vor allem durch
-  `jspdf` und `html2canvas` — die braucht nur die Stationsleitung fuer den Export. Solche
-  Pfade gehoeren hinter ein `import()`, nicht in den Erststart auf dem Mobilfunknetz.
+- **Startgewicht im Blick behalten.** Der Hauptbundle liegt bei ~301 kB; der PDF-Export
+  (`jspdf` und `html2canvas`, zusammen mehr als der Rest der Anwendung) wird seit #14 erst
+  beim Klick nachgeladen. Solche Pfade gehoeren hinter ein `import()`, nicht in den
+  Erststart auf dem Mobilfunknetz.
 
 ## Pruefmatrix — nachsehen, nicht schliessen
 
