@@ -21,6 +21,14 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.11.0] – 2026-08-21
+
+### Geändert
+- **Die Anwendung startet spürbar schneller, besonders im Mobilfunknetz.** Der
+  PDF-Export wird erst geladen, wenn die Leitung ihn anstößt; beim Start werden
+  dafür rund zwei Drittel weniger übertragen. Während des Ladens zeigt der
+  Export-Knopf, dass er arbeitet.
+
 ## [0.10.1] – 2026-08-21
 
 ### Behoben

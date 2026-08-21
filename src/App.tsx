@@ -12,11 +12,8 @@ import { Profile } from './components/Profile';
 import { Einstellungen } from './components/Einstellungen';
 import { api } from './api/client';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from './types';
-import { hinweisZeilen, monatDE, wunschZeilen } from './export';
 import { MeldungsBereich, Meldungen, useMeldung } from './meldungen';
 import { io } from 'socket.io-client';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 /**
  * Der Meldungsbereich liegt um die ganze Anwendung, damit auch der
@@ -47,6 +44,7 @@ function Anwendung() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [checkingSession, setCheckingSession] = useState(true);
+  const [exportLaeuft, setExportLaeuft] = useState(false);
 
   // Beim Start fragen, wer angemeldet ist. Ohne das erschiene nach jedem
   // Neuladen wieder der Anmeldebildschirm, obwohl die Sitzung noch gilt.
@@ -147,36 +145,22 @@ function Anwendung() {
     }
   };
 
-  const handleExport = () => {
-    const doc = new jsPDF();
-
-    doc.setFontSize(16);
-    doc.text(`Wunschkalender - ${monatDE(currentMonth)}`, 14, 20);
-
-    autoTable(doc, {
-      startY: 30,
-      head: [['Datum', 'Name', 'Schicht', 'Kommentar']],
-      body: wunschZeilen(wishes, users, currentMonth),
-    });
-
-    // Die Monatshinweise stehen hinter den Wuenschen, nicht davor: Sonst
-    // schoebe ein hinweisreicher Monat die Wunschtabelle auf die zweite Seite.
-    const hinweise = hinweisZeilen(monthlyComments, users, currentMonth);
-    if (hinweise.length > 0) {
-      const nachTabelle = (doc as any).lastAutoTable?.finalY ?? 30;
-      doc.setFontSize(12);
-      doc.text('Monatshinweise', 14, nachTabelle + 12);
-      autoTable(doc, {
-        startY: nachTabelle + 16,
-        head: [['Name', 'Hinweis']],
-        body: hinweise,
-        // Der Hinweis bekommt den Rest der Breite und wird umbrochen statt
-        // abgeschnitten; lange Hinweise bleiben so lesbar.
-        columnStyles: { 0: { cellWidth: 40 } },
-      });
+  // Der PDF-Bau liegt in `pdf.ts` und wird erst beim Klick geladen (#14):
+  // `jspdf` samt `html2canvas` waere sonst im Erststart jedes Telefons, obwohl
+  // nur die Leitung exportiert. Waehrend des Ladens zeigt der Knopf das an —
+  // im Mobilfunknetz dauert es sichtbar lange.
+  const handleExport = async () => {
+    if (exportLaeuft) return;
+    setExportLaeuft(true);
+    try {
+      const { erzeugePdf } = await import('./pdf');
+      erzeugePdf(currentMonth, wishes, users, monthlyComments);
+    } catch (error) {
+      console.error('Failed to export PDF:', error);
+      melde('fehler', 'Der Export konnte nicht erstellt werden. Bitte noch einmal versuchen.');
+    } finally {
+      setExportLaeuft(false);
     }
-
-    doc.save(`Wunschkalender_${currentMonth}.pdf`);
   };
 
   if (checkingSession) {
@@ -207,6 +191,7 @@ function Anwendung() {
           setCurrentView('calendar');
         }}
         onExport={handleExport}
+        exportLaeuft={exportLaeuft}
       />
       
       <main className="py-raum5">

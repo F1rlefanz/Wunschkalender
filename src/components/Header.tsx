@@ -1,4 +1,4 @@
-import { Calendar as CalendarIcon, Download, Users, User as UserIcon, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Download, Loader2, Users, User as UserIcon, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { User } from '../types';
 
 export type Ansicht = 'calendar' | 'users' | 'profile' | 'settings';
@@ -9,6 +9,8 @@ interface HeaderProps {
   onNavigate: (view: Ansicht) => void;
   onLogout: () => void;
   onExport: () => void;
+  /** Der PDF-Bau wird gerade nachgeladen (#14) — der Knopf zeigt es an. */
+  exportLaeuft?: boolean;
 }
 
 /**
@@ -24,7 +26,7 @@ interface HeaderProps {
  *
  * Sie traegt vier Wege; ein fuenfter passt auf 360 px nicht mehr ohne Umbau.
  */
-export function Header({ currentUser, currentView, onNavigate, onLogout, onExport }: HeaderProps) {
+export function Header({ currentUser, currentView, onNavigate, onLogout, onExport, exportLaeuft = false }: HeaderProps) {
   const canExport = currentUser?.role === 'Manager';
   const isManager = currentUser?.role === 'Manager';
 
@@ -88,15 +90,28 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
           </div>
 
           <div className="flex items-center gap-raum2 shrink-0">
+            {/* Waehrend des Ladens `aria-disabled` statt `disabled`: Ein
+                deaktivierter Knopf verliert den Fokus, und die Tastatur stuende
+                danach wieder am Seitenanfang. Den zweiten Klick faengt
+                `handleExport` selbst ab. */}
             {canExport && currentView === 'calendar' && (
               <button
                 type="button"
                 onClick={onExport}
-                className="touchziel gap-raum2 rounded-sm border border-kopf-text px-raum3 text-klein transition-colors hover:bg-kopf-text hover:text-kopf"
-                title="Als PDF exportieren"
+                aria-disabled={exportLaeuft}
+                aria-busy={exportLaeuft}
+                aria-label={exportLaeuft ? 'PDF wird vorbereitet' : 'Als PDF exportieren'}
+                className={`touchziel gap-raum2 rounded-sm border border-kopf-text px-raum3 text-klein transition-colors ${
+                  exportLaeuft ? 'opacity-70 cursor-progress' : 'hover:bg-kopf-text hover:text-kopf'
+                }`}
+                title={exportLaeuft ? 'PDF wird vorbereitet' : 'Als PDF exportieren'}
               >
-                <Download className="w-4 h-4 shrink-0" aria-hidden="true" />
-                <span className="hidden sm:inline">Export</span>
+                {exportLaeuft ? (
+                  <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Download className="w-4 h-4 shrink-0" aria-hidden="true" />
+                )}
+                <span className="hidden sm:inline">{exportLaeuft ? 'Export …' : 'Export'}</span>
               </button>
             )}
 
