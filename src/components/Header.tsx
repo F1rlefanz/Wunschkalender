@@ -12,10 +12,17 @@ interface HeaderProps {
 }
 
 /**
- * Die Kopfzeile ist der Beleg fuer die Gestaltungsgrundlage (#21): Sie kommt
- * ohne eine einzige Tailwind-Standardfarbe aus und benennt stattdessen Rollen
- * aus `src/index.css`. Sie traegt vier Wege; ein fuenfter passt auf 360 px
- * nicht mehr ohne Umbau.
+ * Die Kopfzeile traegt die rote Leiste des Hauses — das Erkennungszeichen des
+ * Corporate Designs (#21). Zwei Regeln folgen daraus:
+ *
+ * - Auf Markenrot besteht **nur Weiss** den Kontrast von 4.5:1. Es gibt hier
+ *   keinen gedaempften Textton; die Rangfolge macht das Schriftgewicht.
+ * - **Keine zweite Rotflaeche**, auch nicht fuer Zeigen oder den aktuellen
+ *   Weg. Jeder zweite Rotton beisst sich mit dem Markenrot — ein dunklerer
+ *   erst recht. Struktur machen deshalb weisse Unterstriche und Umrisse; die
+ *   Umriss-Knoepfe kehren sich beim Zeigen um (weiss gefuellt, rote Schrift).
+ *
+ * Sie traegt vier Wege; ein fuenfter passt auf 360 px nicht mehr ohne Umbau.
  */
 export function Header({ currentUser, currentView, onNavigate, onLogout, onExport }: HeaderProps) {
   const canExport = currentUser?.role === 'Manager';
@@ -32,7 +39,7 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
               className="touchziel gap-raum2 rounded-sm px-raum1"
               title="Zum Kalender"
             >
-              <CalendarIcon className="h-5 w-5 text-kopf-marke shrink-0" aria-hidden="true" />
+              <CalendarIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
               {/* Der Name weicht auf dem Telefon: Er ist Beschriftung, die
                   Navigationspunkte dahinter sind Zugang. Das Logo bleibt als
                   Weg zurueck zum Kalender. */}
@@ -85,7 +92,7 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
               <button
                 type="button"
                 onClick={onExport}
-                className="touchziel gap-raum2 rounded-sm px-raum2 text-klein bg-kopf-aktiv hover:bg-kopf-aktiv/70 transition-colors"
+                className="touchziel gap-raum2 rounded-sm border border-kopf-text px-raum3 text-klein transition-colors hover:bg-kopf-text hover:text-kopf"
                 title="Als PDF exportieren"
               >
                 <Download className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -98,10 +105,10 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
                 type="button"
                 onClick={() => onNavigate('profile')}
                 aria-current={currentView === 'profile' ? 'page' : undefined}
-                className={`touchziel gap-raum2 rounded-sm px-raum2 text-klein font-semibold transition-colors ${
+                className={`touchziel gap-raum2 rounded-sm border border-kopf-text px-raum3 text-klein font-semibold transition-colors ${
                   currentView === 'profile'
-                    ? 'bg-kopf-aktiv ring-2 ring-kopf-marke'
-                    : 'bg-kopf-aktiv/70 hover:bg-kopf-aktiv'
+                    ? 'bg-kopf-text text-kopf'
+                    : 'hover:bg-kopf-text hover:text-kopf'
                 }`}
                 title="Profil und Passwort"
               >
@@ -111,7 +118,7 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
                 </span>
                 {/* Die Rolle steht als Wort da, nicht als Farbe: Eine gruene
                     gegen eine blaue Kachel sagt niemandem, was sie bedeutet. */}
-                <span className="hidden md:inline text-kopf-leise font-normal">
+                <span className="hidden md:inline font-normal">
                   ({currentUser.role === 'Manager' ? 'Leitung' : 'Mitarbeiter'})
                 </span>
               </button>
@@ -120,7 +127,7 @@ export function Header({ currentUser, currentView, onNavigate, onLogout, onExpor
             <button
               type="button"
               onClick={onLogout}
-              className="touchziel gap-raum2 rounded-sm px-raum2 text-klein text-kopf-leise hover:text-kopf-text hover:bg-kopf-aktiv transition-colors"
+              className="touchziel gap-raum2 rounded-none border-b-2 border-transparent px-raum2 text-klein font-normal transition-colors hover:border-kopf-text"
               title="Abmelden"
             >
               <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -141,9 +148,11 @@ interface WegProps {
 }
 
 /**
- * Ein Navigationsweg. Dass er der aktuelle ist, sagt nicht nur die
- * Hinterlegung: `aria-current` sagt es der Vorlesehilfe, das Schriftgewicht
- * dem Auge. Auf schmalen Geraeten bleibt nur das Symbol sichtbar — der Name
+ * Ein Navigationsweg. Dass er der aktuelle ist, sagt nicht die Farbe — auf der
+ * roten Leiste ist jeder Text weiss. Es sagen `aria-current` fuer die
+ * Vorlesehilfe, das Schriftgewicht und ein weisser Unterstrich. Eine gefuellte
+ * Kachel waere hier falsch: Ein zweiter Rotton neben dem Markenrot beisst
+ * sich, egal wie man ihn waehlt. Auf schmalen Geraeten bleibt nur das Symbol sichtbar — der Name
  * steht dann im `title` und fuer Vorlesehilfen in `sr-only`.
  */
 function Weg({ aktiv, onClick, titel, children }: WegProps) {
@@ -152,10 +161,10 @@ function Weg({ aktiv, onClick, titel, children }: WegProps) {
       type="button"
       onClick={onClick}
       aria-current={aktiv ? 'page' : undefined}
-      className={`touchziel gap-raum2 rounded-sm px-raum2 text-klein transition-colors ${
+      className={`touchziel gap-raum2 rounded-none border-b-2 px-raum2 text-klein transition-colors ${
         aktiv
-          ? 'bg-kopf-aktiv text-kopf-text font-semibold'
-          : 'text-kopf-leise hover:text-kopf-text hover:bg-kopf-aktiv/70'
+          ? 'border-kopf-text font-semibold'
+          : 'border-transparent font-normal hover:border-kopf-text/60'
       }`}
       title={titel}
     >

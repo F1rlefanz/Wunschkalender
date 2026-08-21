@@ -100,17 +100,28 @@
 
   --haus-fokus: #1f5fbf;
 
-  /* Die Kopfzeile ist in beiden Modi dunkel: Sie ist Rahmen, nicht Inhalt, und
-     soll beim Wechsel des Geraetemodus nicht die Seite kippen lassen. Deshalb
-     traegt sie eigene Rollen — die Seitenrollen passen auf ihr nicht. */
-  --haus-kopf: #2d2a28;
-  --haus-kopf-text: #f0edea;
-  --haus-kopf-leise: #c2bab3;
-  --haus-kopf-aktiv: #55504b;
-  /* Markenrot erreicht auf der dunklen Kopfzeile nur 2.88:1. Dort steht
-     deshalb der aufgehellte Ton aus dem Dunkelmodus des Corporate Designs. */
-  --haus-kopf-marke: #ff6b7e;
-  --haus-kopf-fokus: #9dc2ff;
+  /* Die rote Leiste ist das Erkennungszeichen des Hauses — die Kopfzeile
+     traegt sie. Daraus folgen zwei Einschraenkungen:
+
+     - Auf Markenrot besteht **nur Weiss** (4.94:1); jeder gedaempfte Ton, auch
+       das CD-Hellrot #FBE1E4, faellt mit 4.0:1 durch. Es gibt hier deshalb
+       keine zweite Textstufe — die Rangfolge macht das Schriftgewicht.
+     - Es gibt **keine zweite Rotflaeche**, auch nicht fuers Zeigen. Ein
+       Bordeaux beisst sich (Farbton 344 gegen 353), ein tonwinkelgleiches
+       dunkleres Rot bleibt ein dunkler Fleck. Struktur machen weisse
+       Unterstriche und Umrisse. */
+  --haus-kopf: #e2001a;
+  --haus-kopf-text: #ffffff;
+  --haus-kopf-fokus: #ffffff;
+
+  /* Die schwebende Leiste der Mehrfachauswahl bleibt anthrazit: Sie liegt ueber
+     dem Kalender und traegt einen markenroten Knopf — auf Rot waere der nicht
+     zu sehen. */
+  --haus-leiste: #2d2a28;
+  --haus-leiste-text: #f0edea;
+  --haus-leiste-leise: #c2bab3;
+  --haus-leiste-aktiv: #55504b;
+  --haus-leiste-fokus: #9dc2ff;
 
   /* Die vier Schichtarten. Die einzigen Farbtoene neben Marke und Fehler —
      und sie tragen nie allein: Im Feld steht immer auch der Buchstabe. Rot
@@ -152,12 +163,17 @@
 
     --haus-fokus: #9dc2ff;
 
-    --haus-kopf: #2d2a28;
-    --haus-kopf-text: #f0edea;
-    --haus-kopf-leise: #c2bab3;
-    --haus-kopf-aktiv: #55504b;
-    --haus-kopf-marke: #ff6b7e;
-    --haus-kopf-fokus: #9dc2ff;
+    /* Nachts das dunkle Bordeaux des Corporate Designs statt des vollen
+       Markenrots: Eine leuchtend rote Leiste im dunklen Zimmer blendet. */
+    --haus-kopf: #8e0f30;
+    --haus-kopf-text: #ffffff;
+    --haus-kopf-fokus: #ffffff;
+
+    --haus-leiste: #2d2a28;
+    --haus-leiste-text: #f0edea;
+    --haus-leiste-leise: #c2bab3;
+    --haus-leiste-aktiv: #55504b;
+    --haus-leiste-fokus: #9dc2ff;
 
     --haus-frueh: #4a3617;
     --haus-frueh-text: #f5d9a8;
@@ -202,9 +218,11 @@
 
   --color-kopf: var(--haus-kopf);
   --color-kopf-text: var(--haus-kopf-text);
-  --color-kopf-leise: var(--haus-kopf-leise);
-  --color-kopf-aktiv: var(--haus-kopf-aktiv);
-  --color-kopf-marke: var(--haus-kopf-marke);
+
+  --color-leiste: var(--haus-leiste);
+  --color-leiste-text: var(--haus-leiste-text);
+  --color-leiste-leise: var(--haus-leiste-leise);
+  --color-leiste-aktiv: var(--haus-leiste-aktiv);
 
   --color-frueh: var(--haus-frueh);
   --color-frueh-text: var(--haus-frueh-text);
@@ -321,13 +339,17 @@
   }
 }
 
-/* Innerhalb der Kopfzeile gilt der helle Fokusring: Der dunkelblaue Ring der
-   Seite erreicht auf dem Anthrazit nur 2.34:1 und waere kaum zu sehen. Die
+/* Auf farbigen Leisten gilt ein eigener Fokusring: Der dunkelblaue Ring der
+   Seite erreicht auf Markenrot nur 1.4:1 und waere praktisch unsichtbar. Die
    Regel in `:focus-visible` liest `--haus-fokus`, deshalb genuegt es, die
    Rolle hier lokal umzubiegen — jede Komponente daran zu erinnern, waere die
    schlechtere Loesung. */
 @utility kopfbereich {
   --haus-fokus: var(--haus-kopf-fokus);
+}
+
+@utility leistenbereich {
+  --haus-fokus: var(--haus-leiste-fokus);
 }
 
 @utility touchziel {

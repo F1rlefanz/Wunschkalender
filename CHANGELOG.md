@@ -21,6 +21,15 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.10.1] – 2026-08-21
+
+### Behoben
+- **Die Kopfzeile trägt jetzt die rote Leiste des Hauses.** Sie war anthrazit
+  und passte damit nicht zum Erscheinungsbild der übrigen Anwendungen.
+- **In der Mitarbeiter-Matrix musste man waagerecht scrollen, obwohl Platz da
+  war.** Ein ganzer Monat passt auf dem Desktop jetzt ohne Scrollen ins Bild;
+  auf dem Telefon lässt sich die Matrix weiterhin seitlich schieben.
+
 ## [0.10.0] – 2026-08-21
 
 ### Hinzugefügt
