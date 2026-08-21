@@ -38,5 +38,14 @@ export interface MonthlyComment {
 }
 
 export interface Settings {
-  bookingDeadlineDay: number; // Day of month when booking locks for next month
+  /**
+   * Vorlauf des automatischen Vorschlags in Tagen: So lange vor Monatsbeginn
+   * schliesst ein Monat, fuer den nichts Ausdrueckliches hinterlegt ist.
+   */
+  vorlaufTage: number;
+  /**
+   * Ausdruecklich gesetzte Stichtage, `YYYY-MM` auf `YYYY-MM-DD`. Sie schlagen
+   * den Vorschlag und werden von ihm nie ueberschrieben (#36).
+   */
+  stichtage: Record<string, string>;
 }

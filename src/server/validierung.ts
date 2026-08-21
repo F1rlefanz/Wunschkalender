@@ -19,6 +19,8 @@ export const GRENZEN = {
   passwort: 200,
   wunschKommentar: 500,
   monatshinweis: 2000,
+  /** Ein Jahr Vorlauf ist mehr, als eine Station je plant — darueber ist es ein Vertipper. */
+  vorlaufTage: 365,
 } as const;
 
 const TAGE_IM_MONAT = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -41,16 +43,24 @@ export function istKalendertag(wert: string): boolean {
   return tag >= 1 && tag <= laenge;
 }
 
-const datum = z
-  .string('date muss ein Datum im Format YYYY-MM-DD sein.')
-  .refine(istKalendertag, 'date muss ein gueltiger Kalendertag im Format YYYY-MM-DD sein.');
+/** Dasselbe Datumsschema unter dem Namen, den das jeweilige Feld traegt. */
+const kalendertag = (feld: string) =>
+  z
+    .string(`${feld} muss ein Datum im Format YYYY-MM-DD sein.`)
+    .refine(istKalendertag, `${feld} muss ein gueltiger Kalendertag im Format YYYY-MM-DD sein.`);
 
-const monat = z
-  .string('month muss ein Monat im Format YYYY-MM sein.')
-  .refine((wert) => {
+const datum = kalendertag('date');
+
+const monatsschema = (feld: string) =>
+  z.string(`${feld} muss ein Monat im Format YYYY-MM sein.`).refine((wert) => {
     const treffer = /^(\d{4})-(\d{2})$/.exec(wert);
     return treffer !== null && Number(treffer[2]) >= 1 && Number(treffer[2]) <= 12;
-  }, 'month muss ein Monat im Format YYYY-MM sein.');
+  }, `${feld} muss ein Monat im Format YYYY-MM sein.`);
+
+const monat = monatsschema('month');
+
+/** Der Monat aus dem Pfad eines Stichtagsweges, z.B. `/api/stichtage/2026-11`. */
+export const monatParameterSchema = monatsschema('monat');
 
 const rolle = z.enum(['Manager', 'Employee'], 'role muss entweder Manager oder Employee sein.');
 
@@ -85,12 +95,14 @@ export const passwortAendernSchema = z.strictObject({
 
 export const passwortZuruecksetzenSchema = z.strictObject({ newPassword: passwort });
 
+const VORLAUF_MELDUNG = `vorlaufTage muss eine Zahl zwischen 0 und ${GRENZEN.vorlaufTage} sein.`;
+
 export const einstellungenSchema = z.strictObject({
-  bookingDeadlineDay: z
-    .int('bookingDeadlineDay muss eine Zahl zwischen 1 und 31 sein.')
-    .min(1, 'bookingDeadlineDay muss eine Zahl zwischen 1 und 31 sein.')
-    .max(31, 'bookingDeadlineDay muss eine Zahl zwischen 1 und 31 sein.'),
+  vorlaufTage: z.int(VORLAUF_MELDUNG).min(0, VORLAUF_MELDUNG).max(GRENZEN.vorlaufTage, VORLAUF_MELDUNG),
 });
+
+/** Der ausdrueckliche Stichtag eines einzelnen Monats. */
+export const stichtagSchema = z.strictObject({ datum: kalendertag('datum') });
 
 export const wunschSchema = z.strictObject({
   date: datum,

@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2, List, X, Users, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Check, Trash2, List, X, Users, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from '../types';
-import { istMonatGesperrt } from '../sperrfrist';
+import { automatischerStichtag, sperrfristFuerMonat, stichtagSatz } from '../sperrfrist';
+import { langesDatum } from '../einstellungen';
+import { api } from '../api/client';
 import { eigenerHinweis, fremdeHinweise, uebernehmeServerstand } from '../hinweise';
 
 interface CalendarProps {
@@ -102,14 +104,73 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
   // Dieselbe Funktion, die auch der Server benutzt. Zwei getrennte Fassungen
   // waeren hier ein Fehler: Der Client zeigte sonst Eingaben an, die der Server
   // ablehnt — oder umgekehrt.
-  const isMonthLocked = useMemo(() => {
-    if (!settings || !currentUser) return false;
-    return istMonatGesperrt({
+  const frist = useMemo(() => {
+    if (!settings || !currentUser) return null;
+    return sperrfristFuerMonat({
       monat: currentMonthStr,
-      stichtag: settings.bookingDeadlineDay,
+      vorlaufTage: settings.vorlaufTage,
+      stichtage: settings.stichtage,
       rolle: currentUser.role,
     });
   }, [currentMonthStr, settings, currentUser]);
+
+  const isMonthLocked = frist ? frist.gesperrt : false;
+
+  // Was gaelte, wenn dieser Monat keinen eigenen Stichtag haette. Nur zur
+  // Erklaerung im Bearbeitungsfeld.
+  const vorschlag = useMemo(
+    () => automatischerStichtag(currentMonthStr, settings ? settings.vorlaufTage : undefined),
+    [currentMonthStr, settings],
+  );
+
+  // Der Stichtag dieses einen Monats, von der Leitung gesetzt. Der Monat ist
+  // der, den sie gerade ansieht — deshalb steht das hier und nicht in einer
+  // Liste in den Einstellungen (#36).
+  const [stichtagOffen, setStichtagOffen] = useState(false);
+  const [stichtagEingabe, setStichtagEingabe] = useState('');
+  const [stichtagLaeuft, setStichtagLaeuft] = useState(false);
+  const [stichtagFehler, setStichtagFehler] = useState<string | null>(null);
+
+  // Ein Monatswechsel schliesst das Feld: Sonst stuende die Eingabe des einen
+  // Monats ueber der Ueberschrift eines anderen.
+  useEffect(() => {
+    setStichtagOffen(false);
+    setStichtagFehler(null);
+  }, [currentMonthStr]);
+
+  const oeffneStichtag = () => {
+    setStichtagEingabe(frist && frist.stichtag ? frist.stichtag : '');
+    setStichtagFehler(null);
+    setStichtagOffen(true);
+  };
+
+  // Beide Wege schreiben nur; der neue Stand kommt ueber `settings_updated`
+  // zurueck — wie ueberall sonst auch.
+  const speichereStichtag = async () => {
+    setStichtagLaeuft(true);
+    setStichtagFehler(null);
+    try {
+      await api.setStichtag(currentMonthStr, stichtagEingabe);
+      setStichtagOffen(false);
+    } catch (fehler: any) {
+      setStichtagFehler(fehler?.message || 'Der Stichtag konnte nicht gespeichert werden.');
+    } finally {
+      setStichtagLaeuft(false);
+    }
+  };
+
+  const zurueckZurAutomatik = async () => {
+    setStichtagLaeuft(true);
+    setStichtagFehler(null);
+    try {
+      await api.loescheStichtag(currentMonthStr);
+      setStichtagOffen(false);
+    } catch (fehler: any) {
+      setStichtagFehler(fehler?.message || 'Der Stichtag konnte nicht zurückgenommen werden.');
+    } finally {
+      setStichtagLaeuft(false);
+    }
+  };
 
   // Im gesperrten Monat lehnt der Server auch das Loeschen ab. Ohne diese
   // Bedingung stuende der Knopf da und liefe jedes Mal in eine Fehlermeldung.
@@ -150,14 +211,93 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
         </button>
         <div className="text-center">
           <h2 className="text-xl font-semibold text-slate-800 tracking-tight">{monthYearString}</h2>
-          {isMonthLocked && (
-            <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 mt-1 inline-block">Gesperrt</span>
+          {frist && frist.stichtag && (
+            <div className="mt-1 flex items-center justify-center gap-1">
+              {/* Der Termin gehört sichtbar in den Monatskopf, nicht in eine
+                  Absprache im Flur (#36). */}
+              <span
+                className={`text-xs font-medium px-2 py-0.5 rounded border ${
+                  frist.abgelaufen
+                    ? 'text-red-600 bg-red-50 border-red-100'
+                    : 'text-slate-600 bg-slate-50 border-slate-200'
+                }`}
+              >
+                {stichtagSatz(frist)}
+                {frist.herkunft === 'gesetzt' && ' · fest'}
+              </span>
+              {currentUser?.role === 'Manager' && (
+                <button
+                  onClick={oeffneStichtag}
+                  aria-expanded={stichtagOffen}
+                  aria-label={`Stichtag für ${monthYearString} ändern`}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                >
+                  <Pencil className="w-4 h-4 text-slate-500" />
+                </button>
+              )}
+            </div>
           )}
         </div>
         <button onClick={nextMonth} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ChevronRight className="w-5 h-5 text-slate-600" />
         </button>
       </div>
+
+      {/* Stichtag dieses Monats — nur für die Leitung */}
+      {stichtagOffen && frist && currentUser?.role === 'Manager' && (
+        <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <h3 className="text-sm font-semibold text-slate-800 mb-1">Stichtag für {monthYearString}</h3>
+          <p className="text-xs text-slate-500 mb-3">
+            Bis einschließlich zu diesem Tag können Mitarbeitende Wünsche eintragen. Ohne eigenen
+            Stichtag gilt der automatische Vorschlag{vorschlag ? ` (${langesDatum(vorschlag)})` : ''}.
+          </p>
+
+          {stichtagFehler && (
+            <p role="status" className="mb-3 p-3 rounded text-sm bg-red-50 text-red-700">
+              {stichtagFehler}
+            </p>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <label htmlFor="stichtag" className="sr-only">
+              Stichtag für {monthYearString}
+            </label>
+            <input
+              id="stichtag"
+              type="date"
+              value={stichtagEingabe}
+              onChange={(e) => {
+                setStichtagEingabe(e.target.value);
+                setStichtagFehler(null);
+              }}
+              className="flex-1 min-h-[44px] px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base sm:text-sm"
+            />
+            <button
+              onClick={speichereStichtag}
+              disabled={stichtagLaeuft || !stichtagEingabe}
+              className="min-h-[44px] px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+            >
+              Speichern
+            </button>
+            {frist.herkunft === 'gesetzt' && (
+              <button
+                onClick={zurueckZurAutomatik}
+                disabled={stichtagLaeuft}
+                className="min-h-[44px] px-4 rounded-md text-sm font-medium text-slate-700 border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+              >
+                Automatik
+              </button>
+            )}
+            <button
+              onClick={() => setStichtagOffen(false)}
+              disabled={stichtagLaeuft}
+              className="min-h-[44px] px-4 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* View Switcher */}
       <div className="flex justify-center mb-6">

@@ -2,16 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { CalendarClock } from 'lucide-react';
 import { api } from '../api/client';
 import { Settings } from '../types';
-import { pruefeStichtag, stichtagErklaerung } from '../einstellungen';
+import { pruefeVorlauf, vorlaufErklaerung } from '../einstellungen';
 
 interface EinstellungenProps {
   settings: Settings | null;
 }
 
 /**
- * Der Stichtag der Sperrfrist, einstellbar durch die Leitung. Gespeichert wird
- * ueber REST; der neue Wert kommt wie ueberall ueber `settings_updated` zurueck
- * in den Zustand, nicht aus der Antwort.
+ * Der Vorlauf des automatischen Vorschlags, einstellbar durch die Leitung.
+ * Gespeichert wird ueber REST; der neue Wert kommt wie ueberall ueber
+ * `settings_updated` zurueck in den Zustand, nicht aus der Antwort.
+ *
+ * Der Stichtag eines *einzelnen* Monats steht bewusst nicht hier, sondern im
+ * Kopf des jeweiligen Monats im Kalender: Dort ist der gemeinte Monat der, den
+ * man gerade ansieht — hier waere er ein Eintrag in einer Liste (#36).
  */
 export function Einstellungen({ settings }: EinstellungenProps) {
   const [eingabe, setEingabe] = useState('');
@@ -19,7 +23,7 @@ export function Einstellungen({ settings }: EinstellungenProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const gespeichert = settings ? String(settings.bookingDeadlineDay) : '';
+  const gespeichert = settings ? String(settings.vorlaufTage) : '';
 
   // Der gespeicherte Wert fuellt das Feld — aber nur, solange niemand darin
   // tippt. Sonst risse ein Ereignis eines anderen Angemeldeten die Eingabe
@@ -28,7 +32,7 @@ export function Einstellungen({ settings }: EinstellungenProps) {
     if (!bearbeitet) setEingabe(gespeichert);
   }, [gespeichert, bearbeitet]);
 
-  const ergebnis = pruefeStichtag(eingabe);
+  const ergebnis = pruefeVorlauf(eingabe);
   const unveraendert = eingabe.trim() === gespeichert;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,11 +45,11 @@ export function Einstellungen({ settings }: EinstellungenProps) {
     setLoading(true);
     setMessage(null);
     try {
-      await api.updateSettings({ bookingDeadlineDay: ergebnis.wert });
+      await api.updateSettings({ vorlaufTage: ergebnis.wert });
       setBearbeitet(false);
-      setMessage({ type: 'success', text: 'Stichtag gespeichert.' });
+      setMessage({ type: 'success', text: 'Vorlauf gespeichert.' });
     } catch {
-      setMessage({ type: 'error', text: 'Der Stichtag konnte nicht gespeichert werden.' });
+      setMessage({ type: 'error', text: 'Der Vorlauf konnte nicht gespeichert werden.' });
     } finally {
       setLoading(false);
     }
@@ -61,7 +65,12 @@ export function Einstellungen({ settings }: EinstellungenProps) {
         <p className="text-sm text-slate-500 mb-6">Gilt für alle Mitarbeitenden der Station.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="text-sm font-medium text-slate-800 border-b pb-2">Stichtag der Sperrfrist</h3>
+          <h3 className="text-sm font-medium text-slate-800 border-b pb-2">Automatischer Stichtag</h3>
+
+          <p className="text-xs text-slate-500">
+            Gilt für jeden Monat, für den im Kalender kein eigener Stichtag gesetzt ist. Ein
+            gesetzter Stichtag bleibt davon unberührt.
+          </p>
 
           {message && (
             <div
@@ -75,30 +84,32 @@ export function Einstellungen({ settings }: EinstellungenProps) {
           )}
 
           <div>
-            <label htmlFor="stichtag" className="block text-xs font-medium text-slate-700 mb-1">
-              Tag des Monats
+            <label htmlFor="vorlauf" className="block text-xs font-medium text-slate-700 mb-1">
+              Vorlauf in Tagen
             </label>
             <input
-              id="stichtag"
+              id="vorlauf"
               type="number"
               inputMode="numeric"
-              min={1}
-              max={31}
+              min={0}
+              max={365}
               value={eingabe}
               onChange={(e) => {
                 setBearbeitet(true);
                 setEingabe(e.target.value);
                 setMessage(null);
               }}
-              aria-describedby="stichtag-hinweis"
+              aria-describedby="vorlauf-hinweis"
               aria-invalid={ergebnis.art === 'fehler'}
               className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base sm:text-sm"
             />
             <p
-              id="stichtag-hinweis"
+              id="vorlauf-hinweis"
               className={`mt-1 text-xs ${ergebnis.art === 'fehler' ? 'text-amber-700' : 'text-slate-500'}`}
             >
-              {ergebnis.art === 'gut' ? stichtagErklaerung(ergebnis.wert) : ergebnis.meldung}
+              {ergebnis.art === 'gut'
+                ? vorlaufErklaerung(ergebnis.wert, settings ? settings.stichtage : {})
+                : ergebnis.meldung}
             </p>
           </div>
 
@@ -107,7 +118,7 @@ export function Einstellungen({ settings }: EinstellungenProps) {
             disabled={loading || unveraendert || ergebnis.art === 'fehler'}
             className="w-full flex justify-center items-center min-h-[44px] py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Wird gespeichert...' : 'Stichtag speichern'}
+            {loading ? 'Wird gespeichert...' : 'Vorlauf speichern'}
           </button>
         </form>
       </div>
