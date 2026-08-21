@@ -1,7 +1,7 @@
 {
   "name": "wunschkalender",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Dienstwunsch-Kalender fuer Pflegestationen",
   "type": "module",
   "scripts": {

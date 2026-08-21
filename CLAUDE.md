@@ -1,8 +1,13 @@
 # Wunschkalender
 
 Dienstwunsch-Kalender fuer eine Pflegestation. Mitarbeitende tragen Schichtwuensche
-(`Früh`, `Spät`, `Nacht`, `Frei`) je Tag ein; die Stationsleitung sieht alle Wuensche,
-erkennt Ueberschneidungen und exportiert den Monat als PDF fuer die Dienstplanung.
+(`Früh`, `Spät`, `Nacht`, `Frei`) je Tag ein; die Stationsleitung sieht alle Wuensche
+und exportiert den Monat als PDF fuer die Dienstplanung.
+
+Die Anwendung ist ein **Kommunikationsmittel, keine Regeldurchsetzung**: Sie sammelt
+Wuensche und stellt sie lesbar dar. Wer wie viele Wuensche hat und wie sie verrechnet
+werden, entscheidet die Stationsleitung beim Schreiben des Plans. Bewertende Merkmale
+— „zu viele Frei-Wuensche an diesem Tag" — gehoeren deshalb nicht hinein (#4).
 
 Zwei Rollen, im Code `'Employee'` und `'Manager'`: Mitarbeitende sehen nur die eigenen
 Wuensche, die Leitung sieht alle und verwaltet Benutzer.
