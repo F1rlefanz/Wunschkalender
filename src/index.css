@@ -253,6 +253,12 @@
     font-weight: 600;
   }
 
+  /* Der Schleier hinter einem `<dialog>`. Ohne diese Regel ist er der
+     Browser-Standard und passt zu keiner der beiden Paletten. */
+  dialog::backdrop {
+    background-color: rgb(0 0 0 / 0.55);
+  }
+
   /* Ein sichtbarer Fokusring ist Voraussetzung fuer #16 und darf nicht davon
      abhaengen, dass jede Komponente daran denkt. */
   :focus-visible {

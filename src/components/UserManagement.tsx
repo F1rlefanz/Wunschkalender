@@ -2,26 +2,37 @@ import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { User, MIN_PASSWORD_LENGTH } from '../types';
 import { Edit2, Trash2, KeyRound, Plus, X } from 'lucide-react';
+import { Bestaetigung, Dialog } from './Dialog';
+import { useMeldung } from '../meldungen';
 
 export function UserManagement() {
+  const melde = useMeldung();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState<'Manager' | 'Employee'>('Employee');
-  
+
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState<'Manager' | 'Employee'>('Employee');
   const [newPassword, setNewPassword] = useState('');
 
+  // Wer geloescht bzw. wessen Passwort neu vergeben werden soll. Der Dialog
+  // haengt an der Person, nicht an einem Merker: So steht ihr Name in der
+  // Rueckfrage, und "Sicher?" bezieht sich auf jemand Bestimmtes.
+  const [loeschKandidat, setLoeschKandidat] = useState<User | null>(null);
+  const [passwortKandidat, setPasswortKandidat] = useState<User | null>(null);
+  const [passwortNeu, setPasswortNeu] = useState('');
+  const [passwortFehler, setPasswortFehler] = useState('');
+
   const loadUsers = async () => {
     try {
       const data = await api.getUsers();
       setUsers(data);
-    } catch (err) {
+    } catch {
       setError('Fehler beim Laden der Benutzer.');
     } finally {
       setLoading(false);
@@ -32,13 +43,16 @@ export function UserManagement() {
     loadUsers();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Sicher, dass dieser Benutzer gelöscht werden soll?')) return;
+  const handleDelete = async () => {
+    if (!loeschKandidat) return;
+    const name = loeschKandidat.name;
+    setLoeschKandidat(null);
     try {
-      await api.deleteUser(id);
+      await api.deleteUser(loeschKandidat.id);
       await loadUsers();
-    } catch (err) {
-      alert('Fehler beim Löschen');
+      melde('gut', `${name} wurde gelöscht.`);
+    } catch {
+      melde('fehler', `${name} konnte nicht gelöscht werden.`);
     }
   };
 
@@ -50,6 +64,7 @@ export function UserManagement() {
       setNewName('');
       setNewPassword('');
       await loadUsers();
+      melde('gut', `${newName} wurde angelegt.`);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -66,116 +81,360 @@ export function UserManagement() {
     }
   };
 
-  const handleResetPassword = async (id: string) => {
-    const newPwd = prompt('Bitte neues Passwort für den Benutzer eingeben:');
-    if (!newPwd) return;
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwortKandidat) return;
+    setPasswortFehler('');
     try {
-      const antwort = await api.resetUserPassword(id, newPwd);
-      alert(antwort.success ? 'Passwort erfolgreich geändert.' : antwort.message || 'Fehler beim Ändern des Passworts.');
-    } catch (err) {
-      alert('Fehler beim Ändern des Passworts.');
+      const antwort = await api.resetUserPassword(passwortKandidat.id, passwortNeu);
+      if (!antwort.success) {
+        setPasswortFehler(antwort.message || 'Das Passwort konnte nicht geändert werden.');
+        return;
+      }
+      const name = passwortKandidat.name;
+      schliessePasswort();
+      melde('gut', `Das Passwort für ${name} wurde neu vergeben.`);
+    } catch {
+      setPasswortFehler('Das Passwort konnte nicht geändert werden.');
     }
   };
 
-  if (loading) return <div>Lade Benutzer...</div>;
+  const schliessePasswort = () => {
+    setPasswortKandidat(null);
+    setPasswortNeu('');
+    setPasswortFehler('');
+  };
+
+  const beginneBearbeiten = (user: User) => {
+    setIsEditing(user.id);
+    setEditName(user.name);
+    setEditRole(user.role);
+  };
+
+  if (loading) return <p className="p-raum5 text-leise">Lade Benutzer...</p>;
+
+  // Bewusst schlichte Funktionen, keine Komponenten: Eine im Rumpf definierte
+  // Komponente bekommt bei jedem Rendern eine neue Identitaet, React haengt sie
+  // neu ein — und das Eingabefeld im Bearbeiten-Formular verloere nach jedem
+  // Tastendruck den Fokus.
+
+  /** Die drei Icon-Knoepfe einer Zeile (#20). */
+  const aktionen = (user: User) => (
+    <div className="flex items-center justify-end gap-raum2">
+      <button
+        type="button"
+        onClick={() => setPasswortKandidat(user)}
+        className="touchziel rounded-sm text-leise hover:text-marke hover:bg-flaeche-leise"
+        // Der zugaengliche Name nennt die Person: "Passwort neu vergeben"
+        // allein sagt in einer Liste von zwanzig Zeilen nicht, um wen es geht.
+        aria-label={`Passwort für ${user.name} neu vergeben`}
+        title="Passwort neu vergeben"
+      >
+        <KeyRound className="w-5 h-5" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        onClick={() => beginneBearbeiten(user)}
+        className="touchziel rounded-sm text-leise hover:text-marke hover:bg-flaeche-leise"
+        aria-label={`${user.name} bearbeiten`}
+        title="Bearbeiten"
+      >
+        <Edit2 className="w-5 h-5" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setLoeschKandidat(user)}
+        className="touchziel rounded-sm text-fehler hover:bg-fehler-leise"
+        aria-label={`${user.name} löschen`}
+        title="Löschen"
+      >
+        <Trash2 className="w-5 h-5" aria-hidden="true" />
+      </button>
+    </div>
+  );
+
+  const rolle = (user: User) => (
+    <span
+      className={`inline-block rounded-xs px-raum2 py-raum1 text-winzig font-medium ${
+        user.role === 'Manager'
+          ? 'bg-marke-leise text-marke-leise-text'
+          : 'bg-flaeche-leise text-leise border border-rand'
+      }`}
+    >
+      {user.role === 'Manager' ? 'Leitung' : 'Mitarbeiter'}
+    </span>
+  );
+
+  const bearbeitenFelder = (user: User) => (
+    <div className="flex flex-wrap items-center gap-raum2">
+      <label className="sr-only" htmlFor={`name-${user.id}`}>
+        Name
+      </label>
+      <input
+        id={`name-${user.id}`}
+        type="text"
+        value={editName}
+        onChange={(e) => setEditName(e.target.value)}
+        className="min-h-11 flex-1 min-w-40 rounded-sm border border-rand-stark bg-flaeche px-raum3 text-basis"
+      />
+      <label className="sr-only" htmlFor={`rolle-${user.id}`}>
+        Rolle
+      </label>
+      <select
+        id={`rolle-${user.id}`}
+        value={editRole}
+        onChange={(e) => setEditRole(e.target.value as 'Manager' | 'Employee')}
+        className="min-h-11 rounded-sm border border-rand-stark bg-flaeche px-raum2 text-basis"
+      >
+        <option value="Employee">Mitarbeiter</option>
+        <option value="Manager">Leitung</option>
+      </select>
+      <button
+        type="button"
+        onClick={() => handleUpdate(user.id)}
+        className="touchziel rounded-sm bg-marke px-raum4 text-klein font-medium text-marke-kontrast hover:bg-marke-tief"
+      >
+        Speichern
+      </button>
+      <button
+        type="button"
+        onClick={() => setIsEditing(null)}
+        className="touchziel rounded-sm border border-rand-stark px-raum4 text-klein font-medium hover:bg-flaeche-leise"
+      >
+        Abbrechen
+      </button>
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-slate-800">Benutzerverwaltung</h2>
-        {!isCreating && (
-          <button 
-            onClick={() => setIsCreating(true)}
-            className="flex items-center text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Neuer Benutzer
-          </button>
+    <div className="max-w-7xl mx-auto p-raum4 sm:p-raum5">
+      <div className="bg-flaeche p-raum4 sm:p-raum5 rounded-lg shadow-sm border border-rand">
+        <div className="flex flex-wrap justify-between items-center gap-raum3 mb-raum5">
+          <h1 className="font-ueberschrift text-ueberschrift font-semibold">Benutzerverwaltung</h1>
+          {!isCreating && (
+            <button
+              type="button"
+              onClick={() => setIsCreating(true)}
+              className="touchziel gap-raum2 rounded-sm bg-marke px-raum4 text-klein font-medium text-marke-kontrast hover:bg-marke-tief"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Neuer Benutzer
+            </button>
+          )}
+        </div>
+
+        {error && (
+          <p role="alert" className="mb-raum4 rounded-sm border border-fehler bg-fehler-leise p-raum3 text-klein text-fehler-leise-text">
+            {error}
+          </p>
         )}
-      </div>
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-
-      {isCreating && (
-        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-          <h3 className="font-medium mb-3">Neuen Benutzer anlegen</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Name</label>
-              <input type="text" value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" placeholder="Name" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Rolle</label>
-              <select value={newRole} onChange={e => setNewRole(e.target.value as any)} className="w-full px-3 py-2 border rounded-md text-sm">
-                <option value="Employee">Mitarbeiter</option>
-                <option value="Manager">Leitung (Stationsleiter)</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="initiales-passwort" className="block text-xs font-medium text-slate-500 mb-1">Initiales Passwort</label>
-              <input id="initiales-passwort" type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} aria-describedby="initiales-passwort-hinweis" className="w-full min-h-[44px] px-3 py-2 border rounded-md text-base sm:text-sm" placeholder="Passwort" />
-              <p id="initiales-passwort-hinweis" className={`mt-1 text-xs ${newPassword && newPassword.length < MIN_PASSWORD_LENGTH ? 'text-amber-700' : 'text-slate-500'}`}>
-                Mindestens {MIN_PASSWORD_LENGTH} Zeichen. Die Person kann es im Profil selbst aendern.
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              <button onClick={handleCreate} disabled={!newName.trim() || newPassword.length < MIN_PASSWORD_LENGTH} className="bg-emerald-600 text-white px-3 py-2 rounded-md text-sm hover:bg-emerald-700 w-full disabled:opacity-50">Speichern</button>
-              <button onClick={() => setIsCreating(false)} className="bg-slate-200 text-slate-700 px-3 py-2 rounded-md text-sm hover:bg-slate-300"><X className="w-4 h-4" /></button>
+        {isCreating && (
+          <div className="mb-raum5 rounded-sm border border-rand bg-flaeche-leise p-raum4">
+            <h2 className="font-ueberschrift font-medium mb-raum3">Neuen Benutzer anlegen</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-raum4 md:items-end">
+              <div>
+                <label htmlFor="neuer-name" className="block text-klein font-medium mb-raum1">
+                  Name
+                </label>
+                <input
+                  id="neuer-name"
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full min-h-11 rounded-sm border border-rand-stark bg-flaeche px-raum3 text-basis"
+                  placeholder="Vorname Nachname"
+                />
+              </div>
+              <div>
+                <label htmlFor="neue-rolle" className="block text-klein font-medium mb-raum1">
+                  Rolle
+                </label>
+                <select
+                  id="neue-rolle"
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as 'Manager' | 'Employee')}
+                  className="w-full min-h-11 rounded-sm border border-rand-stark bg-flaeche px-raum2 text-basis"
+                >
+                  <option value="Employee">Mitarbeiter</option>
+                  <option value="Manager">Leitung (Stationsleiter)</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="initiales-passwort" className="block text-klein font-medium mb-raum1">
+                  Initiales Passwort
+                </label>
+                <input
+                  id="initiales-passwort"
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  aria-describedby="initiales-passwort-hinweis"
+                  className="w-full min-h-11 rounded-sm border border-rand-stark bg-flaeche px-raum3 text-basis"
+                  placeholder="Passwort"
+                />
+                <p
+                  id="initiales-passwort-hinweis"
+                  className={`mt-raum1 text-winzig ${
+                    newPassword && newPassword.length < MIN_PASSWORD_LENGTH
+                      ? 'text-fehler-leise-text'
+                      : 'text-leise'
+                  }`}
+                >
+                  Mindestens {MIN_PASSWORD_LENGTH} Zeichen. Die Person kann es im Profil selbst
+                  ändern.
+                </p>
+              </div>
+              <div className="flex gap-raum2">
+                <button
+                  type="button"
+                  onClick={handleCreate}
+                  disabled={!newName.trim() || newPassword.length < MIN_PASSWORD_LENGTH}
+                  className="touchziel flex-1 rounded-sm bg-marke px-raum4 text-klein font-medium text-marke-kontrast hover:bg-marke-tief disabled:opacity-50"
+                >
+                  Speichern
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCreating(false)}
+                  className="touchziel rounded-sm border border-rand-stark hover:bg-flaeche"
+                  aria-label="Anlegen abbrechen"
+                >
+                  <X className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Rolle</th>
-              <th className="px-4 py-3 text-right">Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-4 py-3">
-                  {isEditing === user.id ? (
-                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="px-2 py-1 border rounded w-full" />
-                  ) : user.name}
-                </td>
-                <td className="px-4 py-3">
-                  {isEditing === user.id ? (
-                    <select value={editRole} onChange={e => setEditRole(e.target.value as any)} className="px-2 py-1 border rounded w-full">
-                      <option value="Employee">Mitarbeiter</option>
-                      <option value="Manager">Leitung</option>
-                    </select>
-                  ) : (
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${user.role === 'Manager' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-800'}`}>
-                      {user.role === 'Manager' ? 'Leitung' : 'Mitarbeiter'}
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right space-x-2">
-                  {isEditing === user.id ? (
-                    <>
-                      <button onClick={() => handleUpdate(user.id)} className="text-emerald-600 hover:text-emerald-800 text-xs font-medium">Speichern</button>
-                      <button onClick={() => setIsEditing(null)} className="text-slate-500 hover:text-slate-700 text-xs font-medium">Abbrechen</button>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-end space-x-3">
-                      <button onClick={() => handleResetPassword(user.id)} title="Passwort neu vergeben" className="text-amber-500 hover:text-amber-700"><KeyRound className="w-4 h-4" /></button>
-                      <button onClick={() => { setIsEditing(user.id); setEditName(user.name); setEditRole(user.role); }} title="Bearbeiten" className="text-blue-500 hover:text-blue-700"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(user.id)} title="Löschen" className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  )}
-                </td>
+        {/* Auf dem Telefon Karten statt Tabelle: Mit Beruehrzielen von 44 px
+            passen Name, Rolle und drei Knoepfe nicht in eine Zeile von 360 px,
+            und die Tabelle wuerde quer scrollen (#20). */}
+        <ul className="sm:hidden divide-y divide-rand">
+          {users.map((user) => (
+            <li key={user.id} className="py-raum3">
+              {isEditing === user.id ? (
+                bearbeitenFelder(user)
+              ) : (
+                <div className="flex items-center justify-between gap-raum3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{user.name}</p>
+                    {rolle(user)}
+                  </div>
+                  {aktionen(user)}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="w-full text-left text-klein">
+            <thead className="border-b border-rand bg-flaeche-leise text-winzig uppercase text-leise">
+              <tr>
+                <th scope="col" className="px-raum3 py-raum3">
+                  Name
+                </th>
+                <th scope="col" className="px-raum3 py-raum3">
+                  Rolle
+                </th>
+                <th scope="col" className="px-raum3 py-raum3 text-right">
+                  Aktionen
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id} className="border-b border-rand last:border-0">
+                  {isEditing === user.id ? (
+                    <td colSpan={3} className="px-raum3 py-raum3">
+                      {bearbeitenFelder(user)}
+                    </td>
+                  ) : (
+                    <>
+                      <td className="px-raum3 py-raum2 font-medium">{user.name}</td>
+                      <td className="px-raum3 py-raum2">
+                        {rolle(user)}
+                      </td>
+                      <td className="px-raum3 py-raum2">
+                        {aktionen(user)}
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+
+      <Bestaetigung
+        offen={loeschKandidat !== null}
+        titel="Benutzer löschen"
+        frage={
+          loeschKandidat
+            ? `${loeschKandidat.name} wird gelöscht — mit allen Wünschen und Hinweisen. Das lässt sich nicht rückgängig machen.`
+            : ''
+        }
+        bestaetigenText="Endgültig löschen"
+        onBestaetigen={handleDelete}
+        onAbbrechen={() => setLoeschKandidat(null)}
+      />
+
+      <Dialog
+        offen={passwortKandidat !== null}
+        titel="Passwort neu vergeben"
+        onSchliessen={schliessePasswort}
+      >
+        <form onSubmit={handleResetPassword} className="space-y-raum4">
+          <p className="text-klein text-leise">
+            Für <strong className="text-text">{passwortKandidat?.name}</strong>. Das neue Passwort
+            gilt sofort; die Person kann es im Profil selbst ändern.
+          </p>
+          <div>
+            <label htmlFor="neues-passwort" className="block text-klein font-medium mb-raum1">
+              Neues Passwort
+            </label>
+            <input
+              id="neues-passwort"
+              type="text"
+              value={passwortNeu}
+              onChange={(e) => setPasswortNeu(e.target.value)}
+              autoComplete="new-password"
+              aria-describedby="neues-passwort-hinweis"
+              className="w-full min-h-11 rounded-sm border border-rand-stark bg-flaeche px-raum3 text-basis"
+            />
+            <p id="neues-passwort-hinweis" className="mt-raum1 text-winzig text-leise">
+              Mindestens {MIN_PASSWORD_LENGTH} Zeichen. Es steht im Klartext, damit es der Person
+              weitergegeben werden kann.
+            </p>
+          </div>
+          {passwortFehler && (
+            <p
+              role="alert"
+              className="rounded-sm border border-fehler bg-fehler-leise p-raum3 text-klein text-fehler-leise-text"
+            >
+              {passwortFehler}
+            </p>
+          )}
+          <div className="flex flex-wrap justify-end gap-raum2">
+            <button
+              type="button"
+              onClick={schliessePasswort}
+              className="touchziel rounded-sm border border-rand-stark px-raum4 text-klein font-medium hover:bg-flaeche-leise"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="submit"
+              disabled={passwortNeu.length < MIN_PASSWORD_LENGTH}
+              className="touchziel rounded-sm bg-marke px-raum4 text-klein font-medium text-marke-kontrast hover:bg-marke-tief disabled:opacity-50"
+            >
+              Passwort setzen
+            </button>
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 }

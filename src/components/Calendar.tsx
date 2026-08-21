@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Check, Trash2, List, X, Users, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from '../types';
+import { Dialog } from './Dialog';
+import { useMeldung } from '../meldungen';
 import { automatischerStichtag, sperrfristFuerMonat, stichtagSatz } from '../sperrfrist';
 import { langesDatum } from '../einstellungen';
 import { api } from '../api/client';
@@ -19,6 +21,7 @@ interface CalendarProps {
 }
 
 export function Calendar({ wishes, monthlyComments, currentUser, settings, users, onAddWishes, onDeleteWish, onSaveMonthlyComment, onMonthChange }: CalendarProps) {
+  const melde = useMeldung();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -179,7 +182,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
   const toggleDateSelection = (dateStr: string) => {
     if (isMonthLocked) {
-      alert(`Für ${monthYearString} sind keine Wunscheintragungen mehr möglich.`);
+      melde('fehler', `Für ${monthYearString} sind keine Wunscheintragungen mehr möglich.`);
       return;
     }
     const newSelection = new Set(selectedDates);
@@ -703,121 +706,122 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
         </div>
       )}
 
-      {/* Add Wish Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Wunsch eintragen ({selectedDates.size} Tag{selectedDates.size > 1 ? 'e' : ''})
-            </h3>
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Schichtart</label>
-                <select 
-                  value={shiftType}
-                  onChange={(e) => setShiftType(e.target.value as ShiftType)}
-                  className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                >
-                  <option value="Früh">Frühschicht</option>
-                  <option value="Spät">Spätschicht</option>
-                  <option value="Nacht">Nachtschicht</option>
-                  <option value="Frei">Frei</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kommentar (optional)</label>
-                <input 
-                  type="text"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="z.B. Arzttermin"
-                  className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
-                >
-                  Abbrechen
-                </button>
-                <button 
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors"
-                >
-                  Speichern
-                </button>
-              </div>
-            </form>
+      <Dialog
+        offen={isModalOpen}
+        titel={`Wunsch eintragen (${selectedDates.size} Tag${selectedDates.size > 1 ? 'e' : ''})`}
+        onSchliessen={() => setIsModalOpen(false)}
+      >
+        <form onSubmit={handleAddSubmit} className="space-y-raum4">
+          <div>
+            <label htmlFor="schichtart" className="block text-klein font-medium mb-raum1">
+              Schichtart
+            </label>
+            <select
+              id="schichtart"
+              value={shiftType}
+              onChange={(e) => setShiftType(e.target.value as ShiftType)}
+              className="w-full min-h-11 rounded-sm border border-rand-stark bg-flaeche px-raum2 text-basis"
+            >
+              <option value="Früh">Frühschicht</option>
+              <option value="Spät">Spätschicht</option>
+              <option value="Nacht">Nachtschicht</option>
+              <option value="Frei">Frei</option>
+            </select>
           </div>
-        </div>
-      )}
 
-      {/* Day Details Modal */}
-      {dayDetailsModal && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Wünsche für den {dayDetailsModal.split('-').reverse().join('.')}
+          <div>
+            <label htmlFor="wunsch-kommentar" className="block text-klein font-medium mb-raum1">
+              Kommentar (optional)
+            </label>
+            <input
+              id="wunsch-kommentar"
+              type="text"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="z.B. Arzttermin"
+              className="w-full min-h-11 rounded-sm border border-rand-stark bg-flaeche px-raum3 text-basis"
+            />
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-raum2">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="touchziel rounded-sm border border-rand-stark px-raum4 text-klein font-medium hover:bg-flaeche-leise"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="submit"
+              className="touchziel rounded-sm bg-marke px-raum4 text-klein font-medium text-marke-kontrast hover:bg-marke-tief"
+            >
+              Speichern
+            </button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog
+        offen={dayDetailsModal !== null}
+        titel={
+          dayDetailsModal
+            ? `Wünsche für den ${dayDetailsModal.split('-').reverse().join('.')}`
+            : ''
+        }
+        onSchliessen={() => setDayDetailsModal(null)}
+        breit
+      >
+        {['Früh', 'Spät', 'Nacht', 'Frei'].map((shift) => {
+          const shiftWishes = (wishesByDate.get(dayDetailsModal ?? '') || []).filter(
+            (w) => w.shiftType === shift,
+          );
+          if (shiftWishes.length === 0) return null;
+          return (
+            <div key={shift} className="mb-raum5 last:mb-0">
+              <h3 className="mb-raum3 flex items-center gap-raum2 text-klein font-semibold uppercase tracking-wider text-leise">
+                {shift} {shift !== 'Frei' && 'schicht'}
+                <span className="rounded-xl bg-flaeche-leise px-raum2 py-raum1 text-winzig text-text">
+                  {shiftWishes.length}
+                </span>
               </h3>
-              <button 
-                onClick={() => setDayDetailsModal(null)}
-                className="text-slate-400 hover:text-slate-600 focus:outline-none"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto">
-              {['Früh', 'Spät', 'Nacht', 'Frei'].map(shift => {
-                const shiftWishes = (wishesByDate.get(dayDetailsModal) || []).filter(w => w.shiftType === shift);
-                if (shiftWishes.length === 0) return null;
-                return (
-                  <div key={shift} className="mb-6 last:mb-0">
-                    <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center uppercase tracking-wider">
-                      {shift} {shift !== 'Frei' && 'schicht'} 
-                      <span className="ml-2 bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs">
-                        {shiftWishes.length}
-                      </span>
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {shiftWishes.map(wish => {
-                        const u = users.find(user => user.id === wish.userId);
-                        const canDelete = darfLoeschen(wish);
-                        return (
-                          <div key={wish.id} className="bg-white border border-slate-200 p-3 rounded-lg flex justify-between items-start shadow-sm">
-                            <div>
-                              <div className="font-medium text-slate-900 text-sm">{u?.name || 'Unbekannt'}</div>
-                              {wish.comment && <div className="text-xs text-slate-500 mt-1">{wish.comment}</div>}
-                            </div>
-                            {canDelete && (
-                              <button 
-                                onClick={() => onDeleteWish(wish.id)}
-                                className="text-red-400 hover:text-red-600 p-1"
-                                title="Wunsch löschen"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-raum3">
+                {shiftWishes.map((wish) => {
+                  const u = users.find((user) => user.id === wish.userId);
+                  const canDelete = darfLoeschen(wish);
+                  return (
+                    <div
+                      key={wish.id}
+                      className="flex items-start justify-between gap-raum2 rounded-sm border border-rand bg-flaeche p-raum3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-klein font-medium">{u?.name || 'Unbekannt'}</p>
+                        {wish.comment && (
+                          <p className="mt-raum1 text-winzig text-leise">{wish.comment}</p>
+                        )}
+                      </div>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteWish(wish.id)}
+                          className="touchziel -m-raum2 shrink-0 rounded-sm text-fehler hover:bg-fehler-leise"
+                          aria-label={`Wunsch von ${u?.name || 'Unbekannt'} löschen`}
+                          title="Wunsch löschen"
+                        >
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
-              {(wishesByDate.get(dayDetailsModal) || []).length === 0 && (
-                <div className="text-center text-slate-500 py-8">
-                  Keine Wünsche für diesen Tag eingetragen.
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          );
+        })}
+        {(wishesByDate.get(dayDetailsModal ?? '') || []).length === 0 && (
+          <p className="py-raum6 text-center text-leise">Keine Wünsche für diesen Tag eingetragen.</p>
+        )}
+      </Dialog>
+
     </div>
   );
 }
