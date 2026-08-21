@@ -50,7 +50,8 @@ sichtbar, nur die Textbeschriftungen weichen auf schmalen Schirmen den Icons
 - Dialoge: Fokus faengt im Dialog, `Escape` schliesst, Fokus kehrt danach zurueck.
 - Sichtbarer Fokusring. Nicht wegstylen.
 - Kontrast mindestens **4.5:1** fuer Text. Farbe darf nie der einzige Traeger einer Aussage
-  sein — ein roter Konflikttag braucht zusaetzlich Text oder Symbol.
+  sein — die Matrix macht es richtig: die Schichtart steht als Buchstabe im Feld, nicht
+  nur als Farbe.
 
 ### Kein Systemdialog als Oberflaeche
 

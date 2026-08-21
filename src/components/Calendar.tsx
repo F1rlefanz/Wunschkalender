@@ -253,8 +253,6 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
               const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const dayWishes = wishesByDate.get(dateStr) || [];
               
-              const freiCount = dayWishes.filter(w => w.shiftType === 'Frei').length;
-              const isConflict = freiCount > 1 || dayWishes.length > 2;
               const isToday = new Date().toISOString().split('T')[0] === dateStr;
               const isSelected = selectedDates.has(dateStr);
 
@@ -267,8 +265,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                     }
                   }}
                   className={`min-h-[70px] sm:min-h-[120px] p-1.5 sm:p-2 border-b border-r border-slate-100 relative transition-all cursor-pointer select-none
-                    ${isSelected ? 'bg-blue-50/75 ring-2 ring-inset ring-blue-500 z-10' : 
-                      isConflict ? 'bg-red-50/30 hover:bg-red-50/50' : 'hover:bg-slate-50'}`}
+                    ${isSelected ? 'bg-blue-50/75 ring-2 ring-inset ring-blue-500 z-10' : 'hover:bg-slate-50'}`}
                 >
                   <div className="flex justify-between items-start">
                     <span className={`text-xs sm:text-sm font-medium w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-blue-600 text-white' : 'text-slate-700'} ${isSelected ? 'bg-blue-100 text-blue-700' : ''}`}>
@@ -303,8 +300,8 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                         <div 
                           key={wish.id} 
                           className={`text-xs px-2 py-1 flex items-center justify-between rounded truncate border relative group ${
-                            wish.shiftType === 'Frei' 
-                              ? isConflict ? 'bg-red-100 border-red-200 text-red-800' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                            wish.shiftType === 'Frei'
+                              ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                               : 'bg-slate-100 border-slate-200 text-slate-700'
                           }`}
                           title={`${name}: ${wish.shiftType} - ${wish.comment || ''}`}

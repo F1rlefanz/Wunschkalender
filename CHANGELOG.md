@@ -21,6 +21,16 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.7.0] – 2026-08-21
+
+### Entfernt
+- **Die rote Konfliktmarkierung im Kalender ist weg.** Tage mit mehr als zwei
+  Wünschen oder mehr als einem Frei-Wunsch wurden bisher rot hinterlegt. Die
+  Zahlen dahinter standen fest im Programm und hatten keinen Bezug zur
+  Stationsgröße — sie warnten vor etwas, das oft keines war. Wer wie viele
+  Wünsche hat und wie sie sich vertragen, entscheidet die Stationsleitung beim
+  Schreiben des Plans; der Kalender zeigt die Wünsche, er bewertet sie nicht.
+
 ## [0.6.0] – 2026-08-20
 
 ### Hinzugefügt
