@@ -11,6 +11,21 @@ Store. Kein zweiter Client, kein natives Fork.
 Zur allgemeinen Gestaltungsarbeit siehe das `frontend-design`-Skill. Hier steht nur, was
 **fuer dieses Projekt** gilt und was von den ueblichen Defaults abweicht.
 
+## Zuerst: die Gestaltungsgrundlage
+
+Farben, Schrift- und Abstandsskalen, Radien und die Mindestgroesse eines Beruehrziels stehen
+**nicht in diesem Skill**, sondern in `docs/gestaltung.md` und als Tokens in `src/index.css`.
+Zahlen hier zu wiederholen hiesse, eine zweite Wahrheit zu pflegen.
+
+Die drei Regeln, die beim Bauen am haeufigsten gebrochen werden:
+
+- In Komponenten stehen **Rollennamen** (`bg-flaeche`, `text-leise`, `border-rand`), nie
+  `slate-`, `blue-` oder ein Hexwert. Fehlt eine Rolle, wird sie angelegt.
+- **Rot ist die Marke, nicht der Fehler.** Unterschieden wird ueber die Form: Marke gefuellt,
+  Fehler als heller Grund mit Rahmen.
+- Der **Dunkelmodus folgt dem Geraet** und hat keinen Umschalter. Wer eine Farbe einstreut,
+  bricht ihn — sichtbar wird das erst nachts auf dem Telefon.
+
 ## Wer das benutzt
 
 Pflegepersonal auf Station. Daraus folgt alles Weitere:
@@ -31,12 +46,13 @@ Baue die schmale Ansicht **zuerst** und erweitere nach oben.
 Funktion auf kleinen Schirmen ersatzlos entfernt, ist ein Fehler, keine Gestaltungsentscheidung.
 
 `src/components/Header.tsx` macht es richtig und ist das Vorbild: die Navigation bleibt immer
-sichtbar, nur die Textbeschriftungen weichen auf schmalen Schirmen den Icons
-(`<span className="hidden sm:inline">`). Verstecke Beschriftung, nie den Zugang.
+sichtbar, nur die Textbeschriftungen weichen auf schmalen Schirmen den Icons — und wandern
+dabei nach `sr-only`, damit die Vorlesehilfe sie behaelt. Verstecke Beschriftung, nie den
+Zugang.
 
 ### Anfassbar
 
-- Touchziele mindestens **44 x 44 px**, auch wenn das Icon kleiner aussieht.
+- Touchziele: die Klasse **`touchziel`** benutzen, nicht die Zahl abschreiben.
 - Nichts Wichtiges darf nur per `hover` erreichbar sein — Touchgeraete haben kein Hover.
   Der Loeschen-Knopf an den Wuensche-Chips (`opacity-0 group-hover:opacity-100`,
   `Calendar.tsx` um Zeile 322) ist genau dieser Fall und auf dem Telefon unerreichbar.
@@ -48,10 +64,12 @@ sichtbar, nur die Textbeschriftungen weichen auf schmalen Schirmen den Icons
 - Was klickbar ist, ist ein `button` oder hat `role`, `tabIndex` und Tastaturbehandlung.
   Ein `div` mit `onClick` ist keins.
 - Dialoge: Fokus faengt im Dialog, `Escape` schliesst, Fokus kehrt danach zurueck.
-- Sichtbarer Fokusring. Nicht wegstylen.
-- Kontrast mindestens **4.5:1** fuer Text. Farbe darf nie der einzige Traeger einer Aussage
-  sein — die Matrix macht es richtig: die Schichtart steht als Buchstabe im Feld, nicht
-  nur als Farbe.
+- Sichtbarer Fokusring. Den setzt `:focus-visible` global; nicht wegstylen und nicht je
+  Komponente nachbauen.
+- Kontrast: **`npm test` rechnet ihn nach** (`src/gestaltung.test.ts`). Eine Farbkombination,
+  die dort nicht steht, ist nicht geprueft — wer eine neue benutzt, traegt sie nach.
+- Farbe darf nie der einzige Traeger einer Aussage sein — die Matrix macht es richtig: die
+  Schichtart steht als Buchstabe im Feld, nicht nur als Farbe.
 
 ### Kein Systemdialog als Oberflaeche
 
@@ -83,7 +101,9 @@ tatsaechlich ansehen, per Chrome-MCP (`mcp__claude-in-chrome__*`) und bei Bedarf
 | 768 px | Tablet | Bricht das Raster sinnvoll um? |
 | 1280 px | Desktop | Nutzt die Flaeche, ohne auseinanderzufallen? |
 
-Dazu einmal ohne Maus durch den geaenderten Bereich tabben.
+Dazu einmal ohne Maus durch den geaenderten Bereich tabben — und **einmal im Dunkelmodus
+nachsehen** (in den Chrome-Entwicklerwerkzeugen unter „Rendering" umschaltbar). Eine
+eingestreute Farbe faellt nur dort auf.
 
 ## Warnzeichen
 
@@ -93,4 +113,5 @@ Dazu einmal ohne Maus durch den geaenderten Bereich tabben.
 | „`hidden md:flex` reicht erstmal" | Ohne Ersatzweg ist die Funktion auf dem Telefon weg. |
 | „Der Knopf erscheint beim Draufzeigen" | Touch hat kein Draufzeigen. |
 | „Ich sehe im Code, dass es passt" | Nachsehen. Layoutfehler sieht man nicht im JSX. |
+| „`bg-slate-100` ist doch nur ein Grau" | Es kennt keinen Dunkelmodus und steht in keinem Kontrasttest. `bg-flaeche-leise`. |
 | „`confirm()` ist doch nur eine Rueckfrage" | Auf dem Telefon ein Systemdialog mitten im Ablauf. Eigener Dialog. |

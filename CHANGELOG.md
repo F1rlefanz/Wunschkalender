@@ -21,6 +21,26 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+### Geändert
+- **Die Anwendung sieht jetzt aus wie die übrigen Anwendungen des Hauses.**
+  Farben, Schriften und Rundungen stammen aus dem Corporate Design des Hauses; die
+  Anmeldung und die Kopfzeile sind bereits darauf umgestellt, die übrigen
+  Ansichten folgen.
+- **Schrift und Abstände wachsen stufenlos mit der Bildschirmbreite** statt an
+  festen Schwellen zu springen. Auf den Bildschirmgrößen zwischen Telefon und
+  Tablet — wo bisher nichts passierte — passt sich die Anzeige jetzt an.
+- **Die Anwendung folgt dem Dunkelmodus des Geräts.** Wer sein Telefon nachts
+  dunkel stellt, bekommt die Anwendung dunkel; einen eigenen Schalter dafür
+  gibt es bewusst nicht.
+
+### Behoben
+- **In der Kopfzeile ließen sich auf schmalen Telefonen die Einstellungen nicht
+  mehr treffen** — der Export-Knopf lag darüber. Alle Knöpfe der Kopfzeile sind
+  jetzt mindestens 44 × 44 Pixel groß und überschneiden sich auf keiner Breite
+  mehr.
+- **Nebentext war auf dem Seitenhintergrund zu blass**, um die
+  Lesbarkeitsanforderungen zu erfüllen. Er ist jetzt kräftiger.
+
 ## [0.8.0] – 2026-08-21
 
 ### Geändert
