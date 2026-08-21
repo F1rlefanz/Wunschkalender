@@ -1,1 +1,285 @@
 @import "tailwindcss";
+
+/* ===========================================================================
+   Gestaltungsgrundlage des Hauses (#21)
+   ---------------------------------------------------------------------------
+   Quelle der Werte: `docs/gestaltung.md` — dort steht, woher jede Zahl kommt
+   und welche Regeln fuer ihren Gebrauch gelten. Diese Datei ist die einzige
+   Stelle, an der Farben als Zahl auftauchen. In Komponenten wird ueber
+   Rollennamen gearbeitet (`bg-flaeche`, `text-leise`, `border-rand`), nie
+   ueber `slate-`, `blue-` oder rohe Hexwerte.
+
+   Der Dunkelmodus folgt dem Geraet (`prefers-color-scheme`) und hat bewusst
+   keinen Umschalter in der Oberflaeche: Der `Header` traegt bereits vier Wege,
+   ein fuenfter passt auf 360 px nicht mehr.
+   =========================================================================== */
+
+/* --- Schriften, selbst ausgeliefert -----------------------------------------
+   Nicht ueber die Google-Fonts-CDN: Die Anwendung wird ueberwiegend von
+   privaten Geraeten aus benutzt: Dabei sollen keine IP-Adressen an Dritte
+   gehen. Beide Schriften stehen unter der SIL Open Font License (`OFL.txt`).
+   Es sind variable Schnitte — eine Datei deckt den ganzen Gewichtsbereich ab.
+   -------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'Mulish';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('./schriften/mulish-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Mulish';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('./schriften/mulish-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+    U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+    U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./schriften/roboto-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./schriften/roboto-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+    U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+    U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* --- Farbrollen, hell -------------------------------------------------------
+   `src/gestaltung.test.ts` liest genau diese beiden Bloecke und rechnet die
+   Kontraste nach. Wer hier einen Wert aendert, bekommt es dort gesagt.
+   -------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: light dark;
+
+  --haus-hintergrund: #f0edea;
+  --haus-flaeche: #ffffff;
+  --haus-flaeche-leise: #f7f5f3;
+
+  --haus-text: #2d2a28;
+  /* Der Wert des Corporate Designs (#726D68) erreicht auf dem App-Hintergrund
+     nur 4.39:1 und faellt damit unter 4.5:1 durch. Minimal abgedunkelt. */
+  --haus-text-leise: #5f5a55;
+
+  --haus-rand: #e3ded8;
+  /* Traegt die Rahmen von Eingabefeldern und muss deshalb 3:1 erreichen — der
+     zarte Ton des Corporate Designs (#E3DED8) bleibt der reinen Trennlinie. */
+  --haus-rand-stark: #857e76;
+
+  --haus-marke: #e2001a;
+  --haus-marke-tief: #8e0f30;
+  --haus-marke-kontrast: #ffffff;
+  --haus-marke-leise: #fbe1e4;
+  --haus-marke-leise-text: #8e0f30;
+
+  --haus-fehler: #ba1a1a;
+  --haus-fehler-kontrast: #ffffff;
+  --haus-fehler-leise: #fdeceb;
+  --haus-fehler-leise-text: #8c1210;
+
+  --haus-fokus: #1f5fbf;
+
+  /* Die Kopfzeile ist in beiden Modi dunkel: Sie ist Rahmen, nicht Inhalt, und
+     soll beim Wechsel des Geraetemodus nicht die Seite kippen lassen. Deshalb
+     traegt sie eigene Rollen — die Seitenrollen passen auf ihr nicht. */
+  --haus-kopf: #2d2a28;
+  --haus-kopf-text: #f0edea;
+  --haus-kopf-leise: #c2bab3;
+  --haus-kopf-aktiv: #55504b;
+  /* Markenrot erreicht auf der dunklen Kopfzeile nur 2.88:1. Dort steht
+     deshalb der aufgehellte Ton aus dem Dunkelmodus des Corporate Designs. */
+  --haus-kopf-marke: #ff6b7e;
+  --haus-kopf-fokus: #9dc2ff;
+}
+
+/* --- Farbrollen, dunkel --- */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --haus-hintergrund: #1c1b1a;
+    --haus-flaeche: #242322;
+    --haus-flaeche-leise: #3a3633;
+
+    --haus-text: #ece6e1;
+    --haus-text-leise: #c7c0ba;
+
+    --haus-rand: #574f49;
+    --haus-rand-stark: #8a8078;
+
+    --haus-marke: #ff6b7e;
+    --haus-marke-tief: #ffa3ae;
+    --haus-marke-kontrast: #3a0710;
+    --haus-marke-leise: #6b0b22;
+    --haus-marke-leise-text: #ffd9de;
+
+    --haus-fehler: #ffb4ab;
+    --haus-fehler-kontrast: #4a0704;
+    --haus-fehler-leise: #4a1512;
+    --haus-fehler-leise-text: #ffd6d0;
+
+    --haus-fokus: #9dc2ff;
+
+    --haus-kopf: #2d2a28;
+    --haus-kopf-text: #f0edea;
+    --haus-kopf-leise: #c2bab3;
+    --haus-kopf-aktiv: #55504b;
+    --haus-kopf-marke: #ff6b7e;
+    --haus-kopf-fokus: #9dc2ff;
+  }
+}
+
+/* --- Anschluss an Tailwind --------------------------------------------------
+   `@theme inline` statt `@theme`: Nur so schreibt Tailwind `var(--haus-...)`
+   in die Klassen, statt den hellen Wert einzusetzen. Ohne `inline` wuerde der
+   Dunkelmodus stillschweigend nicht wirken.
+   -------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-hintergrund: var(--haus-hintergrund);
+  --color-flaeche: var(--haus-flaeche);
+  --color-flaeche-leise: var(--haus-flaeche-leise);
+
+  --color-text: var(--haus-text);
+  --color-leise: var(--haus-text-leise);
+
+  --color-rand: var(--haus-rand);
+  --color-rand-stark: var(--haus-rand-stark);
+
+  --color-marke: var(--haus-marke);
+  --color-marke-tief: var(--haus-marke-tief);
+  --color-marke-kontrast: var(--haus-marke-kontrast);
+  --color-marke-leise: var(--haus-marke-leise);
+  --color-marke-leise-text: var(--haus-marke-leise-text);
+
+  --color-fehler: var(--haus-fehler);
+  --color-fehler-kontrast: var(--haus-fehler-kontrast);
+  --color-fehler-leise: var(--haus-fehler-leise);
+  --color-fehler-leise-text: var(--haus-fehler-leise-text);
+
+  --color-fokus: var(--haus-fokus);
+
+  --color-kopf: var(--haus-kopf);
+  --color-kopf-text: var(--haus-kopf-text);
+  --color-kopf-leise: var(--haus-kopf-leise);
+  --color-kopf-aktiv: var(--haus-kopf-aktiv);
+  --color-kopf-marke: var(--haus-kopf-marke);
+}
+
+/* --- Schrift-, Raum- und Radienskala ----------------------------------------
+   Stufenlos zwischen 360 px und 1280 px. Die Ankerwerte bei 360 px stammen aus
+   `Type.kt`; der Anteil in `vw` waechst von dort aus, ohne Sprung an einem
+   Haltepunkt. Der feste `rem`-Anteil bleibt erhalten, damit eine groessere
+   Systemschriftgroesse weiterhin wirkt — reines `vw` waere nicht bedienbar.
+   -------------------------------------------------------------------------- */
+
+@theme {
+  --font-sans: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-ueberschrift: 'Mulish', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  --text-winzig: clamp(0.75rem, 0.7378rem + 0.0543vw, 0.7813rem);
+  --text-winzig--line-height: 1.34;
+  --text-klein: clamp(0.875rem, 0.8628rem + 0.0543vw, 0.9063rem);
+  --text-klein--line-height: 1.43;
+  --text-basis: clamp(1rem, 0.9755rem + 0.1087vw, 1.0625rem);
+  --text-basis--line-height: 1.5;
+  --text-titel: clamp(1.25rem, 1.2011rem + 0.2174vw, 1.375rem);
+  --text-titel--line-height: 1.3;
+  --text-ueberschrift: clamp(1.375rem, 1.2772rem + 0.4348vw, 1.625rem);
+  --text-ueberschrift--line-height: 1.27;
+  --text-gross: clamp(1.625rem, 1.4783rem + 0.6522vw, 2rem);
+  --text-gross--line-height: 1.23;
+  --text-riesig: clamp(1.875rem, 1.6793rem + 0.8696vw, 2.375rem);
+  --text-riesig--line-height: 1.2;
+
+  --spacing-raum1: 0.25rem;
+  --spacing-raum2: 0.5rem;
+  --spacing-raum3: clamp(0.75rem, 0.7011rem + 0.2174vw, 0.875rem);
+  --spacing-raum4: clamp(1rem, 0.9022rem + 0.4348vw, 1.25rem);
+  --spacing-raum5: clamp(1.5rem, 1.4022rem + 0.4348vw, 1.75rem);
+  --spacing-raum6: clamp(2rem, 1.8043rem + 0.8696vw, 2.5rem);
+  --spacing-raum7: clamp(3rem, 2.7065rem + 1.3043vw, 3.75rem);
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+/* --- Grundlagen --- */
+
+@layer base {
+  html {
+    /* Kein `scroll-behavior: smooth` erzwingen; Rest folgt dem Geraet. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--haus-hintergrund);
+    color: var(--haus-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-basis);
+    line-height: 1.5;
+    /* Notch und Gestenleiste; vollstaendig geloest wird das in #13. */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-ueberschrift);
+    font-weight: 600;
+  }
+
+  /* Ein sichtbarer Fokusring ist Voraussetzung fuer #16 und darf nicht davon
+     abhaengen, dass jede Komponente daran denkt. */
+  :focus-visible {
+    outline: 2px solid var(--haus-fokus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+}
+
+/* --- Eigene Hilfsklassen --- */
+
+/* Mindestgroesse eines Beruehrziels. 44 px ist der kleinste Wert, den sowohl
+   die iOS- als auch die Android-Richtlinie noch traegt. Grundlage fuer #15
+   und #20; deshalb hier verankert und nicht je Komponente wiederholt. */
+/* Innerhalb der Kopfzeile gilt der helle Fokusring: Der dunkelblaue Ring der
+   Seite erreicht auf dem Anthrazit nur 2.34:1 und waere kaum zu sehen. Die
+   Regel in `:focus-visible` liest `--haus-fokus`, deshalb genuegt es, die
+   Rolle hier lokal umzubiegen — jede Komponente daran zu erinnern, waere die
+   schlechtere Loesung. */
+@utility kopfbereich {
+  --haus-fokus: var(--haus-kopf-fokus);
+}
+
+@utility touchziel {
+  min-inline-size: 2.75rem;
+  min-block-size: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

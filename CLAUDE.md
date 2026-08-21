@@ -20,6 +20,7 @@ Wuensche, die Leitung sieht alle und verwaltet Benutzer.
 | Was hat sich fuer Nutzer geaendert? | `CHANGELOG.md` |
 | Wie funktioniert die Codebasis? | diese Datei |
 | Wo laeuft das, wer sichert? | `docs/betrieb.md` (Vorlage fuer die IT, Issue #30) |
+| Wie sieht es aus, und warum so? | `docs/gestaltung.md` |
 | Wie wird hier gearbeitet? | `.claude/skills/` |
 
 Diese Datei liegt in **jeder** Nachricht im Kontext. Deshalb gilt ein Zeichenbudget, das
@@ -52,6 +53,11 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   `UserManagement`, `Einstellungen` (Vorlauf des Vorschlags, nur Leitung), `Profile`. Der `Header` traegt
   vier Wege; ein fuenfter passt auf 360 px nicht mehr ohne Umbau. `Calendar` haelt drei Ansichten in einer Datei
   (`viewType`: `'grid' | 'list' | 'matrix'`); wer dort etwas aendert, prueft alle drei.
+- `src/index.css` — die Gestaltungsgrundlage (#21): Farbrollen, fluide Skalen,
+  Radien. **Die einzige Stelle mit Farbwerten**; Komponenten sprechen Rollen an
+  (`bg-flaeche`, `text-leise`), nie `slate-`/`blue-`. `src/gestaltung.test.ts`
+  rechnet die Kontraste bei jedem `npm test` nach. Umgestellt sind bisher
+  `Header` und `Gatekeeper`; der Rest folgt mit #15, #16, #17 und #20.
 - `src/types.ts` — gemeinsame Typen fuer Client und Server.
 - `src/hinweise.ts` — welche Monatshinweise unter der Ueberschrift eines Monats
   stehen und wann ein eintreffendes Socket-Ereignis ein Eingabefeld ueberschreiben
@@ -107,6 +113,11 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   Datenbankschema selbst ein (`ON DELETE CASCADE`), nicht Aufraeumcode im Endpunkt.
   Deaktivieren statt Loeschen wurde geprueft und verworfen (Issue #5): Vergangene
   Monate zeigen dann Luecken statt Namen — das ist entschieden, kein Versehen.
+- **Der Dunkelmodus folgt dem Geraet und hat keinen Schalter.** Er entsteht allein
+  dadurch, dass die Rollen in `index.css` unter `prefers-color-scheme` andere Werte
+  bekommen. Eine eingestreute Farbe (`bg-white`, `text-slate-700`) bricht ihn still —
+  sichtbar wird das erst nachts auf dem Telefon. Deshalb: neue Rolle anlegen statt
+  Wert einstreuen.
 - **Der Erststart wiegt ~713 kB** (gzip ~226 kB), vor allem `jspdf` und `html2canvas` fuer den
   PDF-Export, den nur die Leitung braucht. Neue schwere Abhaengigkeiten gehoeren hinter ein
   `import()`.
