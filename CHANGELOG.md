@@ -21,6 +21,8 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.9.0] – 2026-08-21
+
 ### Geändert
 - **Die Anwendung sieht jetzt aus wie die übrigen Anwendungen des Hauses.**
   Farben, Schriften und Rundungen stammen aus dem Corporate Design des Hauses; die
