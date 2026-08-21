@@ -54,13 +54,41 @@ Zwei Werte des Corporate Designs sind uebernommen worden, ohne zu bestehen:
 | Rahmen von Eingabefeldern | `#E3DED8` | `#857E76` | 1.2:1 — als Rahmen eines Bedienelements nicht erkennbar |
 
 `#E3DED8` bleibt als reine Trennlinie (`border-rand`) in Gebrauch; dort traegt
-sie keine Bedienbedeutung und darf zart sein. Auf der dunklen Kopfzeile steht
-statt des Markenrots der aufgehellte Ton `#FF6B7E`: Markenrot erreicht auf
-Anthrazit nur 2.88:1.
+sie keine Bedienbedeutung und darf zart sein.
 
 Diese Abweichungen sind gerechnet, nicht geschaetzt — `npm test` rechnet sie bei
 jedem Lauf nach. Wer einen Wert in `src/index.css` aendert und dabei unter die
 Schwelle rutscht, bekommt es dort gesagt.
+
+## Die rote Leiste
+
+Die Kopfzeile traegt Markenrot — das ist das Erkennungszeichen des Hauses und
+keine Geschmacksfrage. Sie folgt deshalb zwei eigenen Regeln, die sonst
+nirgends gelten:
+
+**Auf Rot ist alles weiss.** `#E2001A` traegt weissen Text mit 4.94:1. Jeder
+gedaempfte Ton faellt durch — auch das CD-Hellrot `#FBE1E4` kommt nur auf
+4.0:1. Es gibt auf der Leiste deshalb **keine zweite Textstufe**; die Rangfolge
+macht das Schriftgewicht.
+
+**Es gibt keine zweite Rotflaeche.** Weder fuer den aktuellen Weg noch fuers
+Zeigen. Das Bordeaux `#8E0F30` des Corporate Designs hat Farbton 344 gegen 353
+des Markenrots und beisst sich unmittelbar daneben; ein tonwinkelgleiches
+dunkleres Rot beisst sich nicht, bleibt aber ein dunkler Fleck auf der Leiste.
+Struktur machen stattdessen:
+
+- der aktuelle Weg: **weisser Unterstrich** plus `aria-current` und fettere Schrift
+- Knoepfe (`Export`, Profil): **weisser Umriss**, beim Zeigen umgekehrt —
+  weiss gefuellt mit roter Schrift
+- der Fokusring: weiss statt des blauen der Seite (`kopfbereich` biegt
+  `--haus-fokus` lokal um)
+
+Nachts steht dort das dunkle Bordeaux `#8E0F30` des Corporate Designs statt des
+vollen Markenrots: Eine leuchtend rote Leiste im dunklen Zimmer blendet.
+
+Die schwebende Leiste der Mehrfachauswahl im Kalender ist **nicht** rot, sondern
+anthrazit (`--haus-leiste`): Sie traegt einen markenroten Knopf, der auf Rot
+nicht zu sehen waere.
 
 ## Die Skalen
 

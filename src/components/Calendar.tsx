@@ -694,7 +694,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
             <div>
               <h2 className="font-ueberschrift font-semibold">Mitarbeiter-Wunschmatrix</h2>
               <p className="text-winzig text-leise">
-                Gesamtübersicht über alle Wünsche des Monats. Waagerecht und senkrecht scrollbar.
+                Gesamtübersicht über alle Wünsche des Monats. Auf schmalen Geräten seitlich scrollbar.
               </p>
             </div>
             <ul className="flex flex-wrap gap-raum2 text-winzig font-semibold text-leise">
@@ -712,12 +712,17 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
             </ul>
           </div>
           <div className="relative max-h-[600px] overflow-auto">
-            <table className="w-full min-w-[750px] border-collapse text-left">
+            {/* Kein `min-width` auf der Tabelle und schmale Tagesspalten: Mit
+                36 px je Spalte brauchten 31 Tage plus Namensspalte 1266 px und
+                die Matrix scrollte quer, obwohl die Karte 1240 px breit war.
+                Jetzt passt der Monat auf dem Desktop hinein; auf dem Telefon
+                scrollt sie weiterhin, dort geht es nicht anders. */}
+            <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-rand bg-flaeche-leise text-winzig font-semibold uppercase tracking-wider text-leise">
                   <th
                     scope="col"
-                    className="sticky left-0 top-0 z-30 min-w-[150px] border-r border-rand bg-flaeche-leise p-raum3 sm:min-w-[180px]"
+                    className="sticky left-0 top-0 z-30 w-[9rem] min-w-[9rem] border-r border-rand bg-flaeche-leise p-raum2"
                   >
                     Mitarbeiter
                   </th>
@@ -725,7 +730,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                     <th
                       key={day}
                       scope="col"
-                      className="sticky top-0 z-20 min-w-[36px] border-r border-rand bg-flaeche-leise p-raum1 text-center"
+                      className="sticky top-0 z-20 min-w-[1.75rem] border-r border-rand bg-flaeche-leise p-raum1 text-center"
                     >
                       {day}
                     </th>
@@ -739,7 +744,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                       scope="row"
                       className="sticky left-0 border-r border-rand bg-flaeche p-raum2 text-left text-klein font-semibold"
                     >
-                      <span className="block max-w-[170px] truncate" title={user.name}>
+                      <span className="block truncate" title={user.name}>
                         {user.name}
                       </span>
                       {user.role === 'Manager' && (
@@ -757,11 +762,11 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                       return (
                         <td
                           key={day}
-                          className="min-w-[36px] border-r border-rand p-raum1 text-center text-winzig"
+                          className="min-w-[1.75rem] border-r border-rand p-0.5 text-center text-winzig"
                         >
                           {userWish ? (
                             <span
-                              className={`mx-auto flex h-8 w-8 flex-col items-center justify-center rounded-xs font-bold ${SCHICHT_FARBE[userWish.shiftType]}`}
+                              className={`mx-auto flex h-7 w-7 flex-col items-center justify-center rounded-xs font-bold ${SCHICHT_FARBE[userWish.shiftType]}`}
                               title={`${user.name}: ${userWish.shiftType}${userWish.comment ? ` – ${userWish.comment}` : ''}`}
                             >
                               {SCHICHT_KUERZEL[userWish.shiftType]}
@@ -797,7 +802,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
         <div
           role="region"
           aria-label="Ausgewählte Tage"
-          className="fixed bottom-raum4 left-raum3 right-raum3 z-40 flex items-center justify-between gap-raum3 rounded-lg bg-kopf px-raum3 py-raum2 text-kopf-text shadow-xl kopfbereich md:left-1/2 md:right-auto md:-translate-x-1/2"
+          className="fixed bottom-raum4 left-raum3 right-raum3 z-40 flex items-center justify-between gap-raum3 rounded-lg bg-leiste px-raum3 py-raum2 text-leiste-text shadow-xl leistenbereich md:left-1/2 md:right-auto md:-translate-x-1/2"
         >
           <span className="whitespace-nowrap text-klein font-semibold">
             {selectedDates.size} Tag{selectedDates.size > 1 ? 'e' : ''}{' '}
@@ -807,14 +812,16 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
             <button
               type="button"
               onClick={() => setSelectedDates(new Set())}
-              className="touchziel rounded-sm px-raum3 text-klein font-semibold text-kopf-leise hover:bg-kopf-aktiv hover:text-kopf-text"
+              className="touchziel rounded-sm px-raum3 text-klein font-semibold text-leiste-leise hover:bg-leiste-aktiv hover:text-leiste-text"
             >
               Abbrechen
             </button>
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="touchziel gap-raum1 whitespace-nowrap rounded-sm bg-marke px-raum4 text-klein font-semibold text-marke-kontrast hover:bg-marke-tief"
+              // Markenrot erreicht auf dem Anthrazit der Leiste nur 2.88:1. Der
+              // weisse Umriss macht die Kante des Knopfes trotzdem eindeutig.
+              className="touchziel gap-raum1 whitespace-nowrap rounded-sm border border-leiste-text bg-marke px-raum4 text-klein font-semibold text-marke-kontrast hover:bg-marke-tief"
             >
               <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="hidden sm:inline">Wunsch eintragen</span>

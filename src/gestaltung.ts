@@ -87,12 +87,14 @@ export const TEXTPAARE: Paarung[] = [
   { vorne: 'marke-leise-text', hinten: 'marke-leise', zweck: 'Text in einem Marken-Chip' },
   { vorne: 'fehler-kontrast', hinten: 'fehler', zweck: 'Beschriftung auf einem Fehlerknopf' },
   { vorne: 'fehler-leise-text', hinten: 'fehler-leise', zweck: 'Text in einer Fehlermeldung' },
+  // Auf der roten Kopfzeile gibt es **nur** Weiss: Jeder gedaempfte Ton faellt
+  // dort durch (CD-Hellrot #FBE1E4 erreicht 4.0:1). Deshalb steht hier nur ein
+  // Textpaar — die Rangfolge macht das Schriftgewicht.
   { vorne: 'kopf-text', hinten: 'kopf', zweck: 'Beschriftung in der Kopfzeile' },
-  { vorne: 'kopf-text', hinten: 'kopf-aktiv', zweck: 'Beschriftung des aktiven Weges' },
-  // Nebentext steht nur auf ruhenden Wegen. Der aktive Weg traegt immer
-  // `kopf-text` — die Kombination `kopf-leise` auf `kopf-aktiv` kommt
-  // deshalb nicht vor (sie erreichte auch nur 4.16:1).
-  { vorne: 'kopf-leise', hinten: 'kopf', zweck: 'Nebentext in der Kopfzeile' },
+  { vorne: 'kopf', hinten: 'kopf-text', zweck: 'Umgekehrter Knopf unter dem Zeiger' },
+  { vorne: 'leiste-text', hinten: 'leiste', zweck: 'Beschriftung der Auswahlleiste' },
+  { vorne: 'leiste-leise', hinten: 'leiste', zweck: 'Nebentext der Auswahlleiste' },
+  { vorne: 'leiste-text', hinten: 'leiste-aktiv', zweck: 'Auswahlleiste unter dem Zeiger' },
   { vorne: 'frueh-text', hinten: 'frueh', zweck: 'Kennzeichnung der Fruehschicht' },
   { vorne: 'spaet-text', hinten: 'spaet', zweck: 'Kennzeichnung der Spaetschicht' },
   { vorne: 'nacht-text', hinten: 'nacht', zweck: 'Kennzeichnung der Nachtschicht' },
@@ -103,11 +105,9 @@ export const TEXTPAARE: Paarung[] = [
  * Kombinationen, die keine Schrift tragen: Rahmen, Symbole, Fokusring.
  * Fuer sie verlangt WCAG 1.4.11 nur 3:1.
  *
- * Bewusst nicht enthalten: die Hinterlegung des aktiven Weges in der Kopfzeile
- * (`kopf-aktiv` auf `kopf`). Sie erreicht 1.79:1 — und darf es, weil die
- * Aussage "hier stehst du" nicht an der Farbe haengt: Der Knopf traegt
- * zusaetzlich `aria-current` und ein staerkeres Schriftgewicht. Ein Ton mit
- * 3:1 waere auf einer schmalen Leiste ein Fremdkoerper.
+ * Bewusst nicht enthalten: die Hinterlegung des aktiven Weges in der
+ * Kopfzeile — es gibt keine. Dass ein Weg der aktuelle ist, sagen
+ * `aria-current`, das Schriftgewicht und ein weisser Unterstrich.
  */
 export const FLAECHENPAARE: Paarung[] = [
   { vorne: 'rand-stark', hinten: 'flaeche', zweck: 'Rahmen eines Eingabefelds' },
@@ -118,9 +118,10 @@ export const FLAECHENPAARE: Paarung[] = [
   { vorne: 'fehler', hinten: 'hintergrund', zweck: 'Fehlersymbol auf der Seite' },
   { vorne: 'fokus', hinten: 'hintergrund', zweck: 'Fokusring auf der Seite' },
   { vorne: 'fokus', hinten: 'flaeche', zweck: 'Fokusring auf einer Karte' },
-  { vorne: 'kopf-marke', hinten: 'kopf', zweck: 'Markenzeichen in der Kopfzeile' },
+  { vorne: 'kopf-text', hinten: 'kopf', zweck: 'Umriss eines Knopfes in der Kopfzeile' },
   { vorne: 'kopf-fokus', hinten: 'kopf', zweck: 'Fokusring in der Kopfzeile' },
-  { vorne: 'kopf-fokus', hinten: 'kopf-aktiv', zweck: 'Fokusring auf dem aktiven Weg' },
+  { vorne: 'leiste-fokus', hinten: 'leiste', zweck: 'Fokusring in der Auswahlleiste' },
+  { vorne: 'leiste-text', hinten: 'leiste', zweck: 'Umriss des Hauptknopfes in der Leiste' },
   { vorne: 'frueh-text', hinten: 'flaeche', zweck: 'Punkt der Fruehschicht im Raster' },
   { vorne: 'spaet-text', hinten: 'flaeche', zweck: 'Punkt der Spaetschicht im Raster' },
   { vorne: 'nacht-text', hinten: 'flaeche', zweck: 'Punkt der Nachtschicht im Raster' },
