@@ -21,6 +21,37 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.10.0] – 2026-08-21
+
+### Hinzugefügt
+- **Wünsche lassen sich jetzt auch auf dem Telefon löschen.** Bisher erschien
+  der Löschknopf nur, wenn man mit der Maus darauf zeigte — auf einem
+  Touchgerät war er damit unerreichbar. Ein Tipp auf einen Tag mit Wünschen
+  öffnet die Tagesansicht, dort steht der Knopf in voller Größe.
+- **Der Kalender ist ohne Maus bedienbar.** Jeder Tag ist mit dem Tabulator
+  erreichbar und mit Enter oder Leertaste auszuwählen; Vorleseprogramme
+  bekommen Wochentag, Datum und die Zahl der Wünsche vorgelesen.
+
+### Geändert
+- **Keine Systemdialoge mehr.** Rückfragen — etwa vor dem Löschen eines
+  Benutzers — laufen über eigene Dialoge, die den Namen der betroffenen Person
+  nennen und mit Escape zu schließen sind. Rückmeldungen erscheinen als
+  Meldung neben der Arbeit, statt sie anzuhalten. Die Passwortvergabe in der
+  Benutzerverwaltung hat ein richtiges Formular statt eines Eingabefensters
+  des Browsers.
+- **Die gesamte Oberfläche folgt jetzt dem Corporate Design** — Kalender,
+  Tagesliste, Matrix, Benutzerverwaltung, Einstellungen und Profil. Die
+  Schichtarten haben dafür eigene, gedeckte Farben bekommen; Rot bleibt der
+  Marke und den Fehlern vorbehalten.
+- **Alle Knöpfe sind mindestens 44 × 44 Pixel groß**, auch die kleinen
+  Symbolknöpfe in der Benutzerverwaltung, wo „Löschen" direkt neben
+  „Bearbeiten" sitzt.
+
+### Behoben
+- **Ein misslungenes Speichern des Monatshinweises blieb stumm.** Der Text
+  stand weiter im Feld, war aber nicht gespeichert. Jetzt erscheint eine
+  Meldung.
+
 ## [0.9.0] – 2026-08-21
 
 ### Geändert

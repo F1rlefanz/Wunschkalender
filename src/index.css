@@ -111,6 +111,18 @@
      deshalb der aufgehellte Ton aus dem Dunkelmodus des Corporate Designs. */
   --haus-kopf-marke: #ff6b7e;
   --haus-kopf-fokus: #9dc2ff;
+
+  /* Die vier Schichtarten. Die einzigen Farbtoene neben Marke und Fehler —
+     und sie tragen nie allein: Im Feld steht immer auch der Buchstabe. Rot
+     ist hier ausgespart, damit keine Schicht wie ein Fehler aussieht. */
+  --haus-frueh: #fbeeda;
+  --haus-frueh-text: #7a4e00;
+  --haus-spaet: #dceff0;
+  --haus-spaet-text: #0b565a;
+  --haus-nacht: #e3e5f6;
+  --haus-nacht-text: #383d85;
+  --haus-frei: #e1eee2;
+  --haus-frei-text: #2f5f38;
 }
 
 /* --- Farbrollen, dunkel --- */
@@ -146,6 +158,15 @@
     --haus-kopf-aktiv: #55504b;
     --haus-kopf-marke: #ff6b7e;
     --haus-kopf-fokus: #9dc2ff;
+
+    --haus-frueh: #4a3617;
+    --haus-frueh-text: #f5d9a8;
+    --haus-spaet: #12403f;
+    --haus-spaet-text: #a8dedf;
+    --haus-nacht: #2a2e55;
+    --haus-nacht-text: #c3c8f0;
+    --haus-frei: #23412a;
+    --haus-frei-text: #b6dcbb;
   }
 }
 
@@ -184,6 +205,15 @@
   --color-kopf-leise: var(--haus-kopf-leise);
   --color-kopf-aktiv: var(--haus-kopf-aktiv);
   --color-kopf-marke: var(--haus-kopf-marke);
+
+  --color-frueh: var(--haus-frueh);
+  --color-frueh-text: var(--haus-frueh-text);
+  --color-spaet: var(--haus-spaet);
+  --color-spaet-text: var(--haus-spaet-text);
+  --color-nacht: var(--haus-nacht);
+  --color-nacht-text: var(--haus-nacht-text);
+  --color-frei: var(--haus-frei);
+  --color-frei-text: var(--haus-frei-text);
 }
 
 /* --- Schrift-, Raum- und Radienskala ----------------------------------------
@@ -273,6 +303,24 @@
 /* Mindestgroesse eines Beruehrziels. 44 px ist der kleinste Wert, den sowohl
    die iOS- als auch die Android-Richtlinie noch traegt. Grundlage fuer #15
    und #20; deshalb hier verankert und nicht je Komponente wiederholt. */
+/* Ein Knopf, der sich nur auf Geraeten mit Zeiger zurueckhaelt (#15).
+   Auf Touch gibt es kein Draufzeigen — dort steht er dauerhaft da. Wo es
+   einen Zeiger gibt, erscheint er beim Zeigen **und beim Tastaturfokus**;
+   ohne die zweite Bedingung waere er ohne Maus wieder unerreichbar. */
+@layer components {
+  @media (hover: hover) and (pointer: fine) {
+    .beim-zeigen {
+      opacity: 0;
+      transition: opacity 120ms;
+    }
+
+    .group:hover .beim-zeigen,
+    .beim-zeigen:focus-visible {
+      opacity: 1;
+    }
+  }
+}
+
 /* Innerhalb der Kopfzeile gilt der helle Fokusring: Der dunkelblaue Ring der
    Seite erreicht auf dem Anthrazit nur 2.34:1 und waere kaum zu sehen. Die
    Regel in `:focus-visible` liest `--haus-fokus`, deshalb genuegt es, die

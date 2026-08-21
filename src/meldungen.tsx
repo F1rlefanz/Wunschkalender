@@ -74,8 +74,9 @@ export function useMeldung() {
  * Zeigt die offenen Meldungen an. Gehoert einmal in die Anwendung, moeglichst
  * weit unten im Baum, damit sie ueber allem liegt.
  *
- * Unten auf dem Telefon, oben rechts auf breiten Schirmen — dort, wo der
- * Daumen bzw. der Blick ohnehin ist.
+ * Sie haengen dicht unter der Kopfzeile, nicht am unteren Rand: Dort steht im
+ * Kalender die Leiste fuer die Mehrfachauswahl, und zwei schwebende Streifen
+ * uebereinander verdecken einander.
  */
 export function Meldungen() {
   const kontext = useContext(MeldungsKontext);
@@ -84,7 +85,7 @@ export function Meldungen() {
 
   return (
     <div
-      className="fixed inset-x-raum3 bottom-raum3 sm:inset-x-auto sm:top-raum4 sm:right-raum4 sm:bottom-auto sm:max-w-sm z-50 flex flex-col gap-raum2 pointer-events-none"
+      className="fixed inset-x-raum3 top-20 sm:inset-x-auto sm:right-raum4 sm:max-w-sm z-50 flex flex-col gap-raum2 pointer-events-none"
       // Der Bereich selbst ist die Live-Region: So wird auch eine Meldung
       // vorgelesen, die erst spaeter hinzukommt.
       aria-live="polite"

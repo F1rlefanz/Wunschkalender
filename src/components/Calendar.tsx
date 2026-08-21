@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2, List, X, Users, Calendar as CalendarIcon, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Check, Trash2, List, Users, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from '../types';
 import { Dialog } from './Dialog';
 import { useMeldung } from '../meldungen';
@@ -19,6 +19,38 @@ interface CalendarProps {
   onSaveMonthlyComment: (month: string, text: string) => void;
   onMonthChange: (month: string) => void;
 }
+
+/**
+ * Grund- und Schriftfarbe je Schichtart. Die Farbe hilft beim Ueberfliegen,
+ * sie traegt die Aussage aber nie allein: Im Feld steht immer der Buchstabe
+ * bzw. der Name daneben.
+ */
+const SCHICHT_FARBE: Record<ShiftType, string> = {
+  'Früh': 'bg-frueh text-frueh-text',
+  'Spät': 'bg-spaet text-spaet-text',
+  'Nacht': 'bg-nacht text-nacht-text',
+  'Frei': 'bg-frei text-frei-text',
+};
+
+/**
+ * Fuer die Punkte im Raster auf dem Telefon: Der zarte Flaechenton verschwindet
+ * bei zehn Pixeln, deshalb steht dort der kraeftige Schriftton als Fuellung.
+ */
+const SCHICHT_PUNKT: Record<ShiftType, string> = {
+  'Früh': 'bg-frueh-text',
+  'Spät': 'bg-spaet-text',
+  'Nacht': 'bg-nacht-text',
+  'Frei': 'bg-frei-text',
+};
+
+const SCHICHT_KUERZEL: Record<ShiftType, string> = {
+  'Früh': 'F',
+  'Spät': 'S',
+  'Nacht': 'N',
+  'Frei': 'Fr',
+};
+
+const SCHICHTEN: ShiftType[] = ['Früh', 'Spät', 'Nacht', 'Frei'];
 
 export function Calendar({ wishes, monthlyComments, currentUser, settings, users, onAddWishes, onDeleteWish, onSaveMonthlyComment, onMonthChange }: CalendarProps) {
   const melde = useMeldung();
@@ -205,24 +237,31 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
     }
   };
 
+  // Auf dem Telefon ein schmalerer Aussenrand: Sonst bleiben fuer sieben Spalten
+  // nur 43 px je Tag, und das Beruehrziel unterschreitet die 44 px.
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <button onClick={prevMonth} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-          <ChevronLeft className="w-5 h-5 text-slate-600" />
+    <div className="max-w-7xl mx-auto p-raum2 sm:p-raum5">
+      {/* Monatskopf */}
+      <div className="flex items-center justify-between gap-raum2 mb-raum5 bg-flaeche p-raum3 rounded-lg shadow-sm border border-rand">
+        <button
+          type="button"
+          onClick={prevMonth}
+          className="touchziel rounded-xl text-leise hover:bg-flaeche-leise hover:text-text"
+          aria-label="Voriger Monat"
+        >
+          <ChevronLeft className="w-5 h-5" aria-hidden="true" />
         </button>
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-slate-800 tracking-tight">{monthYearString}</h2>
+        <div className="text-center min-w-0">
+          <h1 className="font-ueberschrift text-titel font-semibold tracking-tight">{monthYearString}</h1>
           {frist && frist.stichtag && (
             <div className="mt-1 flex items-center justify-center gap-1">
               {/* Der Termin gehört sichtbar in den Monatskopf, nicht in eine
                   Absprache im Flur (#36). */}
               <span
-                className={`text-xs font-medium px-2 py-0.5 rounded border ${
+                className={`text-winzig font-medium px-raum2 py-raum1 rounded-xs border ${
                   frist.abgelaufen
-                    ? 'text-red-600 bg-red-50 border-red-100'
-                    : 'text-slate-600 bg-slate-50 border-slate-200'
+                    ? 'text-fehler-leise-text bg-fehler-leise border-fehler'
+                    : 'text-leise bg-flaeche-leise border-rand'
                 }`}
               >
                 {stichtagSatz(frist)}
@@ -230,38 +269,47 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
               </span>
               {currentUser?.role === 'Manager' && (
                 <button
+                  type="button"
                   onClick={oeffneStichtag}
                   aria-expanded={stichtagOffen}
                   aria-label={`Stichtag für ${monthYearString} ändern`}
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                  className="touchziel rounded-xl text-leise hover:bg-flaeche-leise hover:text-text"
                 >
-                  <Pencil className="w-4 h-4 text-slate-500" />
+                  <Pencil className="w-4 h-4" aria-hidden="true" />
                 </button>
               )}
             </div>
           )}
         </div>
-        <button onClick={nextMonth} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-          <ChevronRight className="w-5 h-5 text-slate-600" />
+        <button
+          type="button"
+          onClick={nextMonth}
+          className="touchziel rounded-xl text-leise hover:bg-flaeche-leise hover:text-text"
+          aria-label="Nächster Monat"
+        >
+          <ChevronRight className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
 
       {/* Stichtag dieses Monats — nur für die Leitung */}
       {stichtagOffen && frist && currentUser?.role === 'Manager' && (
-        <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-800 mb-1">Stichtag für {monthYearString}</h3>
-          <p className="text-xs text-slate-500 mb-3">
+        <div className="mb-raum5 bg-flaeche p-raum4 rounded-lg shadow-sm border border-rand">
+          <h2 className="font-ueberschrift font-semibold mb-raum1">Stichtag für {monthYearString}</h2>
+          <p className="text-klein text-leise mb-raum3">
             Bis einschließlich zu diesem Tag können Mitarbeitende Wünsche eintragen. Ohne eigenen
             Stichtag gilt der automatische Vorschlag{vorschlag ? ` (${langesDatum(vorschlag)})` : ''}.
           </p>
 
           {stichtagFehler && (
-            <p role="status" className="mb-3 p-3 rounded text-sm bg-red-50 text-red-700">
+            <p
+              role="status"
+              className="mb-raum3 rounded-sm border border-fehler bg-fehler-leise p-raum3 text-klein text-fehler-leise-text"
+            >
               {stichtagFehler}
             </p>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-raum2">
             <label htmlFor="stichtag" className="sr-only">
               Stichtag für {monthYearString}
             </label>
@@ -273,28 +321,31 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                 setStichtagEingabe(e.target.value);
                 setStichtagFehler(null);
               }}
-              className="flex-1 min-h-[44px] px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base sm:text-sm"
+              className="flex-1 min-h-11 rounded-sm border border-rand-stark bg-flaeche px-raum3 text-basis"
             />
             <button
+              type="button"
               onClick={speichereStichtag}
               disabled={stichtagLaeuft || !stichtagEingabe}
-              className="min-h-[44px] px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+              className="touchziel rounded-sm bg-marke px-raum4 text-klein font-medium text-marke-kontrast hover:bg-marke-tief disabled:opacity-50"
             >
               Speichern
             </button>
             {frist.herkunft === 'gesetzt' && (
               <button
+                type="button"
                 onClick={zurueckZurAutomatik}
                 disabled={stichtagLaeuft}
-                className="min-h-[44px] px-4 rounded-md text-sm font-medium text-slate-700 border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                className="touchziel rounded-sm border border-rand-stark px-raum4 text-klein font-medium hover:bg-flaeche-leise disabled:opacity-50"
               >
                 Automatik
               </button>
             )}
             <button
+              type="button"
               onClick={() => setStichtagOffen(false)}
               disabled={stichtagLaeuft}
-              className="min-h-[44px] px-4 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+              className="touchziel rounded-sm px-raum4 text-klein font-medium text-leise hover:bg-flaeche-leise hover:text-text disabled:opacity-50"
             >
               Abbrechen
             </button>
@@ -302,67 +353,65 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
         </div>
       )}
 
-      {/* View Switcher */}
-      <div className="flex justify-center mb-6">
-        <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/80">
-          <button
-            onClick={() => setViewType('grid')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-              viewType === 'grid' 
-                ? 'bg-white text-slate-950 shadow-sm' 
-                : 'text-slate-600 hover:text-slate-950'
-            }`}
-          >
-            <CalendarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>Kalender</span>
-          </button>
-          <button
-            onClick={() => setViewType('list')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-              viewType === 'list' 
-                ? 'bg-white text-slate-950 shadow-sm' 
-                : 'text-slate-600 hover:text-slate-950'
-            }`}
-          >
-            <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>Tagesliste</span>
-          </button>
-          <button
-            onClick={() => setViewType('matrix')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-              viewType === 'matrix' 
-                ? 'bg-white text-slate-950 shadow-sm' 
-                : 'text-slate-600 hover:text-slate-950'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>Mitarbeiter-Matrix</span>
-          </button>
+      {/* Ansichtswahl */}
+      <div className="flex justify-center mb-raum5">
+        <div
+          className="inline-flex flex-wrap justify-center gap-raum1 p-raum1 bg-flaeche-leise rounded-lg border border-rand"
+          role="group"
+          aria-label="Ansicht wählen"
+        >
+          {(
+            [
+              ['grid', 'Kalender', CalendarIcon],
+              ['list', 'Tagesliste', List],
+              ['matrix', 'Mitarbeiter-Matrix', Users],
+            ] as const
+          ).map(([art, name, Symbol]) => (
+            <button
+              key={art}
+              type="button"
+              onClick={() => setViewType(art)}
+              aria-pressed={viewType === art}
+              className={`touchziel gap-raum2 rounded-sm px-raum3 text-klein font-medium transition-colors ${
+                viewType === art
+                  ? 'bg-flaeche text-text shadow-sm'
+                  : 'text-leise hover:text-text'
+              }`}
+            >
+              <Symbol className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>{name}</span>
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Monthly Comments */}
       {currentUser && (
-        <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-800 mb-3">Allgemeine Hinweise für {monthYearString}</h3>
-          <div className="space-y-4">
+        <div className="mb-raum5 bg-flaeche p-raum4 rounded-lg shadow-sm border border-rand">
+          <h2 className="font-ueberschrift font-semibold mb-raum3">
+            Allgemeine Hinweise für {monthYearString}
+          </h2>
+          <div className="space-y-raum4">
             {hinweiseAnderer.map(c => {
               const u = users.find(user => user.id === c.userId);
               const name = u?.name || 'Unbekannt';
 
               return (
-                <div key={c.id} className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <span className="text-xs font-semibold text-slate-600 mb-1 block">{name}</span>
-                  <p className="text-sm text-slate-800">{c.text}</p>
+                <div key={c.id} className="bg-flaeche-leise p-raum3 rounded-sm border border-rand">
+                  <span className="mb-raum1 block text-winzig font-semibold text-leise">{name}</span>
+                  <p className="text-klein">{c.text}</p>
                 </div>
               );
             })}
 
             {/* Das eigene Feld steht genau einmal da, ob schon etwas darin stand oder nicht. */}
             <div>
-              <span className="text-xs font-semibold text-blue-600 mb-1 block">{currentUser.name} (Sie)</span>
+              <label htmlFor="eigener-hinweis" className="mb-raum1 block text-winzig font-semibold text-marke">
+                {currentUser.name} (Sie)
+              </label>
               <textarea
-                className="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                id="eigener-hinweis"
+                className="w-full rounded-sm border border-rand-stark bg-flaeche p-raum3 text-basis disabled:bg-flaeche-leise disabled:text-leise disabled:cursor-not-allowed"
                 rows={2}
                 value={localMonthlyComment}
                 disabled={isMonthLocked}
@@ -378,126 +427,144 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
         </div>
       )}
 
-      {/* Views Container */}
+      {/* Rasteransicht */}
       {viewType === 'grid' && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
-          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
-            {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (
-              <div key={d} className="py-2.5 sm:py-3 text-center text-xs sm:text-sm font-semibold text-slate-500 uppercase tracking-wider">{d}</div>
+        <div className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
+          <div className="grid grid-cols-7 border-b border-rand bg-flaeche-leise">
+            {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((d) => (
+              <div
+                key={d}
+                className="py-raum2 text-center text-winzig font-semibold uppercase tracking-wider text-leise"
+              >
+                {d}
+              </div>
             ))}
           </div>
-          
+
           <div className="grid grid-cols-7 auto-rows-fr">
             {Array.from({ length: emptyDays }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[70px] sm:min-h-[120px] p-1 sm:p-2 border-b border-r border-slate-100 bg-slate-50/50" />
+              <div
+                key={`empty-${i}`}
+                className="min-h-[76px] sm:min-h-[120px] border-b border-r border-rand bg-flaeche-leise/50"
+              />
             ))}
-            
-            {days.map(day => {
+
+            {days.map((day) => {
               const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const dayWishes = wishesByDate.get(dateStr) || [];
-              
+
               const isToday = new Date().toISOString().split('T')[0] === dateStr;
               const isSelected = selectedDates.has(dateStr);
+              const langname = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth(),
+                day,
+              ).toLocaleDateString('de-DE', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              });
+              const wunschZahl =
+                dayWishes.length === 0
+                  ? 'keine Wünsche'
+                  : `${dayWishes.length} ${dayWishes.length === 1 ? 'Wunsch' : 'Wünsche'}`;
 
               return (
-                <div 
-                  key={day} 
-                  onClick={() => {
-                    if (currentUser) {
-                      toggleDateSelection(dateStr);
-                    }
-                  }}
-                  className={`min-h-[70px] sm:min-h-[120px] p-1.5 sm:p-2 border-b border-r border-slate-100 relative transition-all cursor-pointer select-none
-                    ${isSelected ? 'bg-blue-50/75 ring-2 ring-inset ring-blue-500 z-10' : 'hover:bg-slate-50'}`}
+                <div
+                  key={day}
+                  className={`group relative min-h-[76px] sm:min-h-[120px] border-b border-r border-rand transition-colors ${
+                    isSelected ? 'bg-marke-leise z-10' : ''
+                  }`}
                 >
-                  <div className="flex justify-between items-start">
-                    <span className={`text-xs sm:text-sm font-medium w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-blue-600 text-white' : 'text-slate-700'} ${isSelected ? 'bg-blue-100 text-blue-700' : ''}`}>
-                      {day}
-                    </span>
-                    <div className="flex items-center space-x-0.5 sm:space-x-1">
-                      {currentUser?.role === 'Manager' && dayWishes.length > 0 && (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setDayDetailsModal(dateStr); }}
-                          className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                          title="Tagesdetails anzeigen"
-                        >
-                          <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </button>
-                      )}
+                  {/* Die Auswahlflaeche liegt als eigener Knopf unter dem Inhalt,
+                      statt die Zelle selbst zu einem Knopf zu machen: In der Zelle
+                      stehen weitere Knoepfe, und ein Knopf im Knopf ist weder
+                      gueltiges HTML noch mit der Tastatur bedienbar (#16). */}
+                  {currentUser && (
+                    <button
+                      type="button"
+                      onClick={() => toggleDateSelection(dateStr)}
+                      aria-pressed={isSelected}
+                      aria-label={`${langname}, ${wunschZahl}`}
+                      className={`absolute inset-0 w-full rounded-none ${
+                        isSelected ? 'ring-2 ring-inset ring-marke' : 'hover:bg-flaeche-leise'
+                      }`}
+                    />
+                  )}
+
+                  <div className="pointer-events-none relative p-raum1 sm:p-raum2">
+                    <div className="flex items-start justify-between">
+                      <span
+                        className={`flex h-6 w-6 items-center justify-center rounded-xl text-winzig font-medium sm:h-7 sm:w-7 sm:text-klein ${
+                          isToday ? 'bg-marke text-marke-kontrast' : ''
+                        } ${isSelected && !isToday ? 'text-marke-leise-text' : ''}`}
+                      >
+                        {day}
+                      </span>
                       {isSelected && (
-                        <div className="p-0.5 sm:p-1 text-blue-600 bg-blue-100 rounded-full">
-                          <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                        </div>
+                        <span className="rounded-xl bg-marke p-raum1 text-marke-kontrast">
+                          <Check className="h-3 w-3" aria-hidden="true" />
+                        </span>
                       )}
                     </div>
-                  </div>
 
-                  {/* Desktop Wishes List (Large Screens Only) */}
-                  <div className="hidden sm:block mt-2 space-y-1">
-                    {dayWishes.slice(0, 3).map(wish => {
-                      const u = users.find(user => user.id === wish.userId);
-                      const name = u?.name || 'Unbekannt';
-                      const canDelete = darfLoeschen(wish);
+                    {/* Wunschzettel ab Tablet: Name, Schicht, und der Loeschen-Knopf,
+                        der sich nur bei Zeigergeraeten zurueckhaelt (#15). */}
+                    <div className="mt-raum2 hidden space-y-raum1 sm:block">
+                      {dayWishes.slice(0, 3).map((wish) => {
+                        const u = users.find((user) => user.id === wish.userId);
+                        const name = u?.name || 'Unbekannt';
+                        const canDelete = darfLoeschen(wish);
 
-                      return (
-                        <div 
-                          key={wish.id} 
-                          className={`text-xs px-2 py-1 flex items-center justify-between rounded truncate border relative group ${
-                            wish.shiftType === 'Frei'
-                              ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                              : 'bg-slate-100 border-slate-200 text-slate-700'
-                          }`}
-                          title={`${name}: ${wish.shiftType} - ${wish.comment || ''}`}
-                        >
-                          <div className="flex items-center truncate">
-                            <span className="font-semibold truncate">{name.split(' ')[0]}</span>
-                            <span className="opacity-75 ml-1 flex-shrink-0">({wish.shiftType})</span>
+                        return (
+                          <div
+                            key={wish.id}
+                            className={`pointer-events-auto flex items-center justify-between gap-raum1 rounded-xs px-raum2 py-raum1 text-winzig ${SCHICHT_FARBE[wish.shiftType]}`}
+                            title={`${name}: ${wish.shiftType}${wish.comment ? ` – ${wish.comment}` : ''}`}
+                          >
+                            <span className="truncate">
+                              <span className="font-semibold">{name.split(' ')[0]}</span>{' '}
+                              <span className="opacity-80">({wish.shiftType})</span>
+                            </span>
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteWish(wish.id)}
+                                className="beim-zeigen shrink-0 rounded-xs p-raum1 hover:bg-flaeche/60"
+                                aria-label={`Wunsch von ${name} am ${langname} löschen`}
+                              >
+                                <Trash2 className="h-3 w-3" aria-hidden="true" />
+                              </button>
+                            )}
                           </div>
-                          {canDelete && (
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDeleteWish(wish.id);
-                              }}
-                              className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity ml-2 focus:outline-none"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {dayWishes.length > 3 && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setDayDetailsModal(dateStr); }}
-                        className="text-[10px] w-full text-center py-1 mt-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded font-medium transition-colors border border-slate-200"
+                        );
+                      })}
+                    </div>
+
+                    {/* Ein Tag mit Wuenschen laesst sich oeffnen — auf dem Telefon
+                        ist das der Weg zum Loeschen mit einem Ziel von 44 px, weil
+                        dort keine Wunschzettel hinpassen (#15). */}
+                    {dayWishes.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setDayDetailsModal(dateStr)}
+                        className="pointer-events-auto mt-raum1 flex min-h-11 w-full items-center justify-center gap-raum1 rounded-xs text-winzig font-medium text-leise hover:bg-flaeche-leise hover:text-text sm:min-h-0 sm:py-raum1"
+                        aria-label={`Wünsche am ${langname} ansehen (${wunschZahl})`}
                       >
-                        + {dayWishes.length - 3} weitere
+                        <span className="flex flex-wrap justify-center gap-raum1 sm:hidden">
+                          {dayWishes.slice(0, 4).map((wish) => (
+                            <span
+                              key={wish.id}
+                              className={`h-2.5 w-2.5 rounded-xl ${SCHICHT_PUNKT[wish.shiftType]}`}
+                            />
+                          ))}
+                          {dayWishes.length > 4 && <span>+{dayWishes.length - 4}</span>}
+                        </span>
+                        <span className="hidden sm:inline">
+                          {dayWishes.length > 3 ? `+ ${dayWishes.length - 3} weitere` : 'Ansehen'}
+                        </span>
                       </button>
                     )}
-                  </div>
-
-                  {/* Mobile Compact Indicators (Mobile Screens Only - Prevents Overflow) */}
-                  <div className="sm:hidden mt-2 flex flex-col items-center">
-                    {dayWishes.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 justify-center max-w-full">
-                        {dayWishes.slice(0, 4).map(wish => (
-                          <span 
-                            key={wish.id}
-                            className={`w-2 h-2 rounded-full border border-white shadow-sm flex-shrink-0 ${
-                              wish.shiftType === 'Früh' ? 'bg-blue-500' :
-                              wish.shiftType === 'Spät' ? 'bg-amber-500' :
-                              wish.shiftType === 'Nacht' ? 'bg-indigo-600' :
-                              'bg-emerald-500'
-                            }`}
-                            title={`${wish.shiftType}`}
-                          />
-                        ))}
-                        {dayWishes.length > 4 && (
-                          <span className="text-[9px] font-bold text-slate-500 leading-none">+{dayWishes.length - 4}</span>
-                        )}
-                      </div>
-                    ) : null}
                   </div>
                 </div>
               );
@@ -506,80 +573,98 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
         </div>
       )}
 
-      {/* List View */}
+      {/* Tagesliste */}
       {viewType === 'list' && (
-        <div className="space-y-4">
-          {days.map(day => {
+        <div className="space-y-raum4">
+          {days.map((day) => {
             const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const dayWishes = wishesByDate.get(dateStr) || [];
-            
+            const langname = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              day,
+            ).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+
             return (
-              <div key={day} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-base sm:text-lg font-bold text-slate-800 bg-slate-100 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg">
+              <div
+                key={day}
+                className="bg-flaeche rounded-lg shadow-sm border border-rand p-raum4"
+              >
+                <div className="mb-raum4 flex flex-wrap items-center justify-between gap-raum3 border-b border-rand pb-raum3">
+                  <div className="flex items-center gap-raum3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-sm bg-flaeche-leise font-ueberschrift text-titel font-bold">
                       {day}
                     </span>
                     <div>
-                      <h4 className="font-semibold text-slate-900 text-sm sm:text-base">
-                        {new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
-                      </h4>
-                      <p className="text-xs text-slate-500">
+                      <h2 className="font-ueberschrift font-semibold">{langname}</h2>
+                      <p className="text-winzig text-leise">
                         {dayWishes.length} {dayWishes.length === 1 ? 'Wunsch' : 'Wünsche'} insgesamt
                       </p>
                     </div>
                   </div>
                   {currentUser && !isMonthLocked && (
                     <button
+                      type="button"
                       onClick={() => {
                         setSelectedDates(new Set([dateStr]));
                         setIsModalOpen(true);
                       }}
-                      className="flex items-center text-xs text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg font-medium transition-colors"
+                      className="touchziel gap-raum1 rounded-sm border border-marke px-raum3 text-klein font-medium text-marke hover:bg-marke-leise"
+                      aria-label={`Wunsch für ${langname} eintragen`}
                     >
-                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      <Plus className="h-4 w-4" aria-hidden="true" />
                       Wunsch eintragen
                     </button>
                   )}
                 </div>
 
                 {dayWishes.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                    {(['Früh', 'Spät', 'Nacht', 'Frei'] as ShiftType[]).map(shift => {
-                      const shiftWishes = dayWishes.filter(w => w.shiftType === shift);
+                  <div className="grid grid-cols-1 gap-raum3 sm:grid-cols-2 md:grid-cols-4">
+                    {SCHICHTEN.map((shift) => {
+                      const shiftWishes = dayWishes.filter((w) => w.shiftType === shift);
                       return (
-                        <div key={shift} className="bg-slate-50/50 p-3 rounded-lg border border-slate-100/80">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                              shift === 'Früh' ? 'bg-blue-100 text-blue-800' :
-                              shift === 'Spät' ? 'bg-amber-100 text-amber-800' :
-                              shift === 'Nacht' ? 'bg-indigo-100 text-indigo-800' :
-                              'bg-emerald-100 text-emerald-800'
-                            }`}>
+                        <div
+                          key={shift}
+                          className="rounded-sm border border-rand bg-flaeche-leise p-raum3"
+                        >
+                          <div className="mb-raum2 flex items-center justify-between gap-raum2">
+                            <span
+                              className={`rounded-xs px-raum2 py-raum1 text-winzig font-bold uppercase tracking-wider ${SCHICHT_FARBE[shift]}`}
+                            >
                               {shift}
                             </span>
-                            <span className="text-xs font-semibold text-slate-500 bg-slate-100/50 px-1.5 py-0.2 rounded-full">{shiftWishes.length}</span>
+                            <span className="text-winzig font-semibold text-leise">
+                              {shiftWishes.length}
+                            </span>
                           </div>
                           {shiftWishes.length > 0 ? (
-                            <ul className="space-y-1.5">
-                              {shiftWishes.map(wish => {
-                                const u = users.find(user => user.id === wish.userId);
+                            <ul className="space-y-raum2">
+                              {shiftWishes.map((wish) => {
+                                const u = users.find((user) => user.id === wish.userId);
+                                const name = u?.name || 'Unbekannt';
                                 const canDelete = darfLoeschen(wish);
                                 return (
-                                  <li key={wish.id} className="text-sm bg-white p-2 rounded border border-slate-100 flex justify-between items-start shadow-sm">
+                                  <li
+                                    key={wish.id}
+                                    className="flex items-start justify-between gap-raum2 rounded-xs border border-rand bg-flaeche p-raum2"
+                                  >
                                     <div className="min-w-0 flex-1">
-                                      <p className="font-semibold text-slate-800 truncate text-xs sm:text-sm">{u?.name || 'Unbekannt'}</p>
+                                      <p className="truncate text-klein font-semibold">{name}</p>
                                       {wish.comment && (
-                                        <p className="text-xs text-slate-500 mt-0.5 italic">{wish.comment}</p>
+                                        <p className="mt-raum1 text-winzig text-leise">
+                                          {wish.comment}
+                                        </p>
                                       )}
                                     </div>
                                     {canDelete && (
                                       <button
+                                        type="button"
                                         onClick={() => onDeleteWish(wish.id)}
-                                        className="text-slate-400 hover:text-red-600 p-0.5 rounded hover:bg-slate-50 transition-colors ml-1"
+                                        className="touchziel -m-raum2 shrink-0 rounded-sm text-fehler hover:bg-fehler-leise"
+                                        aria-label={`Wunsch von ${name} am ${langname} löschen`}
                                         title="Löschen"
                                       >
-                                        <Trash2 className="w-3.5 h-3.5" />
+                                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                                       </button>
                                     )}
                                   </li>
@@ -587,14 +672,14 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                               })}
                             </ul>
                           ) : (
-                            <p className="text-xs text-slate-400 italic py-1">Keine Einträge</p>
+                            <p className="py-raum1 text-winzig text-leise">Keine Einträge</p>
                           )}
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs sm:text-sm text-slate-400 italic">Keine Wünsche für diesen Tag eingetragen.</p>
+                  <p className="text-klein text-leise">Keine Wünsche für diesen Tag eingetragen.</p>
                 )}
               </div>
             );
@@ -602,103 +687,136 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
         </div>
       )}
 
-      {/* Matrix View */}
+      {/* Mitarbeiter-Matrix */}
       {viewType === 'matrix' && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3">
+        <div className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-raum3 border-b border-rand bg-flaeche-leise p-raum4">
             <div>
-              <h4 className="font-semibold text-slate-900 text-sm sm:text-base">Mitarbeiter-Wunschmatrix</h4>
-              <p className="text-xs text-slate-500">Gesamtübersicht über alle Wünsche des Monats. Scrollen Sie horizontal und vertikal.</p>
+              <h2 className="font-ueberschrift font-semibold">Mitarbeiter-Wunschmatrix</h2>
+              <p className="text-winzig text-leise">
+                Gesamtübersicht über alle Wünsche des Monats. Waagerecht und senkrecht scrollbar.
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2 sm:gap-4 text-[10px] sm:text-xs font-semibold text-slate-600">
-              <span className="flex items-center"><span className="w-2.5 h-2.5 rounded bg-blue-500 mr-1.5" /> F (Früh)</span>
-              <span className="flex items-center"><span className="w-2.5 h-2.5 rounded bg-amber-500 mr-1.5" /> S (Spät)</span>
-              <span className="flex items-center"><span className="w-2.5 h-2.5 rounded bg-indigo-600 mr-1.5" /> N (Nacht)</span>
-              <span className="flex items-center"><span className="w-2.5 h-2.5 rounded bg-emerald-500 mr-1.5" /> Frei</span>
-            </div>
+            <ul className="flex flex-wrap gap-raum2 text-winzig font-semibold text-leise">
+              {SCHICHTEN.map((shift) => (
+                <li key={shift} className="flex items-center gap-raum1">
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-xs text-winzig font-bold ${SCHICHT_FARBE[shift]}`}
+                    aria-hidden="true"
+                  >
+                    {SCHICHT_KUERZEL[shift]}
+                  </span>
+                  {shift}
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="overflow-auto max-h-[600px] relative">
-            <table className="w-full text-left border-collapse min-w-[750px]">
+          <div className="relative max-h-[600px] overflow-auto">
+            <table className="w-full min-w-[750px] border-collapse text-left">
               <thead>
-                <tr className="bg-slate-100 text-slate-600 text-[10px] sm:text-xs font-semibold uppercase tracking-wider border-b border-slate-200">
-                  <th className="sticky left-0 top-0 bg-slate-100 p-3 z-30 border-r border-slate-200 shadow-[2px_0_5px_rgba(0,0,0,0.05)] min-w-[150px] sm:min-w-[180px]">
+                <tr className="border-b border-rand bg-flaeche-leise text-winzig font-semibold uppercase tracking-wider text-leise">
+                  <th
+                    scope="col"
+                    className="sticky left-0 top-0 z-30 min-w-[150px] border-r border-rand bg-flaeche-leise p-raum3 sm:min-w-[180px]"
+                  >
                     Mitarbeiter
                   </th>
-                  {days.map(day => (
-                    <th key={day} className="sticky top-0 bg-slate-100 p-2 text-center border-r border-slate-200 min-w-[32px] sm:min-w-[36px] z-20">
+                  {days.map((day) => (
+                    <th
+                      key={day}
+                      scope="col"
+                      className="sticky top-0 z-20 min-w-[36px] border-r border-rand bg-flaeche-leise p-raum1 text-center"
+                    >
                       {day}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {matrixUsers.map(user => {
-                  return (
-                    <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="sticky left-0 bg-white p-2.5 sm:p-3 font-semibold text-slate-800 border-r border-slate-200 text-xs sm:text-sm shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
-                        <div className="truncate max-w-[140px] sm:max-w-[170px]" title={user.name}>
-                          {user.name}
-                        </div>
-                        {user.role === 'Manager' && (
-                          <span className="inline-block mt-0.5 text-[9px] bg-indigo-50 text-indigo-600 px-1 py-0.2 rounded font-bold" title="Leitung">L</span>
-                        )}
-                      </td>
-                      {days.map(day => {
-                        const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        const userWish = wishes.find(w => w.userId === user.id && w.date === dateStr);
-                        
-                        return (
-                          <td key={day} className="p-0.5 sm:p-1 border-r border-slate-200 text-center text-xs min-w-[32px] sm:min-w-[36px]">
-                            {userWish ? (
-                              <div 
-                                className={`w-7 h-7 sm:w-8 sm:h-8 mx-auto flex flex-col items-center justify-center rounded-lg font-bold text-[10px] sm:text-xs transition-transform hover:scale-110 cursor-help ${
-                                  userWish.shiftType === 'Früh' ? 'bg-blue-500 text-white shadow-sm' :
-                                  userWish.shiftType === 'Spät' ? 'bg-amber-500 text-white shadow-sm' :
-                                  userWish.shiftType === 'Nacht' ? 'bg-indigo-600 text-white shadow-sm' :
-                                  'bg-emerald-500 text-white shadow-sm'
-                                }`}
-                                title={`${user.name}: ${userWish.shiftType}${userWish.comment ? ` - ${userWish.comment}` : ''}`}
-                              >
-                                {userWish.shiftType === 'Früh' ? 'F' :
-                                 userWish.shiftType === 'Spät' ? 'S' :
-                                 userWish.shiftType === 'Nacht' ? 'N' : 'Fr'}
-                                {userWish.comment && (
-                                  <span className="w-1 h-1 bg-white rounded-full mt-0.5" />
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-slate-200 font-normal select-none">•</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
+              <tbody className="divide-y divide-rand">
+                {matrixUsers.map((user) => (
+                  <tr key={user.id}>
+                    <th
+                      scope="row"
+                      className="sticky left-0 border-r border-rand bg-flaeche p-raum2 text-left text-klein font-semibold"
+                    >
+                      <span className="block max-w-[170px] truncate" title={user.name}>
+                        {user.name}
+                      </span>
+                      {user.role === 'Manager' && (
+                        <span className="mt-raum1 inline-block rounded-xs bg-marke-leise px-raum1 text-winzig font-bold text-marke-leise-text">
+                          Leitung
+                        </span>
+                      )}
+                    </th>
+                    {days.map((day) => {
+                      const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      const userWish = wishes.find(
+                        (w) => w.userId === user.id && w.date === dateStr,
+                      );
+
+                      return (
+                        <td
+                          key={day}
+                          className="min-w-[36px] border-r border-rand p-raum1 text-center text-winzig"
+                        >
+                          {userWish ? (
+                            <span
+                              className={`mx-auto flex h-8 w-8 flex-col items-center justify-center rounded-xs font-bold ${SCHICHT_FARBE[userWish.shiftType]}`}
+                              title={`${user.name}: ${userWish.shiftType}${userWish.comment ? ` – ${userWish.comment}` : ''}`}
+                            >
+                              {SCHICHT_KUERZEL[userWish.shiftType]}
+                              {userWish.comment && (
+                                <span
+                                  className="mt-0.5 h-1 w-1 rounded-xl bg-current"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              <span className="sr-only">
+                                {`${userWish.shiftType}${userWish.comment ? `, Kommentar: ${userWish.comment}` : ''}`}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-leise" aria-label="kein Wunsch">
+                              ·
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* Floating Action Bar for Multi-Select */}
+      {/* Leiste fuer die Mehrfachauswahl, am unteren Rand in Daumenreichweite.
+          Die Meldungen haengen deshalb oben unter der Kopfzeile. */}
       {selectedDates.size > 0 && (
-        <div className="fixed bottom-4 left-3 right-3 sm:left-4 sm:right-4 md:bottom-6 md:left-1/2 md:right-auto md:-translate-x-1/2 bg-slate-950 text-white px-3 py-2.5 sm:px-6 sm:py-4 rounded-xl sm:rounded-full shadow-2xl flex items-center justify-between gap-2 sm:gap-6 z-40 animate-in slide-in-from-bottom-10 fade-in duration-200">
-          <span className="font-semibold text-xs sm:text-sm whitespace-nowrap">
-            {selectedDates.size} Tag{selectedDates.size > 1 ? 'e' : ''} <span className="hidden sm:inline">ausgewählt</span>
+        <div
+          role="region"
+          aria-label="Ausgewählte Tage"
+          className="fixed bottom-raum4 left-raum3 right-raum3 z-40 flex items-center justify-between gap-raum3 rounded-lg bg-kopf px-raum3 py-raum2 text-kopf-text shadow-xl kopfbereich md:left-1/2 md:right-auto md:-translate-x-1/2"
+        >
+          <span className="whitespace-nowrap text-klein font-semibold">
+            {selectedDates.size} Tag{selectedDates.size > 1 ? 'e' : ''}{' '}
+            <span className="hidden sm:inline">ausgewählt</span>
           </span>
-          <div className="flex items-center space-x-1.5 sm:space-x-3">
-            <button 
+          <div className="flex items-center gap-raum2">
+            <button
+              type="button"
               onClick={() => setSelectedDates(new Set())}
-              className="text-slate-400 hover:text-white px-2 py-1.5 text-xs sm:text-sm font-semibold transition-colors"
+              className="touchziel rounded-sm px-raum3 text-klein font-semibold text-kopf-leise hover:bg-kopf-aktiv hover:text-kopf-text"
             >
               Abbrechen
             </button>
-            <button 
+            <button
+              type="button"
               onClick={() => setIsModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 sm:px-5 sm:py-2 rounded-lg sm:rounded-full text-xs sm:text-sm font-semibold transition-colors shadow-sm flex items-center whitespace-nowrap"
+              className="touchziel gap-raum1 whitespace-nowrap rounded-sm bg-marke px-raum4 text-klein font-semibold text-marke-kontrast hover:bg-marke-tief"
             >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
+              <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="hidden sm:inline">Wunsch eintragen</span>
               <span className="sm:hidden">Eintragen</span>
             </button>
@@ -779,7 +897,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
           return (
             <div key={shift} className="mb-raum5 last:mb-0">
               <h3 className="mb-raum3 flex items-center gap-raum2 text-klein font-semibold uppercase tracking-wider text-leise">
-                {shift} {shift !== 'Frei' && 'schicht'}
+                {shift === 'Frei' ? 'Frei' : `${shift}schicht`}
                 <span className="rounded-xl bg-flaeche-leise px-raum2 py-raum1 text-winzig text-text">
                   {shiftWishes.length}
                 </span>
