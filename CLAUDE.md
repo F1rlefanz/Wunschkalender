@@ -51,13 +51,20 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   State geschrieben — die Aktualisierung kommt ueber das Socket-Ereignis zurueck.
 - `src/components/` — `Gatekeeper` (Anmeldung), `Header`, `Calendar` (Kernstueck, ~680 Zeilen),
   `UserManagement`, `Einstellungen` (Vorlauf des Vorschlags, nur Leitung), `Profile`. Der `Header` traegt
-  vier Wege; ein fuenfter passt auf 360 px nicht mehr ohne Umbau. `Calendar` haelt drei Ansichten in einer Datei
-  (`viewType`: `'grid' | 'list' | 'matrix'`); wer dort etwas aendert, prueft alle drei.
+  vier Wege; ein fuenfter passt auf 360 px nicht mehr ohne Umbau — mit Zielen von 44 px weicht dort
+  bereits der Kalender-Weg, weil das Markenzeichen daneben dasselbe tut. `Calendar` haelt drei Ansichten
+  in einer Datei (`viewType`: `'grid' | 'list' | 'matrix'`); wer dort etwas aendert, prueft alle drei.
 - `src/index.css` — die Gestaltungsgrundlage (#21): Farbrollen, fluide Skalen,
   Radien. **Die einzige Stelle mit Farbwerten**; Komponenten sprechen Rollen an
   (`bg-flaeche`, `text-leise`), nie `slate-`/`blue-`. `src/gestaltung.test.ts`
-  rechnet die Kontraste bei jedem `npm test` nach. Umgestellt sind bisher
-  `Header` und `Gatekeeper`; der Rest folgt mit #15, #16, #17 und #20.
+  rechnet die Kontraste bei jedem `npm test` nach. Wer eine neue Farbkombination
+  benutzt, traegt sie dort nach — sonst ist sie ungeprueft. Naeheres in
+  `docs/gestaltung.md`.
+- `src/components/Dialog.tsx` — `Dialog` und `Bestaetigung` auf Grundlage des
+  nativen `<dialog>`: Fokusfalle, Escape und Fokusrueckgabe kommen vom Browser.
+  Jeder neue Dialog benutzt das; ein eigener `fixed inset-0`-Kasten ist ein
+  Rueckschritt. `src/meldungen.tsx` traegt die nicht blockierenden
+  Rueckmeldungen (`useMeldung()`); `alert`/`confirm`/`prompt` sind verboten (#17).
 - `src/types.ts` — gemeinsame Typen fuer Client und Server.
 - `src/hinweise.ts` — welche Monatshinweise unter der Ueberschrift eines Monats
   stehen und wann ein eintreffendes Socket-Ereignis ein Eingabefeld ueberschreiben

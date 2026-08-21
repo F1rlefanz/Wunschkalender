@@ -13,11 +13,27 @@ import { Einstellungen } from './components/Einstellungen';
 import { api } from './api/client';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from './types';
 import { hinweisZeilen, monatDE, wunschZeilen } from './export';
+import { MeldungsBereich, Meldungen, useMeldung } from './meldungen';
 import { io } from 'socket.io-client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+/**
+ * Der Meldungsbereich liegt um die ganze Anwendung, damit auch der
+ * Anmeldebildschirm und tief liegende Komponenten `useMeldung()` benutzen
+ * koennen, ohne die Funktion durchzureichen.
+ */
 export default function App() {
+  return (
+    <MeldungsBereich>
+      <Anwendung />
+      <Meldungen />
+    </MeldungsBereich>
+  );
+}
+
+function Anwendung() {
+  const melde = useMeldung();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<Ansicht>('calendar');
@@ -106,7 +122,7 @@ export default function App() {
       );
     } catch (error) {
       console.error('Failed to add wishes:', error);
-      alert('Fehler beim Speichern der Wünsche.');
+      melde('fehler', 'Die Wünsche konnten nicht gespeichert werden.');
     }
   };
 
@@ -115,7 +131,7 @@ export default function App() {
       await api.deleteWish(id);
     } catch (error) {
       console.error('Failed to delete wish:', error);
-      alert('Fehler beim Löschen des Wunsches.');
+      melde('fehler', 'Der Wunsch konnte nicht gelöscht werden.');
     }
   };
 
@@ -124,7 +140,10 @@ export default function App() {
     try {
       await api.saveMonthlyComment({ month, text });
     } catch (error) {
+      // Bisher blieb das stumm: Der Hinweis stand weiter im Feld, war aber
+      // nicht gespeichert (#35).
       console.error('Failed to save monthly comment:', error);
+      melde('fehler', 'Der Hinweis konnte nicht gespeichert werden. Bitte noch einmal versuchen.');
     }
   };
 
@@ -162,8 +181,8 @@ export default function App() {
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      <div className="min-h-screen bg-hintergrund flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-marke" role="status" aria-label="Anmeldung wird geprüft" />
       </div>
     );
   }
@@ -176,7 +195,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-20">
+    <div className="min-h-screen bg-hintergrund pb-raum7">
       <Header 
         currentUser={currentUser} 
         currentView={currentView}
@@ -190,10 +209,10 @@ export default function App() {
         onExport={handleExport}
       />
       
-      <main className="py-6">
+      <main className="py-raum5">
         {loading ? (
-          <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="flex items-center justify-center p-raum7">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-marke" role="status" aria-label="Daten werden geladen" />
           </div>
         ) : (
           <>

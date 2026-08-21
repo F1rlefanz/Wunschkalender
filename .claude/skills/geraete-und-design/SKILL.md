@@ -54,8 +54,9 @@ Zugang.
 
 - Touchziele: die Klasse **`touchziel`** benutzen, nicht die Zahl abschreiben.
 - Nichts Wichtiges darf nur per `hover` erreichbar sein — Touchgeraete haben kein Hover.
-  Der Loeschen-Knopf an den Wuensche-Chips (`opacity-0 group-hover:opacity-100`,
-  `Calendar.tsx` um Zeile 322) ist genau dieser Fall und auf dem Telefon unerreichbar.
+  Wo ein Knopf sich bei Zeigergeraeten zurueckhalten soll, gibt es `beim-zeigen`: Die Klasse
+  blendet ihn **nur** unter `(hover: hover)` aus und holt ihn beim Tastaturfokus zurueck.
+  Ein nacktes `opacity-0 group-hover:opacity-100` ist der Fehler, den #15 behoben hat.
 - Genug Abstand zwischen benachbarten Zielen, damit im Kalenderraster nicht der falsche Tag
   getroffen wird.
 

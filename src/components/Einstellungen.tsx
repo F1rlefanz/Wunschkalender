@@ -56,35 +56,39 @@ export function Einstellungen({ settings }: EinstellungenProps) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 max-w-md mx-auto">
-        <h2 className="text-xl font-semibold text-slate-800 mb-1 flex items-center">
-          <CalendarClock className="w-5 h-5 mr-2 text-blue-600 flex-shrink-0" />
+    <div className="max-w-7xl mx-auto p-raum4 sm:p-raum5">
+      <div className="bg-flaeche p-raum4 sm:p-raum5 rounded-lg shadow-sm border border-rand max-w-md mx-auto">
+        <h1 className="mb-raum1 flex items-center gap-raum2 font-ueberschrift text-ueberschrift font-semibold">
+          <CalendarClock className="w-5 h-5 shrink-0 text-marke" aria-hidden="true" />
           Einstellungen
-        </h2>
-        <p className="text-sm text-slate-500 mb-6">Gilt für alle Mitarbeitenden der Station.</p>
+        </h1>
+        <p className="text-klein text-leise mb-raum5">Gilt für alle Mitarbeitenden der Station.</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="text-sm font-medium text-slate-800 border-b pb-2">Automatischer Stichtag</h3>
+        <form onSubmit={handleSubmit} className="space-y-raum4">
+          <h2 className="border-b border-rand pb-raum2 font-ueberschrift font-medium">
+            Automatischer Stichtag
+          </h2>
 
-          <p className="text-xs text-slate-500">
+          <p className="text-klein text-leise">
             Gilt für jeden Monat, für den im Kalender kein eigener Stichtag gesetzt ist. Ein
             gesetzter Stichtag bleibt davon unberührt.
           </p>
 
           {message && (
-            <div
-              role="status"
-              className={`p-3 rounded text-sm ${
-                message.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+            <p
+              role={message.type === 'error' ? 'alert' : 'status'}
+              className={`rounded-sm border p-raum3 text-klein ${
+                message.type === 'success'
+                  ? 'border-rand bg-flaeche-leise'
+                  : 'border-fehler bg-fehler-leise text-fehler-leise-text'
               }`}
             >
               {message.text}
-            </div>
+            </p>
           )}
 
           <div>
-            <label htmlFor="vorlauf" className="block text-xs font-medium text-slate-700 mb-1">
+            <label htmlFor="vorlauf" className="block text-klein font-medium mb-raum1">
               Vorlauf in Tagen
             </label>
             <input
@@ -101,11 +105,13 @@ export function Einstellungen({ settings }: EinstellungenProps) {
               }}
               aria-describedby="vorlauf-hinweis"
               aria-invalid={ergebnis.art === 'fehler'}
-              className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base sm:text-sm"
+              className="w-full min-h-11 rounded-sm border border-rand-stark bg-flaeche px-raum3 text-basis"
             />
             <p
               id="vorlauf-hinweis"
-              className={`mt-1 text-xs ${ergebnis.art === 'fehler' ? 'text-amber-700' : 'text-slate-500'}`}
+              className={`mt-raum1 text-winzig ${
+                ergebnis.art === 'fehler' ? 'text-fehler-leise-text' : 'text-leise'
+              }`}
             >
               {ergebnis.art === 'gut'
                 ? vorlaufErklaerung(ergebnis.wert, settings ? settings.stichtage : {})
@@ -116,7 +122,7 @@ export function Einstellungen({ settings }: EinstellungenProps) {
           <button
             type="submit"
             disabled={loading || unveraendert || ergebnis.art === 'fehler'}
-            className="w-full flex justify-center items-center min-h-[44px] py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+            className="w-full flex justify-center items-center min-h-11 rounded-sm bg-marke px-raum4 text-klein font-medium text-marke-kontrast hover:bg-marke-tief disabled:opacity-50"
           >
             {loading ? 'Wird gespeichert...' : 'Vorlauf speichern'}
           </button>

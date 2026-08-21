@@ -93,9 +93,30 @@ benutzt, und deren IP-Adressen gehen niemanden ausserhalb des Hauses etwas an.
 Es sind variable Schnitte — vier Dateien, zusammen rund 130 kB, wovon im
 deutschen Alltag nur die beiden Latin-Dateien (73 kB) geladen werden.
 
+## Die Schichtarten
+
+Vier Schichtarten muessen unterscheidbar bleiben. Das Corporate Design kennt
+dafuer keine Toene, also gibt es vier eigene — die **einzigen** Farbtoene neben
+Marke und Fehler:
+
+| Schicht | Rolle | Buchstabe |
+|---|---|---|
+| Frueh | `bg-frueh` / `text-frueh-text` | F |
+| Spaet | `bg-spaet` / `text-spaet-text` | S |
+| Nacht | `bg-nacht` / `text-nacht-text` | N |
+| Frei | `bg-frei` / `text-frei-text` | Fr |
+
+Sie sind gedeckt gehalten und sparen Rot aus, damit keine Schicht wie ein
+Fehler aussieht. **Sie tragen nie allein**: Im Raster steht der Name samt
+Schichtart im Feld, in der Matrix der Buchstabe, in der Tagesliste die
+Ueberschrift. Wer die Toene nicht unterscheiden kann, verliert nichts.
+
+Im Raster auf dem Telefon ist kein Platz fuer Beschriftung; dort stehen Punkte
+in `SCHICHT_PUNKT` (dem kraeftigen Schriftton, weil der zarte Flaechenton bei
+zehn Pixeln verschwindet). Was sie bedeuten, sagt der Tagesdetail-Dialog, den
+derselbe Knopf oeffnet.
+
 ## Stand der Umstellung
 
-Umgestellt sind `Header.tsx` und `Gatekeeper.tsx`. Die uebrigen Komponenten
-(`Calendar`, `UserManagement`, `Einstellungen`, `Profile`) folgen im Zuge von
-#15, #16, #17 und #20 — diese Aufgaben oeffnen dieselben Dateien ohnehin, und
-eine Datei einmal anzufassen ist besser als zweimal.
+Vollstaendig. In `src/` steht keine Tailwind-Standardfarbe mehr — weder
+`slate-`, `blue-`, `emerald-` noch ein nacktes `bg-white`.

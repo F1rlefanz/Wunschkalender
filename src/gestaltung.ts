@@ -82,6 +82,7 @@ export const TEXTPAARE: Paarung[] = [
   { vorne: 'text-leise', hinten: 'flaeche', zweck: 'Nebentext auf einer Karte' },
   { vorne: 'text-leise', hinten: 'flaeche-leise', zweck: 'Nebentext auf abgesetzter Flaeche' },
   { vorne: 'marke-kontrast', hinten: 'marke', zweck: 'Beschriftung auf dem Hauptknopf' },
+  { vorne: 'marke', hinten: 'flaeche', zweck: 'Markenfarbener Text auf einer Karte' },
   { vorne: 'marke-kontrast', hinten: 'marke-tief', zweck: 'Hauptknopf unter dem Zeiger' },
   { vorne: 'marke-leise-text', hinten: 'marke-leise', zweck: 'Text in einem Marken-Chip' },
   { vorne: 'fehler-kontrast', hinten: 'fehler', zweck: 'Beschriftung auf einem Fehlerknopf' },
@@ -92,6 +93,10 @@ export const TEXTPAARE: Paarung[] = [
   // `kopf-text` — die Kombination `kopf-leise` auf `kopf-aktiv` kommt
   // deshalb nicht vor (sie erreichte auch nur 4.16:1).
   { vorne: 'kopf-leise', hinten: 'kopf', zweck: 'Nebentext in der Kopfzeile' },
+  { vorne: 'frueh-text', hinten: 'frueh', zweck: 'Kennzeichnung der Fruehschicht' },
+  { vorne: 'spaet-text', hinten: 'spaet', zweck: 'Kennzeichnung der Spaetschicht' },
+  { vorne: 'nacht-text', hinten: 'nacht', zweck: 'Kennzeichnung der Nachtschicht' },
+  { vorne: 'frei-text', hinten: 'frei', zweck: 'Kennzeichnung von Frei' },
 ];
 
 /**
@@ -116,4 +121,8 @@ export const FLAECHENPAARE: Paarung[] = [
   { vorne: 'kopf-marke', hinten: 'kopf', zweck: 'Markenzeichen in der Kopfzeile' },
   { vorne: 'kopf-fokus', hinten: 'kopf', zweck: 'Fokusring in der Kopfzeile' },
   { vorne: 'kopf-fokus', hinten: 'kopf-aktiv', zweck: 'Fokusring auf dem aktiven Weg' },
+  { vorne: 'frueh-text', hinten: 'flaeche', zweck: 'Punkt der Fruehschicht im Raster' },
+  { vorne: 'spaet-text', hinten: 'flaeche', zweck: 'Punkt der Spaetschicht im Raster' },
+  { vorne: 'nacht-text', hinten: 'flaeche', zweck: 'Punkt der Nachtschicht im Raster' },
+  { vorne: 'frei-text', hinten: 'flaeche', zweck: 'Punkt fuer Frei im Raster' },
 ];
