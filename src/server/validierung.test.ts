@@ -5,10 +5,12 @@ import {
   benutzerAendernSchema,
   benutzerAnlegenSchema,
   einstellungenSchema,
+  monatParameterSchema,
   monatshinweisSchema,
   passwortAendernSchema,
   passwortZuruecksetzenSchema,
   pruefe,
+  stichtagSchema,
   wunschSchema,
 } from './validierung';
 
@@ -144,9 +146,24 @@ describe('Benutzer', () => {
 
 describe('Einstellungen', () => {
   it('nimmt nur ganze Tage von 1 bis 31 an', () => {
-    expect(pruefe(einstellungenSchema, { bookingDeadlineDay: 15 }).art).toBe('gut');
-    for (const tag of [0, 32, 1.5, '15', null]) {
-      expect(pruefe(einstellungenSchema, { bookingDeadlineDay: tag }).art, String(tag)).toBe('fehler');
+    expect(pruefe(einstellungenSchema, { vorlaufTage: 56 }).art).toBe('gut');
+    expect(pruefe(einstellungenSchema, { vorlaufTage: 0 }).art).toBe('gut');
+    for (const tage of [-1, 366, 1.5, '56', null]) {
+      expect(pruefe(einstellungenSchema, { vorlaufTage: tage }).art, String(tage)).toBe('fehler');
+    }
+  });
+
+  it('nimmt als Stichtag nur einen echten Kalendertag an', () => {
+    expect(pruefe(stichtagSchema, { datum: '2026-08-28' }).art).toBe('gut');
+    for (const wert of ['2026-02-30', '2026-8-28', '28.08.2026', '', 20260828, null]) {
+      expect(pruefe(stichtagSchema, { datum: wert }).art, String(wert)).toBe('fehler');
+    }
+  });
+
+  it('weist einen unbrauchbaren Monat im Pfad ab', () => {
+    expect(pruefe(monatParameterSchema, '2026-11').art).toBe('gut');
+    for (const wert of ['2026-13', '2026-1', '2026', 'Unsinn', null]) {
+      expect(pruefe(monatParameterSchema, wert).art, String(wert)).toBe('fehler');
     }
   });
 });

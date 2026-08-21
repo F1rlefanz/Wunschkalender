@@ -44,6 +44,15 @@ export function createDatabase(path: string, vorhandene?: Database.Database) {
       value TEXT NOT NULL
     );
 
+    -- Ausdruecklich gesetzte Stichtage, ein Monat eine Zeile. Eine eigene
+    -- Tabelle und kein Feld in settings: Der Vorschlag ist eine Einstellung,
+    -- der gesetzte Stichtag eine Entscheidung ueber einen einzelnen Monat.
+    -- Fehlt die Zeile, greift der Vorschlag (#36).
+    CREATE TABLE IF NOT EXISTS stichtage (
+      monat  TEXT PRIMARY KEY,
+      datum  TEXT NOT NULL
+    );
+
     -- user_id ist bewusst eine eigene Spalte und nicht nur ein Feld in sess:
     -- Damit ist der Widerruf aller Sitzungen einer Person ein DELETE, und beim
     -- Loeschen eines Kontos verschwinden sie ohne Aufraeumcode mit.
@@ -87,4 +96,10 @@ function passeSchemaAn(db: Database.Database) {
       );
     `);
   }
+
+  // `bookingDeadlineDay` war ein Tag des Monats, der immer auf den Folgemonat
+  // wirkte. Der Stichtag ist jetzt ein Datum je Monat (#36) — ein alter Wert
+  // laesst sich nicht sinnvoll umrechnen und bliebe sonst als toter Schluessel
+  // liegen.
+  db.prepare("DELETE FROM settings WHERE key = 'bookingDeadlineDay'").run();
 }

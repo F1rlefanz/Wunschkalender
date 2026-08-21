@@ -89,12 +89,40 @@ describe('Benutzer', () => {
 
 describe('Einstellungen', () => {
   test('liefert eine Vorgabe, solange nichts gespeichert ist', () => {
-    expect(store.getSettings().bookingDeadlineDay).toBe(15);
+    expect(store.getSettings()).toEqual({ vorlaufTage: 56, stichtage: {} });
   });
 
-  test('speichert eine geaenderte Frist als Zahl, nicht als Text', () => {
-    store.setBookingDeadlineDay(20);
+  test('speichert einen geaenderten Vorlauf als Zahl, nicht als Text', () => {
+    store.setVorlaufTage(30);
 
-    expect(store.getSettings().bookingDeadlineDay).toBe(20);
+    expect(store.getSettings().vorlaufTage).toBe(30);
+  });
+
+  test('speichert einen Stichtag je Monat', () => {
+    store.setStichtag('2026-11', '2026-08-28');
+    store.setStichtag('2026-12', '2026-09-30');
+
+    expect(store.getSettings().stichtage).toEqual({
+      '2026-11': '2026-08-28',
+      '2026-12': '2026-09-30',
+    });
+  });
+
+  test('ersetzt einen zweiten Stichtag desselben Monats, statt ihn danebenzulegen', () => {
+    store.setStichtag('2026-11', '2026-08-28');
+    store.setStichtag('2026-11', '2026-09-04');
+
+    expect(store.getSettings().stichtage).toEqual({ '2026-11': '2026-09-04' });
+  });
+
+  test('nimmt einen Stichtag wieder zurueck — der Vorschlag greift dann erneut', () => {
+    store.setStichtag('2026-11', '2026-08-28');
+    store.loescheStichtag('2026-11');
+
+    expect(store.getSettings().stichtage).toEqual({});
+  });
+
+  test('laesst das Loeschen eines nie gesetzten Monats klaglos zu', () => {
+    expect(() => store.loescheStichtag('2026-11')).not.toThrow();
   });
 });

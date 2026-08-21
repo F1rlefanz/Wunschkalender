@@ -119,6 +119,10 @@ export async function migrateFromJson(db: Database, jsonPath: string): Promise<M
 
     const einstellung = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
     for (const [key, value] of Object.entries(daten.settings ?? {})) {
+      // `bookingDeadlineDay` war ein Tag des Monats und ist seit #36 bedeutungslos.
+      // Er liesse sich nicht in einen Vorlauf umrechnen; ihn zu uebernehmen
+      // hiesse, einen toten Schluessel mitzuschleppen.
+      if (key === 'bookingDeadlineDay') continue;
       einstellung.run(key, String(value));
     }
     einstellung.run(MIGRATION_KEY, new Date().toISOString());

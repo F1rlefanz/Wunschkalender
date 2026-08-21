@@ -53,14 +53,16 @@ describe('migrateFromJson', () => {
     expect(db.prepare('SELECT count(*) AS n FROM monthly_comments').get()).toEqual({ n: 1 });
   });
 
-  test('uebernimmt die Einstellungen', async () => {
+  test('laesst den ueberholten Stichtag-Schluessel liegen, statt ihn mitzuschleppen', async () => {
+    // `bookingDeadlineDay` war ein Tag des Monats; seit #36 ist der Stichtag
+    // ein Datum je Monat. Ein alter Wert liesse sich nicht umrechnen.
     const db = createDatabase(':memory:');
     schreibeJson(beispieldaten);
 
     await migrateFromJson(db, jsonPath);
 
-    const zeile: any = db.prepare("SELECT value FROM settings WHERE key = 'bookingDeadlineDay'").get();
-    expect(zeile.value).toBe('15');
+    const zeile = db.prepare("SELECT value FROM settings WHERE key = 'bookingDeadlineDay'").get();
+    expect(zeile).toBeUndefined();
   });
 
   test('hasht Klartext-Passwoerter und speichert sie nicht im Klartext', async () => {

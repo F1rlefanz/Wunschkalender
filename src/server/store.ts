@@ -1,8 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Database } from 'better-sqlite3';
+import { VORGABE_VORLAUF_TAGE } from '../sperrfrist';
 import type { MonthlyComment, Role, Settings, User, Wish } from '../types';
-
-const DEFAULT_BOOKING_DEADLINE_DAY = 15;
 
 export interface NewWish {
   userId: string;
@@ -47,7 +46,9 @@ export interface Store {
   deleteUser(id: string): boolean;
 
   getSettings(): Settings;
-  setBookingDeadlineDay(day: number): Settings;
+  setVorlaufTage(tage: number): Settings;
+  setStichtag(monat: string, datum: string): Settings;
+  loescheStichtag(monat: string): Settings;
 }
 
 export function createStore(db: Database): Store {
@@ -183,18 +184,35 @@ export function createStore(db: Database): Store {
     },
 
     getSettings() {
-      const row: any = db
-        .prepare("SELECT value FROM settings WHERE key = 'bookingDeadlineDay'")
-        .get();
+      const row: any = db.prepare("SELECT value FROM settings WHERE key = 'vorlaufTage'").get();
+      const zeilen: any[] = db.prepare('SELECT monat, datum FROM stichtage').all();
+
+      const stichtage: Record<string, string> = {};
+      for (const zeile of zeilen) stichtage[zeile.monat] = zeile.datum;
+
       return {
-        bookingDeadlineDay: row ? Number(row.value) : DEFAULT_BOOKING_DEADLINE_DAY,
+        vorlaufTage: row ? Number(row.value) : VORGABE_VORLAUF_TAGE,
+        stichtage,
       };
     },
 
-    setBookingDeadlineDay(day) {
-      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('bookingDeadlineDay', ?)").run(
-        String(day),
+    setVorlaufTage(tage) {
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('vorlaufTage', ?)").run(
+        String(tage),
       );
+      return this.getSettings();
+    },
+
+    setStichtag(monat, datum) {
+      // Ein Monat, eine Zeile: Ein zweites Setzen ersetzt das erste, statt eine
+      // zweite Wahrheit daneben zu legen.
+      db.prepare('INSERT OR REPLACE INTO stichtage (monat, datum) VALUES (?, ?)').run(monat, datum);
+      return this.getSettings();
+    },
+
+    loescheStichtag(monat) {
+      // Der einzige Weg zurueck zum automatischen Vorschlag.
+      db.prepare('DELETE FROM stichtage WHERE monat = ?').run(monat);
       return this.getSettings();
     },
   };

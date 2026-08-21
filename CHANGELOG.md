@@ -21,6 +21,35 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.8.0] – 2026-08-21
+
+### Geändert
+- **Der Stichtag ist jetzt ein Datum je Monat statt eines Tages im Monat.** Über
+  jedem Monat steht, bis wann Wünsche eingetragen werden können — „Wünsche bis
+  06.09." bzw. „Geschlossen seit 07.09.". Damit steht der Termin in der
+  Anwendung und nicht mehr nur auf einem Zettel am schwarzen Brett.
+- **Ein Monat ist bis einschließlich seinem Stichtag offen.** Bisher schloss er
+  am Stichtag selbst. „Eintragen bis zum 28." heißt auf der Station, dass der
+  28. mitzählt.
+
+### Hinzugefügt
+- **Die Stationsleitung kann für einen einzelnen Monat einen festen Stichtag
+  setzen** — direkt über der Monatsansicht, für den Monat, den sie gerade
+  ansieht. Ein gesetzter Stichtag gilt dauerhaft und wird von der Automatik nie
+  überschrieben; „Automatik" nimmt ihn wieder zurück. So lässt sich ein Monat
+  auch länger offen halten oder für Nachzügler noch einmal öffnen.
+- **Ein automatischer Stichtag greift für jeden Monat, für den nichts
+  hinterlegt ist:** Er schließt acht Wochen vor Monatsbeginn. Der Vorlauf ist in
+  den Einstellungen in Tagen einstellbar und wird dort an einem echten Monat
+  erklärt.
+
+### Entfernt
+- **Die Einstellung „Tag des Monats" für die Sperrfrist entfällt.** Sie zielte
+  immer auf den Folgemonat und konnte den Monat, um den es gerade geht, gar
+  nicht schließen — auf der Station wird der Plan Wochen im Voraus geschrieben.
+  Ein alter Wert wird nicht übernommen: Er ließe sich nicht in einen Vorlauf
+  umrechnen. Nach dem Umstieg gilt der Vorschlag von acht Wochen.
+
 ## [0.7.0] – 2026-08-21
 
 ### Entfernt

@@ -19,6 +19,8 @@ import {
   benutzerAendernSchema,
   benutzerAnlegenSchema,
   einstellungenSchema,
+  monatParameterSchema,
+  stichtagSchema,
   monatshinweisSchema,
   passwortAendernSchema,
   passwortZuruecksetzenSchema,
@@ -269,7 +271,8 @@ async function startServer() {
    */
   const sperrfristVerletzt = (req: Request, monat: string): string | null => {
     const user = store.findUserById(req.session.userId!)!;
-    if (!istMonatGesperrt({ monat, stichtag: store.getSettings().bookingDeadlineDay, rolle: user.role })) {
+    const { vorlaufTage, stichtage } = store.getSettings();
+    if (!istMonatGesperrt({ monat, vorlaufTage, stichtage, rolle: user.role })) {
       return null;
     }
     return `Der Monat ${monat} ist fuer Eintragungen gesperrt.`;
@@ -394,7 +397,35 @@ async function startServer() {
     const eingabe = pruefe(einstellungenSchema, req.body);
     if (eingabe.art === 'fehler') return res.status(400).json({ error: eingabe.fehler });
 
-    const settings = store.setBookingDeadlineDay(eingabe.wert.bookingDeadlineDay);
+    const settings = store.setVorlaufTage(eingabe.wert.vorlaufTage);
+    io.emit('settings_updated', settings);
+    res.json(settings);
+  });
+
+  // ----- Stichtage einzelner Monate -----
+  //
+  // Beide Wege senden dieselben vollstaendigen Einstellungen zurueck: Ein
+  // Kanal, ein Listener in der Oberflaeche. Der Monat steht im Pfad und wird
+  // genauso geprueft wie ein Feld im Koerper — er landet in der Datenbank.
+
+  app.put('/api/stichtage/:monat', requireManager, (req, res) => {
+    const monat = pruefe(monatParameterSchema, req.params.monat);
+    if (monat.art === 'fehler') return res.status(400).json({ error: monat.fehler });
+
+    const eingabe = pruefe(stichtagSchema, req.body);
+    if (eingabe.art === 'fehler') return res.status(400).json({ error: eingabe.fehler });
+
+    const settings = store.setStichtag(monat.wert, eingabe.wert.datum);
+    io.emit('settings_updated', settings);
+    res.json(settings);
+  });
+
+  app.delete('/api/stichtage/:monat', requireManager, (req, res) => {
+    const monat = pruefe(monatParameterSchema, req.params.monat);
+    if (monat.art === 'fehler') return res.status(400).json({ error: monat.fehler });
+
+    // Zurueck zum automatischen Vorschlag.
+    const settings = store.loescheStichtag(monat.wert);
     io.emit('settings_updated', settings);
     res.json(settings);
   });

@@ -31,6 +31,28 @@ export const api = {
     return response.json();
   },
 
+  /** Setzt den ausdruecklichen Stichtag eines Monats — er schlaegt die Automatik. */
+  async setStichtag(monat: string, datum: string): Promise<Settings> {
+    const response = await fetch(`/api/stichtage/${monat}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ datum }),
+    });
+    if (!response.ok) {
+      throw new Error(await fehlermeldung(response, 'Der Stichtag konnte nicht gespeichert werden.'));
+    }
+    return response.json();
+  },
+
+  /** Nimmt den gesetzten Stichtag zurueck; danach greift wieder der Vorschlag. */
+  async loescheStichtag(monat: string): Promise<Settings> {
+    const response = await fetch(`/api/stichtage/${monat}`, { method: 'DELETE' });
+    if (!response.ok) {
+      throw new Error(await fehlermeldung(response, 'Der Stichtag konnte nicht zurueckgenommen werden.'));
+    }
+    return response.json();
+  },
+
   async getWishes(): Promise<Wish[]> {
     const response = await fetch('/api/wishes');
     if (!response.ok) {

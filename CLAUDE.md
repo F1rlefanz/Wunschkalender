@@ -49,7 +49,7 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   Schreiben laeuft ueber `src/api/client.ts` (REST); die Antwort wird **nicht** in den
   State geschrieben — die Aktualisierung kommt ueber das Socket-Ereignis zurueck.
 - `src/components/` — `Gatekeeper` (Anmeldung), `Header`, `Calendar` (Kernstueck, ~680 Zeilen),
-  `UserManagement`, `Einstellungen` (Stichtag, nur Leitung), `Profile`. Der `Header` traegt
+  `UserManagement`, `Einstellungen` (Vorlauf des Vorschlags, nur Leitung), `Profile`. Der `Header` traegt
   vier Wege; ein fuenfter passt auf 360 px nicht mehr ohne Umbau. `Calendar` haelt drei Ansichten in einer Datei
   (`viewType`: `'grid' | 'list' | 'matrix'`); wer dort etwas aendert, prueft alle drei.
 - `src/types.ts` — gemeinsame Typen fuer Client und Server.
@@ -58,10 +58,14 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   darf. Getipptes hat Vorrang, sonst geht es beim Schreiben anderer verloren.
 - `src/export.ts` — welche Zeilen im PDF stehen. Reine Funktionen ohne jsPDF,
   damit der Inhalt des Exports ohne PDF pruefbar ist.
-- `src/sperrfrist.ts` — wann ein Monat gesperrt ist: der laufende Monat und alles
-  davor, dazu der Folgemonat ab dem Stichtag (den die Leitung einstellt; gibt es
-  den Tag im laufenden Monat nicht, greift dessen letzter). **Dass der laufende Monat mitgesperrt
-  ist, ist entschieden (#33), kein Versehen** — der Plan haengt dann schon. **Server
+- `src/sperrfrist.ts` — wann ein Monat gesperrt ist. Jeder Monat hat **einen**
+  wirksamen Stichtag: entweder einen, den die Leitung fuer diesen Monat gesetzt
+  hat, oder den automatischen Vorschlag `Monatsanfang minus Vorlauf` (Vorgabe 56
+  Tage). Offen ist ein Monat **bis einschliesslich** seinem Stichtag. Ein
+  gesetzter Stichtag wird vom Vorschlag **nie** ueberschrieben, auch nicht bei
+  geaendertem Vorlauf (#36) — er ist Rueckfallebene, keine laufende Korrektur.
+  **Dass der laufende Monat gesperrt ist, folgt daraus** (#33): Sein Stichtag
+  liegt Wochen zurueck; eine eigene Klausel dafuer gibt es nicht mehr. **Server
   und Oberflaeche benutzen dieselbe Funktion**; zwei Fassungen waeren ein Fehler.
   Wer die Sperre erweitert, prueft die Oberflaeche mit: Loeschknoepfe und das
   Hinweisfeld muessen verschwinden, sonst laufen sie in einen 403.
