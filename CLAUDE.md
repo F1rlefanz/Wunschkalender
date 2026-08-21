@@ -43,7 +43,7 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
 
 - `server.ts` — REST unter `/api/*` und Socket.IO, sonst nichts. Der Datenzugriff liegt
   in `src/server/store.ts`, damit er testbar ist.
-- `src/server/` — Serverbausteine mit Tests: `database` (Schema), `store` (Datenzugriff),
+- `src/server/` — Serverbausteine mit Tests: `database` (Schema und Schemaschritte), `store` (Datenzugriff),
   `migration` (einmalig aus `db.json`), `passwords` (Argon2), `session-store`,
   `session-secret`, `seed` (Leitungskonto beim Erststart).
 - `src/App.tsx` — haelt den gesamten Anwendungszustand und die Socket-Verbindung.
@@ -120,6 +120,13 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   Datenbankschema selbst ein (`ON DELETE CASCADE`), nicht Aufraeumcode im Endpunkt.
   Deaktivieren statt Loeschen wurde geprueft und verworfen (Issue #5): Vergangene
   Monate zeigen dann Luecken statt Namen — das ist entschieden, kein Versehen.
+- **Eine Schemaaenderung ist ein neuer Schritt, kein neues `CREATE TABLE`.**
+  `src/server/database.ts` fuehrt eine durchnummerierte Liste `SCHEMA_SCHRITTE`;
+  `PRAGMA user_version` haelt fest, wie weit eine Datenbank ist, und jeder fehlende
+  Schritt laeuft beim Start in **einer** Transaktion (#32). Wer eine Spalte braucht,
+  haengt einen Schritt mit der naechsten Nummer an und ruehrt die bestehenden nicht
+  mehr an — die sind draussen schon gelaufen. Das Grundschema im ersten Schritt
+  mitzuaendern erreicht nur frische Datenbanken.
 - **Der Dunkelmodus folgt dem Geraet und hat keinen Schalter.** Er entsteht allein
   dadurch, dass die Rollen in `index.css` unter `prefers-color-scheme` andere Werte
   bekommen. Eine eingestreute Farbe (`bg-white`, `text-slate-700`) bricht ihn still —
