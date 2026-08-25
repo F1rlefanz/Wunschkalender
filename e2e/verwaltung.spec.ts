@@ -41,7 +41,7 @@ test('die Leitung legt eine Person an und wieder weg', async ({ page }) => {
 });
 
 test('der PDF-Export laedt nach und liefert eine Datei', async ({ page }) => {
-  // jspdf und html2canvas liegen hinter einem import() (#14). Bricht das
+  // jspdf und html2canvas liegen hinter einem import(). Bricht das
   // Nachladen, merkt es sonst niemand — der Erststart bleibt ja schlank.
   await anmelden(page, KONTEN.leitung);
 

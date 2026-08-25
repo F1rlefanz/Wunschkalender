@@ -12,7 +12,7 @@ import type { MonthlyComment, User, Wish } from './types';
  * Das PDF zusammensetzen und den Ladevorgang ausloesen.
  *
  * Diese Datei ist die **einzige** Stelle, die `jspdf` anfasst, und wird in
- * `App.tsx` per `import()` erst beim Klick geladen (#14). `jspdf` und sein
+ * `App.tsx` per `import()` erst beim Klick geladen. `jspdf` und sein
  * `html2canvas` wiegen zusammen den groesseren Teil des Erststarts, brauchen
  * aber nur die Leitung fuer den Export — Mitarbeitende haben ihn sonst im
  * Mobilfunknetz mitbezahlt. Wer hier eine Abhaengigkeit hinzufuegt, prueft,

@@ -1,5 +1,5 @@
 /**
- * Die Gestaltungsgrundlage nachrechenbar machen (#21).
+ * Die Gestaltungsgrundlage nachrechenbar machen.
  *
  * Farbwerte stehen genau einmal, naemlich in `src/index.css`. Diese Datei
  * liest sie von dort und rechnet Kontraste aus, damit `gestaltung.test.ts`

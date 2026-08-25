@@ -7,7 +7,7 @@ erkennt Überschneidungen und exportiert den Stand als PDF für die Dienstplanun
 > **Status:** in Umbau — siehe die offenen Issues. Anmeldung, Rollenprüfung und
 > serverseitige Sitzungen sind vorhanden; offen ist der Betrieb selbst: wo die
 > Anwendung steht und wie sie erreichbar ist, entscheidet die Krankenhaus-IT
-> ([docs/betrieb.md](docs/betrieb.md), Issue #30).
+> ([docs/betrieb.md](docs/betrieb.md), Issue #8).
 
 ## Rollen
 

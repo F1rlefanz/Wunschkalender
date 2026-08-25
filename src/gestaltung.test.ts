@@ -14,7 +14,7 @@ const css = readFileSync(new URL('./index.css', import.meta.url), 'utf8');
 const paletten = lesePaletten(css);
 
 /**
- * Der Kern von #21: Die Kontraste sind gerechnet, nicht geschaetzt. Der
+ * Der Kern der Gestaltungsgrundlage: Die Kontraste sind gerechnet, nicht geschaetzt. Der
  * Sekundaertext des Corporate Designs (#726D68) ist an dieser Pruefung
  * gescheitert — deshalb steht in `index.css` ein abgedunkelter Wert.
  */

@@ -39,7 +39,7 @@ test('nur die Leitung darf Stichtage setzen und loeschen', async () => {
 });
 
 test('ein gesetzter Stichtag ueberlebt eine Aenderung des Vorlaufs', async () => {
-  // Der Vorschlag ist Rueckfallebene, keine laufende Korrektur (#36).
+  // Der Vorschlag ist Rueckfallebene, keine laufende Korrektur.
   const leitung = await anmelden(u.app, u.leitung.name);
   await leitung.put('/api/stichtage/2099-06').send({ datum: '2099-05-01' }).expect(200);
   await leitung.post('/api/settings').send({ vorlaufTage: 14 }).expect(200);

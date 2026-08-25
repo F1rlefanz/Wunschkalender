@@ -5,7 +5,7 @@ import { expect, test } from 'vitest';
 /**
  * `CLAUDE.md` haelt fest: `src/pdf.ts` ist die einzige Stelle mit einem
  * `jspdf`-Import, weil jeder statische Import anderswo `jspdf` und
- * `html2canvas` (zusammen ~625 kB) zurueck in den Erststart holt (#14) — das
+ * `html2canvas` (zusammen ~625 kB) zurueck in den Erststart holt — das
  * Nachladen per `import()` in `App.tsx` bringt dann nichts mehr. Bis hierher
  * hielt diese Regel nur ein Kommentar durch; ein statischer Import in einer
  * anderen Datei baut sauber und testet gruen. Dieser Test liest jede Datei

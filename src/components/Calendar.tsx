@@ -160,7 +160,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
   // Der Stichtag dieses einen Monats, von der Leitung gesetzt. Der Monat ist
   // der, den sie gerade ansieht — deshalb steht das hier und nicht in einer
-  // Liste in den Einstellungen (#36).
+  // Liste in den Einstellungen.
   const [stichtagOffen, setStichtagOffen] = useState(false);
   const [stichtagEingabe, setStichtagEingabe] = useState('');
   const [stichtagLaeuft, setStichtagLaeuft] = useState(false);
@@ -260,7 +260,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
           {frist && frist.stichtag && (
             <div className="mt-1 flex items-center justify-center gap-1">
               {/* Der Termin gehört sichtbar in den Monatskopf, nicht in eine
-                  Absprache im Flur (#36). */}
+                  Absprache im Flur. */}
               <span
                 className={`text-winzig font-medium px-raum2 py-raum1 rounded-xs border ${
                   frist.abgelaufen
@@ -485,7 +485,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                   {/* Die Auswahlflaeche liegt als eigener Knopf unter dem Inhalt,
                       statt die Zelle selbst zu einem Knopf zu machen: In der Zelle
                       stehen weitere Knoepfe, und ein Knopf im Knopf ist weder
-                      gueltiges HTML noch mit der Tastatur bedienbar (#16). */}
+                      gueltiges HTML noch mit der Tastatur bedienbar. */}
                   {currentUser && (
                     <button
                       type="button"
@@ -515,7 +515,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
                     </div>
 
                     {/* Wunschzettel ab Tablet: Name, Schicht, und der Loeschen-Knopf,
-                        der sich nur bei Zeigergeraeten zurueckhaelt (#15). */}
+                        der sich nur bei Zeigergeraeten zurueckhaelt. */}
                     <div className="mt-raum2 hidden space-y-raum1 sm:block">
                       {dayWishes.slice(0, 3).map((wish) => {
                         const u = users.find((user) => user.id === wish.userId);
@@ -549,7 +549,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
                     {/* Ein Tag mit Wuenschen laesst sich oeffnen — auf dem Telefon
                         ist das der Weg zum Loeschen mit einem Ziel von 44 px, weil
-                        dort keine Wunschzettel hinpassen (#15). */}
+                        dort keine Wunschzettel hinpassen. */}
                     {dayWishes.length > 0 && (
                       <button
                         type="button"

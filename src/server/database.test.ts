@@ -36,7 +36,7 @@ describe('Schemaschritte', () => {
     expect(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name = 'stichtage'").get()).toEqual({
       n: 1,
     });
-    // Der ueberholte Schluessel bleibt nicht als Leiche liegen (#36).
+    // Der ueberholte Schluessel bleibt nicht als Leiche liegen.
     expect(
       db.prepare("SELECT count(*) AS n FROM settings WHERE key = 'bookingDeadlineDay'").get(),
     ).toEqual({ n: 0 });

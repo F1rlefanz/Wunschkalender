@@ -118,7 +118,7 @@ export function UserManagement() {
   // neu ein — und das Eingabefeld im Bearbeiten-Formular verloere nach jedem
   // Tastendruck den Fokus.
 
-  /** Die drei Icon-Knoepfe einer Zeile (#20). */
+  /** Die drei Icon-Knoepfe einer Zeile. */
   const aktionen = (user: User) => (
     <div className="flex items-center justify-end gap-raum2">
       <button
@@ -309,7 +309,7 @@ export function UserManagement() {
 
         {/* Auf dem Telefon Karten statt Tabelle: Mit Beruehrzielen von 44 px
             passen Name, Rolle und drei Knoepfe nicht in eine Zeile von 360 px,
-            und die Tabelle wuerde quer scrollen (#20). */}
+            und die Tabelle wuerde quer scrollen. */}
         <ul className="sm:hidden divide-y divide-rand">
           {users.map((user) => (
             <li key={user.id} className="py-raum3">

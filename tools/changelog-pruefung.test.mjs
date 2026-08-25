@@ -20,7 +20,7 @@ describe('neueChangelogEintraege', () => {
   });
 
   it('erkennt denselben Eintrag auch unter einer frisch datierten Ueberschrift', () => {
-    // Der Ablauf aus #34: Eintrag schreiben und Version datieren, beides in einem Push.
+    // Der Ablauf: Eintrag schreiben und Version datieren, beides in einem Push.
     const vorher = mitAbschnitten('## [Unreleased]\n', '## [0.3.0] – 2026-08-19\n\n### Hinzugefuegt\n- **Alt.** Text.\n');
     const nachher = mitAbschnitten(
       '## [Unreleased]\n',

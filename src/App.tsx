@@ -139,13 +139,13 @@ function Anwendung() {
       await api.saveMonthlyComment({ month, text });
     } catch (error) {
       // Bisher blieb das stumm: Der Hinweis stand weiter im Feld, war aber
-      // nicht gespeichert (#35).
+      // nicht gespeichert.
       console.error('Failed to save monthly comment:', error);
       melde('fehler', 'Der Hinweis konnte nicht gespeichert werden. Bitte noch einmal versuchen.');
     }
   };
 
-  // Der PDF-Bau liegt in `pdf.ts` und wird erst beim Klick geladen (#14):
+  // Der PDF-Bau liegt in `pdf.ts` und wird erst beim Klick geladen:
   // `jspdf` samt `html2canvas` waere sonst im Erststart jedes Telefons, obwohl
   // nur die Leitung exportiert. Waehrend des Ladens zeigt der Knopf das an —
   // im Mobilfunknetz dauert es sichtbar lange.

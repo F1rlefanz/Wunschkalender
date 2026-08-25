@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 import { X } from 'lucide-react';
 
 /**
- * Rueckmeldungen, die den Ablauf nicht anhalten (#17).
+ * Rueckmeldungen, die den Ablauf nicht anhalten.
  *
  * Ersetzt `alert()`: Ein Systemdialog blockiert, sieht auf jedem Geraet anders
  * aus und steht auf dem Telefon mitten im Weg. Eine Meldung erscheint
@@ -60,7 +60,7 @@ export function MeldungsBereich({ children }: { children: React.ReactNode }) {
 /**
  * Gibt `melde(art, text)` zurueck. Ausserhalb von `MeldungsBereich` ist das ein
  * Fehler und kein stiller Nichts-Passiert-Fall: Eine verschluckte Fehlermeldung
- * ist genau das Problem, das #35 beschreibt.
+ * ist genau das Problem, das diese Funktion verhindert.
  */
 export function useMeldung() {
   const kontext = useContext(MeldungsKontext);

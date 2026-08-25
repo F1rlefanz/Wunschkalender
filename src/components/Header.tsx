@@ -9,13 +9,13 @@ interface HeaderProps {
   onNavigate: (view: Ansicht) => void;
   onLogout: () => void;
   onExport: () => void;
-  /** Der PDF-Bau wird gerade nachgeladen (#14) — der Knopf zeigt es an. */
+  /** Der PDF-Bau wird gerade nachgeladen — der Knopf zeigt es an. */
   exportLaeuft?: boolean;
 }
 
 /**
  * Die Kopfzeile traegt die rote Leiste des Hauses — das Erkennungszeichen des
- * Corporate Designs (#21). Zwei Regeln folgen daraus:
+ * Corporate Designs. Zwei Regeln folgen daraus:
  *
  * - Auf Markenrot besteht **nur Weiss** den Kontrast von 4.5:1. Es gibt hier
  *   keinen gedaempften Textton; die Rangfolge macht das Schriftgewicht.

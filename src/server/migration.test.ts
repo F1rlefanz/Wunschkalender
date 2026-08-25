@@ -54,7 +54,7 @@ describe('migrateFromJson', () => {
   });
 
   test('laesst den ueberholten Stichtag-Schluessel liegen, statt ihn mitzuschleppen', async () => {
-    // `bookingDeadlineDay` war ein Tag des Monats; seit #36 ist der Stichtag
+    // `bookingDeadlineDay` war ein Tag des Monats; inzwischen ist der Stichtag
     // ein Datum je Monat. Ein alter Wert liesse sich nicht umrechnen.
     const db = createDatabase(':memory:');
     schreibeJson(beispieldaten);

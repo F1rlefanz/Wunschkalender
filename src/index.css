@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ===========================================================================
-   Gestaltungsgrundlage des Hauses (#21)
+   Gestaltungsgrundlage des Hauses
    ---------------------------------------------------------------------------
    Quelle der Werte: `docs/gestaltung.md` — dort steht, woher jede Zahl kommt
    und welche Regeln fuer ihren Gebrauch gelten. Diese Datei ist die einzige
@@ -289,7 +289,7 @@
     font-family: var(--font-sans);
     font-size: var(--text-basis);
     line-height: 1.5;
-    /* Notch und Gestenleiste; vollstaendig geloest wird das in #13. */
+    /* Notch und Gestenleiste; vollstaendig geloest wird das in #2. */
     padding: env(safe-area-inset-top) env(safe-area-inset-right)
       env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
@@ -307,8 +307,8 @@
     background-color: rgb(0 0 0 / 0.55);
   }
 
-  /* Ein sichtbarer Fokusring ist Voraussetzung fuer #16 und darf nicht davon
-     abhaengen, dass jede Komponente daran denkt. */
+  /* Ein sichtbarer Fokusring ist Voraussetzung fuer Barrierefreiheit und darf
+     nicht davon abhaengen, dass jede Komponente daran denkt. */
   :focus-visible {
     outline: 2px solid var(--haus-fokus);
     outline-offset: 2px;
@@ -319,9 +319,9 @@
 /* --- Eigene Hilfsklassen --- */
 
 /* Mindestgroesse eines Beruehrziels. 44 px ist der kleinste Wert, den sowohl
-   die iOS- als auch die Android-Richtlinie noch traegt. Grundlage fuer #15
-   und #20; deshalb hier verankert und nicht je Komponente wiederholt. */
-/* Ein Knopf, der sich nur auf Geraeten mit Zeiger zurueckhaelt (#15).
+   die iOS- als auch die Android-Richtlinie noch traegt. Grundlage fuer
+   Touchziele; deshalb hier verankert und nicht je Komponente wiederholt. */
+/* Ein Knopf, der sich nur auf Geraeten mit Zeiger zurueckhaelt.
    Auf Touch gibt es kein Draufzeigen — dort steht er dauerhaft da. Wo es
    einen Zeiger gibt, erscheint er beim Zeigen **und beim Tastaturfokus**;
    ohne die zweite Bedingung waere er ohne Maus wieder unerreichbar. */

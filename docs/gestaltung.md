@@ -3,7 +3,7 @@
 Der Wunschkalender benutzt das **Corporate Design des Hauses**, das im Projekt
 CFAlarmforTimeOffice bereits produktiv ist. Es wird uebernommen, nicht neu
 erfunden — und um das ergaenzt, was dem Android-Original fehlt und das Web
-braucht: stufenlose Skalierung ueber alle Bildschirmbreiten (#21).
+braucht: stufenlose Skalierung ueber alle Bildschirmbreiten.
 
 ## Wo die Werte stehen
 

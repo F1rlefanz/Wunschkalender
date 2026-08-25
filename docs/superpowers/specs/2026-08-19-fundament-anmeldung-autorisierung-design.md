@@ -1,7 +1,7 @@
 # Fundament: Anmeldung, Autorisierung und Datenhaltung
 
 Stand 2026-08-19, ueberarbeitet nach zwei unabhaengigen Gegenlesungen.
-Deckt die Issues #7, #8, #9, #10, #12 und #1 ab.
+Deckt mehrere fruehere Issues ab.
 
 ## Auftrag
 
@@ -22,7 +22,7 @@ in dem sie tatsaechlich betrieben werden soll.
 
 Daraus folgt: **Die Absicherung stuetzt sich nicht auf das Netz.** Ob die
 Anwendung veroeffentlicht oder nur ueber VPN erreichbar ist, entscheidet die
-Krankenhaus-IT (#30); sicher muss sie in beiden Faellen sein.
+Krankenhaus-IT (#8); sicher muss sie in beiden Faellen sein.
 
 ## Die Sichtbarkeitsfrage — bewusst offen entschieden
 
@@ -38,7 +38,7 @@ nicht als Sicherheitsmassnahme**: Beim Eintragen (Rasteransicht) sieht man nur d
 eigenen Wuensche, in der Mitarbeiter-Matrix den ganzen Plan. Wer daran etwas
 aendert, aendert Bedienkomfort, nicht Vertraulichkeit.
 
-**Folgen fuer Issue #8:** Dessen Kriterium "Mitarbeitende erhalten vom Server nur
+**Folgen fuer den Sichtbarkeits-Entwurf:** Dessen Kriterium "Mitarbeitende erhalten vom Server nur
 die Daten, die sie sehen duerfen" ist damit hinfaellig und am Issue zu
 korrigieren. Die Rollentrennung beschraenkt sich auf **Verwaltung, Eigentum und
 Sperrfrist**.
@@ -48,7 +48,7 @@ entfaellt ersatzlos. Die heute falsche Zaehlung (`Calendar.tsx:256` zaehlt auf d
 gefilterten Liste) wird zu einer geaenderten Zeile: sie zaehlt kuenftig auf der
 vollstaendigen.
 
-Eine spaetere Anonymisierung bleibt moeglich und ist als #31 hinterlegt.
+Eine spaetere Anonymisierung bleibt moeglich und ist als #9 hinterlegt.
 
 ## Entscheidungen — und was verworfen wurde
 
@@ -111,7 +111,7 @@ Fehldiagnose: Der Klebecode entsteht durch `db.json`, eine nach **jeder** Mutati
 komplett neu geschriebene Datei, fuer die es keinen fertigen Session-Speicher
 gibt. Bei einem Absturz mitten im Schreiben ist sie zerstoert.
 
-**Gewaehlt:** Issue #12 wird vorgezogen und zur Grundlage.
+**Gewaehlt:** Das SQLite-Fundament wird vorgezogen und zur Grundlage.
 
 | Zweck | Bibliothek | Lizenz | Geprueft |
 |---|---|---|---|
@@ -126,7 +126,7 @@ Zusaetzlich als devDependencies: `@types/express-session`, `@types/better-sqlite
 langer Sitzungsdauer der schlechteste Weg — Abmelden waere wirkungslos, ein
 geloeschtes Konto kaeme weiter hinein).
 
-**Zu Issue #7:** Dort steht "signiertes httpOnly-Cookie". Umgesetzt wird eine
+**Zum urspruenglichen Entwurf:** Dort stand "signiertes httpOnly-Cookie". Umgesetzt wird eine
 serverseitige Sitzung mit widerrufbarer Kennung — staerker, weil ein signiertes
 Cookie seine Aussage in sich traegt und sich nicht zuruecknehmen laesst.
 
@@ -162,20 +162,20 @@ Tabellen: `users`, `wishes`, `monthly_comments`, `settings`, `sessions`.
 `better-sqlite3` hat `foreign_keys` per Vorgabe **an**. `wishes`,
 `monthly_comments` und `sessions` brauchen deshalb `ON DELETE CASCADE` auf die
 Benutzer-Kennung, sonst schlaegt das Loeschen eines Kontos fehl. Das erledigt
-zugleich Issue #5.
+zugleich, dass eine geloeschte Person keine Datenleichen hinterlaesst.
 
 `journal_mode = WAL`, damit sich zwei gleichzeitig gestartete Instanzen nicht
 gegenseitig blockieren.
 
 `users` traegt von Anfang an `auth_provider` (zunaechst immer `'local'`) und
-`entra_oid` (zunaechst leer), damit die Microsoft-Anmeldung (#29) spaeter
+`entra_oid` (zunaechst leer), damit die Microsoft-Anmeldung (#6) spaeter
 danebentritt, ohne das Datenmodell erneut anzufassen.
 
 ### Sitzungen
 
 Cookie: `httpOnly`, `sameSite: 'lax'`, `maxAge` zehn Jahre, `secure: 'auto'`.
 `express-session` erhaelt `proxy: true` — es liest `trust proxy` aus den eigenen
-Optionen, nicht aus `app.set`. An #30 geht damit die Anforderung, dass der Reverse
+Optionen, nicht aus `app.set`. An #8 geht damit die Anforderung, dass der Reverse
 Proxy `X-Forwarded-Proto` setzt; andernfalls wandert ein sehr langlebiges Cookie
 im Klartext ueber fremde Netze.
 
@@ -238,7 +238,7 @@ Weitere Regeln:
   liesse sich nachtraeglich entfernen.
 - Die Sperrfrist-Berechnung wird eine reine Funktion mit Stichtag in
   **Europe/Berlin**. Ohne feste Zeitzone kippt die Sperre auf einem UTC-Server um
-  ein bis zwei Stunden versetzt zur Ortszeit. Der Jahreswechsel-Fehler (#1) wird
+  ein bis zwei Stunden versetzt zur Ortszeit. Der Jahreswechsel-Fehler wird
   dabei behoben, und die **gleiche** Funktion nutzt auch `Calendar.tsx` — sonst
   zeigt der Client Eingaben an, die der Server ablehnt.
 
@@ -250,7 +250,7 @@ Jeder schreibende Endpunkt validiert seinen Koerper gegen ein `zod`-Schema.
 und nullable Felder falsch ab und liefert stillschweigend zu weite Typen — an
 einer Grenze, die gerade zum Vertrag werden soll. Deshalb wird
 `strictNullChecks: true` hier bereits gesetzt; das vollstaendige `strict` bleibt
-bei #19.
+bei #5.
 
 `req.session.userId` braucht eine Modul-Augmentation von `SessionData`. Sie kommt
 nach `src/types.ts` — `tsconfig.json` inkludiert nur `src`, `server.ts`,
@@ -305,15 +305,15 @@ Aufrufer nicht genannt hat. Vollstaendige Liste:
 
 **Systemdialoge sind projektweit untersagt**, nicht nur im Anmeldebildschirm
 (`geraete-und-design`). Alle oben genannten `alert`/`confirm`/`prompt` gehoeren
-ersetzt. Umfang und Reihenfolge regelt #17; dieser Entwurf ersetzt die Stellen,
-die er ohnehin anfasst, und laesst die uebrigen #17.
+ersetzt. Umfang und Reihenfolge regelt ein eigenes Vorhaben; dieser Entwurf ersetzt die Stellen,
+die er ohnehin anfasst, und laesst die uebrigen unberuehrt.
 
 ### Oberflaeche
 
 Fuer den neuen Anmeldebildschirm gilt `geraete-und-design` verbindlich:
 vollstaendig bedienbar auf **360 px**, Touchziele ab **44 x 44 px**, sichtbarer
 Fokusring, bedienbar ohne Maus. Er laesst Platz fuer einen zweiten Knopf
-("Anmelden mit Microsoft", #29), ohne ihn schon zu zeigen.
+("Anmelden mit Microsoft", #6), ohne ihn schon zu zeigen.
 
 ## Migration
 
@@ -351,7 +351,7 @@ heute nur `git ls-files db.json` und wird auf dieselben Muster erweitert.
 Bisher existiert keine einzige Testdatei. Tests entstehen **mit der jeweiligen
 Etappe**, nicht gesammelt am Ende:
 
-- Sperrfrist als reine Funktion, einschliesslich Jahreswechsel und Zeitzone (#1)
+- Sperrfrist als reine Funktion, einschliesslich Jahreswechsel und Zeitzone
 - Passwort-Hashing und -Pruefung
 - Der eigene Session-Store gegen eine In-Memory-Datenbank
 - Migration: Normalfall, beschaedigte Datei, doppelte Namen, zweiter Lauf
@@ -365,27 +365,27 @@ insbesondere: `GET /api/wishes` ohne Cookie liefert 401.
 Ein Branch. Die Reihenfolge stellt sicher, dass die Anwendung nach **jeder**
 Etappe benutzbar bleibt:
 
-1. **SQLite-Fundament, Migration und Startkonto** (#12) — das Startkonto gehoert
+1. **SQLite-Fundament, Migration und Startkonto** — das Startkonto gehoert
    hierher, nicht spaeter: Etappe 1 ersetzt das Demo-Benutzer-Array, und ohne
    `db.json` waere die Benutzertabelle sonst leer und niemand koennte sich
    anmelden.
-2. **Passwoerter und Reset-Wege** (#9, #10) — inklusive `UserManagement.tsx`.
-3. **Sitzungen, Session-Store und Socket-Absicherung** (#7).
+2. **Passwoerter und Reset-Wege** — inklusive `UserManagement.tsx`.
+3. **Sitzungen, Session-Store und Socket-Absicherung**.
 4. **Anmeldebildschirm und Sitzungswiederherstellung** — `Gatekeeper.tsx`,
    `GET /api/me` und `POST /api/logout` in `App.tsx`, `Profile.tsx`. Ohne diese
    Etappe waere die Oberflaeche zwei Commits lang unbenutzbar.
-5. **Autorisierung und serverseitige Sperrfrist** (#8, #1) — inklusive der
+5. **Autorisierung und serverseitige Sperrfrist** — inklusive der
    gemeinsamen Sperrfrist-Funktion in `Calendar.tsx`.
 6. **Nachweise und Aufraeumen** — `curl`-Skript, `.gitignore`, Schleuse,
    `CLAUDE.md`.
 
 ## Bewusst nicht enthalten
 
-- **Anmeldung mit Microsoft-Dienstkonto** -> #29. Setzt eine App-Registrierung
+- **Anmeldung mit Microsoft-Dienstkonto** -> #6. Setzt eine App-Registrierung
   durch die Krankenhaus-IT voraus. Vorbereitet durch `auth_provider`/`entra_oid`.
-- **Hosting, HTTPS, VPN** -> #30. Entscheidung der Krankenhaus-IT.
-- **Optionale Anonymisierung des Wunschplans** -> #31.
-- **Begrenzung von Anmeldeversuchen** -> Teil von #11.
-- **Vollstaendiges `strict` in `tsconfig`** -> #19. Hier nur `strictNullChecks`
+- **Hosting, HTTPS, VPN** -> #8. Entscheidung der Krankenhaus-IT.
+- **Optionale Anonymisierung des Wunschplans** -> #9.
+- **Begrenzung von Anmeldeversuchen.**
+- **Vollstaendiges `strict` in `tsconfig`** -> #5. Hier nur `strictNullChecks`
   und der Wegfall von `any` an der API-Grenze.
-- **Alle uebrigen Systemdialoge** -> #17.
+- **Alle uebrigen Systemdialoge.**

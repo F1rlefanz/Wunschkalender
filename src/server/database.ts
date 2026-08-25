@@ -61,7 +61,7 @@ const SCHEMA_SCHRITTE: SchemaSchritt[] = [
         -- Ausdruecklich gesetzte Stichtage, ein Monat eine Zeile. Eine eigene
         -- Tabelle und kein Feld in settings: Der Vorschlag ist eine Einstellung,
         -- der gesetzte Stichtag eine Entscheidung ueber einen einzelnen Monat.
-        -- Fehlt die Zeile, greift der Vorschlag (#36).
+        -- Fehlt die Zeile, greift der Vorschlag.
         CREATE TABLE IF NOT EXISTS stichtage (
           monat  TEXT PRIMARY KEY,
           datum  TEXT NOT NULL
@@ -99,7 +99,7 @@ const SCHEMA_SCHRITTE: SchemaSchritt[] = [
       }
 
       // `bookingDeadlineDay` war ein Tag des Monats, der immer auf den Folgemonat
-      // wirkte. Der Stichtag ist jetzt ein Datum je Monat (#36) — ein alter Wert
+      // wirkte. Der Stichtag ist jetzt ein Datum je Monat — ein alter Wert
       // laesst sich nicht sinnvoll umrechnen und bliebe sonst als toter Schluessel
       // liegen.
       db.prepare("DELETE FROM settings WHERE key = 'bookingDeadlineDay'").run();
