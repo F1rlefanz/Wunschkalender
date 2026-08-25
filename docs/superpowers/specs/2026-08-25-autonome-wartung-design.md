@@ -145,17 +145,14 @@ pruefbar.
   kein Pull-Request — eine grosse Aenderung, die niemand liest, ist eine Wette.
 - `npm run lint && npm test && npm run build` muessen **lokal** gruen sein, bevor
   der Pull-Request entsteht.
-- Gesperrte Pfade, an die keine erzeugende Routine ruehrt:
-  `.github/workflows/`, `.claude/`, `tools/pruefe-schleuse.mjs`,
-  `docs/routinen.md`, `src/server/passwords.ts`, `src/server/session-*.ts`,
-  `src/server/validierung.ts` sowie die Testdateien des Netzes selbst. Dazu die
-  Konfiguration des Netzes, denn ueber jede laesst es sich mit einem Zweizeiler
-  aushebeln, ohne einen Test anzufassen: `vitest.config.ts` (Schwellen senken
-  oder `coverage.exclude` erweitern), `playwright.config.ts` (`testDir`
-  umleiten), `package.json` (die Skripte `test`, `test:coverage`, `test:e2e`
-  umbiegen) und `tsconfig.json` (`include` kuerzen, damit `e2e/` nicht mehr
-  typgeprueft wird).
-  Eine Routine darf ihre eigene Sicherung nicht anfassen.
+- Gesperrte Pfade, an die keine erzeugende Routine ruehrt: die Sicherungen
+  selbst (die CI und die Schranken-Skripte, damit keine Routine ihre eigene
+  Pruefung abschaltet), die Konfiguration des Testnetzes (ueber die es sich
+  mit einem Zweizeiler aushebeln liesse, ohne einen Test anzufassen) sowie
+  sicherheitsnahe Serverbausteine (Passwoerter, Sitzungen, Eingabepruefung).
+  Die genaue, gepflegte Liste steht als `GESPERRTE_PFADE` in
+  `tools/routine-schranken.mjs` und beschrieben in `docs/routinen.md` — hier
+  nicht zweimal fuehren, sonst driften die Fassungen auseinander.
 - Kein Verhaltenswechsel ohne einen Test, der ihn zeigt.
 - Feste Form der Pull-Request-Beschreibung: was, warum, welcher Beweis.
 
