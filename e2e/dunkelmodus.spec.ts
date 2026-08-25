@@ -57,10 +57,28 @@ test('alle drei Ansichten bleiben dunkel', async ({ page }) => {
   const ansichtswahl = page.getByRole('group', { name: 'Ansicht wählen' });
   for (const ansicht of ['Kalender', 'Tagesliste', 'Mitarbeiter-Matrix']) {
     await ansichtswahl.getByRole('button', { name: ansicht, exact: true }).click();
-    const farbe = await page.evaluate(
-      () => getComputedStyle(document.querySelector('[data-testid="ansicht"]')!).backgroundColor,
-    );
+    // Die Tagesliste traegt selbst keinen Hintergrund (nur `space-y-raum4`)
+    // und erbt ihn vom Vorfahren. Ein durchsichtiger Behaelter ist kein
+    // Mangel — aber die Zusicherung darf deshalb nicht stillschweigend
+    // ausfallen. Deshalb bis zum naechsten Vorfahren mit gesetztem
+    // Hintergrund hochlaufen und den pruefen.
+    const farbe = await page.evaluate(() => {
+      const istDurchsichtig = (wert: string) => {
+        const treffer = wert.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+        if (!treffer) return true;
+        const alpha = treffer[4];
+        return alpha !== undefined && Number(alpha) < 0.5;
+      };
+      let el: Element | null = document.querySelector('[data-testid="ansicht"]');
+      while (el) {
+        const stil = getComputedStyle(el).backgroundColor;
+        if (!istDurchsichtig(stil)) return stil;
+        el = el.parentElement;
+      }
+      return getComputedStyle(document.body).backgroundColor;
+    });
     const h = helligkeit(farbe);
-    if (h !== null) expect(h, `${ansicht}: ${farbe}`).toBeLessThan(0.4);
+    expect(h, `${ansicht}: ${farbe}`).not.toBeNull();
+    expect(h!, `${ansicht}: ${farbe}`).toBeLessThan(0.4);
   }
 });
