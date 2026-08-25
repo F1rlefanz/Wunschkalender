@@ -10,7 +10,7 @@ jobs:
     name: Typen, Tests, Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: pruefen
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -67,7 +67,7 @@ jobs:
     # — ein uebersprungener Auftrag gilt bei Required Status Checks als
     # bestanden, siehe docs/routinen.md.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Ohne die ganze Historie findet `git merge-base` den Vergleichspunkt
           # nicht, und der Diff waere leer — die Pruefung liefe ins Leere.
