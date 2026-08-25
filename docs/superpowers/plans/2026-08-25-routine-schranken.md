@@ -549,11 +549,21 @@ function geaenderteZeilen(punkt) {
 }
 
 /**
- * Zaehlt die Browsertests ueber `playwright test --list`.
+ * Zaehlt die **aktiven** Browsertests ueber `playwright test --list`.
  *
- * Der JSON-Bericht ist dafuer die verlaessliche Form; die Textausgabe endet
- * zwar mit einer Zeile "Total: N tests in M files", aber die ist Anzeige und
- * kein Vertrag.
+ * Zwei Fallen, beide nachgemessen:
+ *
+ * 1. Die Textausgabe endet mit "Total: N tests in M files". Das ist Anzeige
+ *    und kein Vertrag — der JSON-Bericht ist die verlaessliche Form.
+ * 2. **`--list` zaehlt uebersprungene Tests mit.** Ein `test.skip(...)` liesse
+ *    die Gesamtzahl also unveraendert, waehrend der Test nichts mehr prueft —
+ *    eine Schranke, die dasteht und nichts tut. Beim Auflisten meldet jeder
+ *    Eintrag `status: "skipped"` (es lief ja nichts); was zaehlt, ist
+ *    `expectedStatus`: bei einem stillgelegten Test steht dort `"skipped"`,
+ *    sonst `"passed"`.
+ *
+ * Gezaehlt wird deshalb nur, was mindestens einen nicht stillgelegten Lauf
+ * erwartet.
  */
 function browsertests() {
   const roh = execFileSync('npx', ['playwright', 'test', '--list', '--reporter=json'], {
@@ -562,10 +572,14 @@ function browsertests() {
     shell: process.platform === 'win32',
   });
   const bericht = JSON.parse(roh);
-  const zaehle = (knoten) =>
-    (knoten.suites ?? []).reduce((summe, unter) => summe + zaehle(unter), 0) +
-    (knoten.specs ?? []).length;
-  return zaehle({ suites: bericht.suites ?? [] });
+
+  const specs = [];
+  (function sammle(knoten) {
+    for (const unter of knoten.suites ?? []) sammle(unter);
+    for (const spec of knoten.specs ?? []) specs.push(spec);
+  })({ suites: bericht.suites ?? [] });
+
+  return specs.filter((spec) => (spec.tests ?? []).some((t) => t.expectedStatus !== 'skipped')).length;
 }
 
 /**
@@ -624,7 +638,14 @@ wird also der gesperrte Pfad, nicht das Skript.
 
 Genau so soll es sein: Der Zweig ist ja kein `routine/*`-Zweig, sondern der, der
 die Schranke baut. Wichtig ist nur, dass das Skript **laeuft**, den Diff findet
-und die Browsertests zaehlt — die Zahl muss **20** sein.
+und die **aktiven** Browsertests zaehlt — die Zahl muss **20** sein.
+
+Gegenprobe dazu, die du gleich mitmachen sollst: Setz in `e2e/dunkelmodus.spec.ts`
+den ersten `test(` probeweise auf `test.skip(`, lass das Skript erneut laufen —
+es muss jetzt **19** melden und den Verstoss anzeigen. Danach zuruecknehmen
+(`git checkout -- e2e/dunkelmodus.spec.ts`) und pruefen, dass wieder 20 gezaehlt
+werden. Ohne diesen Nachweis wissen wir nicht, ob die Zaehlung ein `test.skip`
+ueberhaupt bemerkt. Beide Ausgaben in den Bericht.
 
 Notiere die Ausgabe im Bericht. Ist die gemeldete Testzahl **nicht** 20, stimmt
 das Zaehlen nicht — dann nachbessern, bevor es weitergeht.
