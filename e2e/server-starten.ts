@@ -12,7 +12,7 @@ import { erzeugeApp } from '../src/server/app';
 import { createDatabase } from '../src/server/database';
 import { createStore } from '../src/server/store';
 import { hashPassword } from '../src/server/passwords';
-import { GESPERRTER_MONAT, KONTEN, OFFENER_MONAT } from './hilfe';
+import { DEZEMBER, GESPERRTER_MONAT, JANUAR_DANACH, KONTEN, OFFENER_MONAT } from './hilfe';
 
 const PORT = Number(process.env.E2E_PORT) || 3100;
 
@@ -32,12 +32,14 @@ async function start() {
   store.createUser({ name: KONTEN.zweite.name, role: 'Employee', passwordHash: hash });
 
   // Ausdrueckliche Stichtage: Damit haengt kein Browsertest daran, welcher Tag
-  // heute ist.
+  // heute ist. Die Monate selbst liegen seit Fix-Runde 1 zu Aufgabe 9 nah am
+  // heutigen Tag (hilfe.ts) — die Determiniertheit von offen/gesperrt kommt
+  // allein von diesen Stichtagen, nicht von der Entfernung.
   store.setStichtag(OFFENER_MONAT, '2099-12-31');
   store.setStichtag(GESPERRTER_MONAT, '2020-01-01');
   // Fuer den Jahreswechsel-Test in Task 9.
-  store.setStichtag('2098-12', '2099-12-31');
-  store.setStichtag('2099-01', '2099-12-31');
+  store.setStichtag(DEZEMBER, '2099-12-31');
+  store.setStichtag(JANUAR_DANACH, '2099-12-31');
 
   const { httpServer } = await erzeugeApp({
     db,

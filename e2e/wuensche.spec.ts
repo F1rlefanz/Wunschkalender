@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { anmelden, KONTEN, OFFENER_MONAT, zumMonat } from './hilfe';
+import { anmelden, DEZEMBER, JANUAR_DANACH, KONTEN, OFFENER_MONAT, zumMonat } from './hilfe';
 
 /**
  * Ein Tag ist in der Rasteransicht kein einzelner Knopf, sondern eine Zelle
@@ -28,11 +28,6 @@ async function wunschEintragen(page: import('@playwright/test').Page, schicht: '
 }
 
 test('ein Wunsch laesst sich setzen und wieder entfernen', async ({ page }) => {
-  // OFFENER_MONAT liegt weit in der Zukunft (2099-06); zumMonat blaettert
-  // dorthin einzeln per Knopf (kein Sprungfeld in der Oberflaeche) und
-  // braucht dafuer gemessen ~30s. Dieser Test blaettert nach dem Neuladen
-  // ein zweites Mal, deshalb die grosszuegige Frist statt der 30s-Vorgabe.
-  test.setTimeout(150_000);
   await anmelden(page, KONTEN.mitarbeit);
   await zumMonat(page, OFFENER_MONAT);
 
@@ -63,7 +58,6 @@ test('ein Wunsch laesst sich setzen und wieder entfernen', async ({ page }) => {
 test('derselbe Wunsch erscheint in allen drei Ansichten', async ({ page }) => {
   // Raster, Liste und Matrix liegen in einer Datei. Wer eine aendert, bricht
   // leicht die anderen — genau das faengt dieser Test.
-  test.setTimeout(90_000); // siehe Begruendung im vorigen Test zu zumMonat
   await anmelden(page, KONTEN.mitarbeit);
   await zumMonat(page, OFFENER_MONAT);
 
@@ -86,19 +80,19 @@ test('derselbe Wunsch erscheint in allen drei Ansichten', async ({ page }) => {
 test('ein Wunsch liegt im richtigen Monat, auch ueber den Jahreswechsel', async ({ page }) => {
   // Die Sperrfrist rechnet mit jahr * 12 + monat. Dezember zu Januar ist die
   // Stelle, an der Datumslogik am haeufigsten um einen Monat verrutscht.
-  test.setTimeout(90_000); // siehe Begruendung im ersten Test zu zumMonat
   await anmelden(page, KONTEN.leitung); // die Leitung ist nirgends gesperrt
-  await zumMonat(page, '2098-12');
+  await zumMonat(page, DEZEMBER);
 
-  await tagAuswaehlen(page, '2098-12-31');
+  const dezemberTag = `${DEZEMBER}-31`;
+  await tagAuswaehlen(page, dezemberTag);
   await wunschEintragen(page, 'Spät');
-  await expect(page.getByTestId('tag-2098-12-31')).toContainText('Spät');
+  await expect(page.getByTestId(`tag-${dezemberTag}`)).toContainText('Spät');
 
   await page.getByRole('button', { name: /nächster monat/i }).click();
-  await expect(page.getByTestId('monatskopf')).toHaveAttribute('data-monat', '2099-01');
+  await expect(page.getByTestId('monatskopf')).toHaveAttribute('data-monat', JANUAR_DANACH);
   await expect(page.getByTestId('ansicht')).not.toContainText('Spät');
 
   await page.getByRole('button', { name: /voriger monat/i }).click();
-  await expect(page.getByTestId('monatskopf')).toHaveAttribute('data-monat', '2098-12');
-  await expect(page.getByTestId('tag-2098-12-31')).toContainText('Spät');
+  await expect(page.getByTestId('monatskopf')).toHaveAttribute('data-monat', DEZEMBER);
+  await expect(page.getByTestId(`tag-${dezemberTag}`)).toContainText('Spät');
 });
