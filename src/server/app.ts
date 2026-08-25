@@ -41,8 +41,6 @@ export interface AppOptionen {
 export interface AppBausteine {
   app: express.Express;
   httpServer: http.Server;
-  io: SocketIOServer;
-  store: Store;
 }
 
 /**
@@ -495,5 +493,5 @@ export async function erzeugeApp({
     });
   }
 
-  return { app, httpServer, io, store };
+  return { app, httpServer };
 }
