@@ -433,7 +433,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
       {/* Rasteransicht */}
       {viewType === 'grid' && (
-        <div className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
+        <div data-testid="ansicht" className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
           <div className="grid grid-cols-7 border-b border-rand bg-flaeche-leise">
             {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((d) => (
               <div
@@ -476,6 +476,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
               return (
                 <div
                   key={day}
+                  data-testid={`tag-${dateStr}`}
                   className={`group relative min-h-[76px] sm:min-h-[120px] border-b border-r border-rand transition-colors ${
                     isSelected ? 'bg-marke-leise z-10' : ''
                   }`}
@@ -579,7 +580,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
       {/* Tagesliste */}
       {viewType === 'list' && (
-        <div className="space-y-raum4">
+        <div data-testid="ansicht" className="space-y-raum4">
           {days.map((day) => {
             const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const dayWishes = wishesByDate.get(dateStr) || [];
@@ -693,7 +694,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
       {/* Mitarbeiter-Matrix */}
       {viewType === 'matrix' && (
-        <div className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
+        <div data-testid="ansicht" className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-raum3 border-b border-rand bg-flaeche-leise p-raum4">
             <div>
               <h2 className="font-ueberschrift font-semibold">Mitarbeiter-Wunschmatrix</h2>
