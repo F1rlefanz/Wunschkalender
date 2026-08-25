@@ -20,4 +20,11 @@ test('ein Neuladen wirft nicht aus der Anwendung', async ({ page }) => {
   await anmelden(page, KONTEN.mitarbeit);
   await page.reload();
   await expect(page.getByRole('button', { name: /anmelden/i })).toHaveCount(0);
+
+  // Die vorige Zusicherung traf auch auf eine leere oder kaputte Seite zu —
+  // sie konnte kaum rot werden. `Calendar.tsx` rendert "{currentUser.name}
+  // (Sie)" ausschliesslich innerhalb von `{currentUser && (...)}`; das
+  // erscheint also nur, wenn die Sitzung nach dem Neuladen wirklich noch
+  // angemeldet ist.
+  await expect(page.getByText(`${KONTEN.mitarbeit.name} (Sie)`)).toBeVisible();
 });

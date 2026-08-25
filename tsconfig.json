@@ -20,6 +20,7 @@
     "src",
     "server.ts",
     "vite.config.ts",
-    "tools"
+    "tools",
+    "e2e"
   ]
 }
