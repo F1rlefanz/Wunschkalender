@@ -54,7 +54,7 @@ beendet sich bei "kein Routine-Zweig" mit Exit 0, ohne eine einzige Regel
 anzuwenden. Ein spaeterer Torwaechter kann so auf die Anwesenheit des
 Auftrags pruefen, nicht nur auf seine Farbe.
 
-Drei Zahlen und eine Liste:
+Mehrere Regeln und eine Liste gesperrter Pfade:
 
 - **Hoechstens 400 geaenderte Zeilen** (hinzugefuegt plus entfernt). Eine
   groessere Aenderung, die niemand liest, ist eine Wette. Braucht eine Routine
