@@ -58,3 +58,26 @@ jobs:
           name: playwright-bericht
           path: playwright-report/
           retention-days: 7
+
+  schranken:
+    name: Schranken fuer Routine-Zweige
+    runs-on: ubuntu-latest
+    # Nur fuer Zweige, die eine Routine erzeugt hat. Fuer alles andere gelten
+    # die Schranken nicht — ein Mensch darf package.json aendern.
+    if: startsWith(github.head_ref, 'routine/')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Ohne die ganze Historie findet `git merge-base` den Vergleichspunkt
+          # nicht, und der Diff waere leer — die Pruefung liefe ins Leere.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Schranken pruefen
+        run: npm run pruefe:routine -- origin/${{ github.base_ref }}
