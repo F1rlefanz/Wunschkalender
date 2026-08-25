@@ -83,7 +83,9 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   und Oberflaeche benutzen dieselbe Funktion**; zwei Fassungen waeren ein Fehler.
   Wer die Sperre erweitert, prueft die Oberflaeche mit: Loeschknoepfe verschwinden,
   das Hinweisfeld wird gesperrt - beides verhindert einen 403.
-- `tools/` — Sessionstart- und Schleusen-Skript (in `.claude/settings.json` als Hooks).
+- `tools/` — Sessionstart- und Schleusen-Skript (Hooks in `.claude/settings.json`),
+  dazu `routine-schranken.mjs`/`pruefe-routine.mjs`: kein Hook, sondern der
+  CI-Auftrag `Schranken fuer Routine-Zweige` (siehe `docs/routinen.md`).
 
 ## Fallstricke
 

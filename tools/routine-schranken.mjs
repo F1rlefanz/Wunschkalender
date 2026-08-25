@@ -26,6 +26,14 @@ export const MAX_GEAENDERTE_ZEILEN = 400;
 export const MINDEST_BROWSERTESTS = 20;
 
 /**
+ * Die vier Werkzeuge, deren Fassung in `devDependencies` nicht sinken darf.
+ *
+ * Wer eines dieser Werkzeuge auf eine aeltere Fassung setzt, kann damit
+ * genau die Schwellen wirkungslos machen, die dieses Skript selbst benutzt.
+ */
+export const GEPRUEFTE_WERKZEUGE = ['vitest', '@vitest/coverage-v8', '@playwright/test', 'typescript'];
+
+/**
  * Was keine erzeugende Routine anfassen darf.
  *
  * Ein Eintrag mit `/` am Ende ist ein Verzeichnis-Praefix, alles andere ein
@@ -33,13 +41,17 @@ export const MINDEST_BROWSERTESTS = 20;
  */
 export const GESPERRTE_PFADE = [
   // Die Sicherungen selbst.
-  '.github/workflows/',
+  '.github/',
   '.claude/',
-  'tools/pruefe-schleuse.mjs',
-  'tools/changelog-pruefung.mjs',
-  'tools/routine-schranken.mjs',
-  'tools/pruefe-routine.mjs',
+  // Ganzes Verzeichnis statt einzelner Dateien: ein neues Werkzeug in tools/
+  // (etwa ein spaeterer SessionStart-Hook) waere sonst ungeschuetzt, obwohl es
+  // auf dem Rechner des Betreibers laeuft.
+  'tools/',
   'docs/routinen.md',
+  // Liegt in jeder Nachricht im Kontext jedes Claude, einschliesslich des
+  // Torwaechters, der den Pull-Request gegenliest. Eine Routine, die diese
+  // Datei "aufraeumt", schreibt an ihren eigenen Pruefer.
+  'CLAUDE.md',
   // Die Konfiguration des Testnetzes: ueber jede dieser Dateien laesst es sich
   // mit einem Zweizeiler aushebeln, ohne einen Test anzufassen.
   'vitest.config.ts',
@@ -54,6 +66,9 @@ export const GESPERRTE_PFADE = [
   'src/server/session-store.ts',
   'src/server/session-secret.ts',
   'src/server/validierung.ts',
+  // Traegt requireAuth/requireManager und ihre Zuordnung zu den Endpunkten —
+  // der teuerste Fallstrick, den CLAUDE.md selbst benennt.
+  'src/server/app.ts',
 ];
 
 /** Normalisiert einen Pfad: `\` zu `/`, `./` und `..` aufgeloest, klein. */
@@ -82,20 +97,78 @@ export function istGesperrt(pfad) {
 }
 
 /**
+ * Ist `name` ein Zweig, den eine Routine erzeugt hat?
+ *
+ * Ohne Ruecksicht auf Gross- und Kleinschreibung, wie GitHub selbst Zweignamen
+ * vergleicht. Ein leerer oder fehlender Name (etwa bei einem Push auf `main`,
+ * wo es keinen `head_ref` gibt) gilt als "kein Routine-Zweig", nicht als Fehler.
+ */
+export function istRoutineZweig(name) {
+  if (!name) return false;
+  const trimmed = String(name).trim();
+  if (trimmed === '') return false;
+  return /^routine\/.+/i.test(trimmed);
+}
+
+/** Zieht die fuehrenden Zahlen einer Versionsangabe (`^3.2.4` -> [3, 2, 4]). */
+function zerlegeFassung(angabe) {
+  const treffer = String(angabe ?? '').match(/\d+/g);
+  return treffer ? treffer.map(Number) : [];
+}
+
+/**
+ * Ist `nachher` eine niedrigere Fassung als `vorher`?
+ *
+ * Ein Vergleich der fuehrenden Zahlen genuegt (`^3.2.4` -> `^3.3.0` ist in
+ * Ordnung, `^3.2.4` -> `^2.9.0` nicht). Fehlt der Eintrag nachher, wo er
+ * vorher da war, zaehlt das als Sinken — das Werkzeug ist dann ja weg. Fehlt
+ * er vorher und kommt nachher hinzu, ist das kein Sinken.
+ */
+export function fassungSinkt(vorher, nachher) {
+  if (vorher === undefined) return false;
+  if (nachher === undefined) return true;
+  const v = zerlegeFassung(vorher);
+  const n = zerlegeFassung(nachher);
+  const laenge = Math.max(v.length, n.length);
+  for (let i = 0; i < laenge; i += 1) {
+    const a = v[i] ?? 0;
+    const b = n[i] ?? 0;
+    if (b > a) return false;
+    if (b < a) return true;
+  }
+  return false;
+}
+
+/** Lifecycle-Skripte, die npm ohne Zutun ausfuehrt — siehe pruefeSkripte. */
+const LIFECYCLE_SKRIPTE = ['preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'prepublishOnly', 'prepack', 'postpack'];
+
+/**
  * Vergleicht die Teile von `package.json`, die das Testnetz tragen.
  *
  * `package.json` steht nicht auf der Sperrliste, weil die Routine
  * "Abhaengigkeiten" genau diese Datei aendern muss. Geschuetzt werden deshalb
- * gezielt zwei Stellen:
+ * gezielt mehrere Stellen:
  *
  * - **`scripts`** — `test`, `test:coverage`, `test:e2e` und `lint` umzubiegen
  *   waere der Zweizeiler, der jede Pruefung ins Leere laufen laesst, ohne dass
- *   ein einziger Test angefasst wird.
+ *   ein einziger Test angefasst wird. Hinzufuegen ist erlaubt, Aendern und
+ *   Entfernen nicht.
+ * - **Neue Lifecycle-Skripte** (`postinstall` und Verwandte) — `npm ci` fuehrt
+ *   sie ohne Zutun aus, noch bevor irgendeine Pruefung laeuft, und kann damit
+ *   den Arbeitsbaum umschreiben, bevor der Diff etwas davon sieht.
+ * - **Neue `pre<name>`/`post<name>`-Skripte zu einem bestehenden `<name>`** —
+ *   dieselbe Automatik gilt fuer JEDES Skript, nicht nur die Installations-
+ *   Lifecycle-Namen: `npm run <name>` fuehrt automatisch ein vorhandenes
+ *   `pre<name>` davor und `post<name>` danach aus. Ein neu hinzugefuegtes
+ *   `prepruefe:routine` liefe also vor der Schranken-Pruefung selbst.
  * - **`engines`** — die Node-Untergrenze abzusenken bringt die CI zum harten
  *   Absturz statt zu einem lesbaren Fehlschlag. Genau so war sie in diesem
  *   Projekt schon einmal tagelang unbemerkt rot.
- *
- * Hinzufuegen ist erlaubt, Aendern und Entfernen nicht.
+ * - **`overrides`/`resolutions`** — ein neu eingefuegtes Feld kann dieselben
+ *   Werkzeuge betreffen wie die Fassungspruefung unten, nur unauffaelliger.
+ * - **Die Fassungen der Pruefwerkzeuge** (`GEPRUEFTE_WERKZEUGE`) duerfen nicht
+ *   sinken — sonst bestimmt die Routine selbst, mit welchem Werkzeug sie
+ *   geprueft wird.
  */
 export function pruefeSkripte(vorher, nachher) {
   if (!vorher || !nachher) return [];
@@ -110,13 +183,118 @@ export function pruefeSkripte(vorher, nachher) {
     }
   }
 
+  for (const name of LIFECYCLE_SKRIPTE) {
+    const warVorher = (vorher.scripts ?? {})[name] !== undefined;
+    const istNachher = (nachher.scripts ?? {})[name] !== undefined;
+    if (!warVorher && istNachher) {
+      probleme.push(`Neues Lifecycle-Skript "${name}". npm fuehrt es bei "npm ci" ohne Zutun aus, noch bevor eine Pruefung laeuft.`);
+    }
+  }
+
+  const bekannteSkriptnamen = new Set([...Object.keys(vorher.scripts ?? {}), ...Object.keys(nachher.scripts ?? {})]);
+  for (const name of Object.keys(nachher.scripts ?? {})) {
+    if ((vorher.scripts ?? {})[name] !== undefined) continue; // nicht neu
+    const treffer = name.match(/^(pre|post)(.+)$/);
+    if (!treffer) continue;
+    const ziel = treffer[2];
+    if (bekannteSkriptnamen.has(ziel)) {
+      probleme.push(
+        `Neues Skript "${name}" laeuft automatisch vor bzw. nach "npm run ${ziel}" (npm-Konvention "pre<name>"/"post<name>"), ` +
+          'nicht nur bei den acht Installations-Lifecycle-Namen.',
+      );
+    }
+  }
+
   const vorherNode = (vorher.engines ?? {}).node;
   const nachherNode = (nachher.engines ?? {}).node;
   if (vorherNode !== nachherNode) {
     probleme.push(`Die Node-Anforderung in "engines" wurde geaendert (war: ${vorherNode}, jetzt: ${nachherNode}). Eine zu niedrige Untergrenze laesst die CI abstuerzen statt lesbar scheitern.`);
   }
 
+  for (const feld of ['overrides', 'resolutions']) {
+    if (vorher[feld] === undefined && nachher[feld] !== undefined) {
+      probleme.push(`Neues Feld "${feld}" in package.json. Darueber liesse sich die Fassung eines Pruefwerkzeugs unauffaellig erzwingen.`);
+    }
+  }
+
+  for (const werkzeug of GEPRUEFTE_WERKZEUGE) {
+    const vorherFassung = (vorher.devDependencies ?? {})[werkzeug];
+    const nachherFassung = (nachher.devDependencies ?? {})[werkzeug];
+    if (fassungSinkt(vorherFassung, nachherFassung)) {
+      probleme.push(
+        `Die Fassung von "${werkzeug}" sinkt (war: ${vorherFassung ?? '(fehlt)'}, jetzt: ${nachherFassung ?? '(fehlt)'}). ` +
+          'Damit liessen sich die Schwellen unterlaufen, die dieses Werkzeug durchsetzt.',
+      );
+    }
+  }
+
   return probleme;
+}
+
+/**
+ * Punkt 4a: Die Zahl der Zusicherungen (`expect(`) je Browsertestdatei darf
+ * nicht sinken — sonst laesst sich eine Zusicherung entfernen, ohne dass die
+ * Mindestzahl an Tests (MINDEST_BROWSERTESTS) das bemerkt.
+ *
+ * `eintraege` ist eine Liste aus `{ pfad, vorher, nachher }`, je betroffener
+ * Datei unter `e2e/**`.
+ */
+export function pruefeE2eZusicherungen(eintraege) {
+  const probleme = [];
+  for (const { pfad, vorher, nachher } of eintraege ?? []) {
+    if (nachher < vorher) {
+      probleme.push(
+        `Weniger Zusicherungen in ${pfad}: vorher ${vorher}, jetzt ${nachher}. ` +
+          'Ein Browsertest, der weniger prueft, ist Beweiswert, der leise verschwindet.',
+      );
+    }
+  }
+  return probleme;
+}
+
+/**
+ * Punkt 4b: `src/components/**` und `e2e/**` nicht im selben Pull-Request.
+ *
+ * Wer eine Komponente umbaut und im selben Zug die Tests nachzieht, die sie
+ * bewachen, kann die Bewachung aufheben, ohne dass eine der anderen Schranken
+ * das sieht. So eine Aenderung braucht einen Menschen.
+ */
+export function pruefeKomponentenUndE2eGetrennt(dateien) {
+  const komponenten = (dateien ?? []).some((pfad) => normalisiere(pfad).startsWith('src/components/'));
+  const e2e = (dateien ?? []).some((pfad) => normalisiere(pfad).startsWith('e2e/'));
+  if (komponenten && e2e) {
+    return [
+      'Der Pull-Request fasst gleichzeitig src/components/** und e2e/** an. ' +
+        'Eine Komponente und die Browsertests, die sie bewachen, gehoeren nicht in denselben Routine-Pull-Request.',
+    ];
+  }
+  return [];
+}
+
+/**
+ * Punkt 4c: Neue Laufzeit-Abschaltungen in `e2e/**` sind verboten.
+ *
+ * `diffText` ist ein unified diff, beschraenkt auf Dateien unter `e2e/**`.
+ * Gesucht wird nach hinzugefuegten Zeilen (`+`, nicht `+++`) mit
+ * `test.skip(`, `test.fixme(` oder `test.fail(`. Grund: Ein `test.skip(...)`
+ * im Testkoerper meldet beim Auflisten weiterhin `expectedStatus: "passed"`
+ * und wird von der Mindestzahl (MINDEST_BROWSERTESTS) mitgezaehlt, waehrend
+ * der Test in der CI nichts prueft.
+ */
+export function pruefeE2eAbschaltungen(diffText) {
+  const muster = /\btest\.(skip|fixme|fail)\s*\(/;
+  const gefunden = new Set();
+  for (const zeile of String(diffText ?? '').split('\n')) {
+    if (!zeile.startsWith('+') || zeile.startsWith('+++')) continue;
+    const treffer = zeile.match(muster);
+    if (treffer) gefunden.add(treffer[1]);
+  }
+  if (gefunden.size === 0) return [];
+  const namen = [...gefunden].sort().map((art) => `test.${art}(`);
+  return [
+    `Neue Laufzeit-Abschaltung(en) in e2e/**: ${namen.join(', ')}. ` +
+      'Ein stillgelegter Browsertest zaehlt bei "playwright test --list" weiterhin mit, prueft aber nichts mehr.',
+  ];
 }
 
 /**
@@ -125,8 +303,21 @@ export function pruefeSkripte(vorher, nachher) {
  * Meldet ausdruecklich ALLE Verstoesse, nicht nur den ersten: Sonst braucht
  * eine Routine drei Laeufe, um drei Probleme zu erfahren.
  */
-export function pruefeSchranken({ dateien, geaenderteZeilen, browsertests, paketVorher, paketNachher }) {
-  const probleme = [...pruefeSkripte(paketVorher, paketNachher)];
+export function pruefeSchranken({
+  dateien,
+  geaenderteZeilen,
+  browsertests,
+  paketVorher,
+  paketNachher,
+  e2eZusicherungen = [],
+  e2eDiffText = '',
+}) {
+  const probleme = [
+    ...pruefeSkripte(paketVorher, paketNachher),
+    ...pruefeE2eZusicherungen(e2eZusicherungen),
+    ...pruefeKomponentenUndE2eGetrennt(dateien),
+    ...pruefeE2eAbschaltungen(e2eDiffText),
+  ];
 
   const beruehrt = dateien.filter(istGesperrt);
   if (beruehrt.length > 0) {

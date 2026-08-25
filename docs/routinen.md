@@ -36,13 +36,25 @@ Messwert) dafuer steht.
 ## Die mechanischen Schranken
 
 Die Regeln in diesem Abschnitt sind keine Bitte an ein Modell, sondern Code:
-`tools/routine-schranken.mjs`, dort als reine Funktionen getestet (23 Tests)
-und von `tools/pruefe-routine.mjs` gegen den echten Diff eines Branches
-angewendet. Der CI-Auftrag `Schranken fuer Routine-Zweige` ruft das fuer jeden
-`routine/*`-Branch auf und schliesst rot ab, wenn eine Schranke verletzt ist —
-ohne dass jemand den Pull-Request gelesen haben muss.
+`tools/routine-schranken.mjs`, dort als reine Funktionen getestet und von
+`tools/pruefe-routine.mjs` gegen den echten Diff eines Branches angewendet. Der CI-Auftrag `Schranken fuer Routine-Zweige` laeuft bei **jedem**
+Pull-Request, nicht nur bei einem `routine/*`-Branch, und schliesst rot ab,
+wenn eine Schranke verletzt ist — ohne dass jemand den Pull-Request gelesen
+haben muss.
 
-Drei Zahlen und eine Liste:
+Das ist bewusst so und nicht ueber ein `if:` in der Workflow-Datei geloest:
+Ein uebersprungener Auftrag bekommt die Conclusion `skipped`, und `skipped`
+zaehlt bei GitHubs Required Status Checks als bestanden — ein Zweig, der
+seinen Namen nicht mit `routine/` beginnt (Tippfehler oder Absicht), wuerde
+die komplette Schranke sonst ohne jedes Fehlverhalten umgehen. Stattdessen
+entscheidet `istRoutineZweig(name)` in `tools/routine-schranken.mjs`, ob die
+Schranken ueberhaupt gelten; `tools/pruefe-routine.mjs` bekommt den
+Zweignamen als zweites Argument (`${{ github.head_ref }}` aus der CI) und
+beendet sich bei "kein Routine-Zweig" mit Exit 0, ohne eine einzige Regel
+anzuwenden. Ein spaeterer Torwaechter kann so auf die Anwesenheit des
+Auftrags pruefen, nicht nur auf seine Farbe.
+
+Mehrere Regeln und eine Liste gesperrter Pfade:
 
 - **Hoechstens 400 geaenderte Zeilen** (hinzugefuegt plus entfernt). Eine
   groessere Aenderung, die niemand liest, ist eine Wette. Braucht eine Routine
@@ -52,29 +64,70 @@ Drei Zahlen und eine Liste:
   oder stillgelegter Browsertest wuerde die Abdeckungsschwelle also nicht
   senken, obwohl die gesamte Oberflaeche an genau diesen Tests haengt. Die
   Mindestzahl faengt genau das ab.
-- **Skripte und Node-Untergrenze in `package.json` sind geschuetzt**, obwohl
-  die Datei selbst nicht auf der Sperrliste steht — die Routine
-  "Abhaengigkeiten" muss sie aendern koennen. Geprueft wird trotzdem gezielt:
-  Die Skripte `test`, `test:coverage`, `test:e2e`, `lint` (und jedes andere
-  bestehende Skript) duerfen nicht umgebogen oder entfernt werden, denn genau
-  das waere der Zweizeiler, der jede Pruefung ins Leere laufen laesst, ohne
-  einen Test anzufassen. Die Node-Untergrenze unter `engines` darf sich nicht
+- **Skripte, Lifecycle-Skripte und Node-Untergrenze in `package.json` sind
+  geschuetzt**, obwohl die Datei selbst nicht auf der Sperrliste steht — die
+  Routine "Abhaengigkeiten" muss sie aendern koennen. Geprueft wird trotzdem
+  gezielt: Die Skripte `test`, `test:coverage`, `test:e2e`, `lint` (und jedes
+  andere bestehende Skript) duerfen nicht umgebogen oder entfernt werden, denn
+  genau das waere der Zweizeiler, der jede Pruefung ins Leere laufen laesst,
+  ohne einen Test anzufassen. Ein **neu hinzugekommenes** Lifecycle-Skript
+  (`postinstall` und Verwandte) ist ebenfalls ein Verstoss: `npm ci` fuehrt
+  ein solches Skript ohne Zutun aus, noch bevor irgendeine Pruefung laeuft,
+  und koennte den Arbeitsbaum umschreiben, bevor der Diff etwas davon sieht —
+  deshalb laeuft `npm ci` im Schranken-Auftrag selbst zusaetzlich mit
+  `--ignore-scripts`. Die Node-Untergrenze unter `engines` darf sich nicht
   aendern, denn eine zu niedrige Grenze laesst die CI abstuerzen statt lesbar
   zu scheitern — genau so ist es in diesem Projekt schon einmal tagelang
-  unbemerkt geblieben. Hinzufuegen neuer Skripte bleibt erlaubt.
+  unbemerkt geblieben. Hinzufuegen neuer (nicht-lifecycle) Skripte bleibt
+  erlaubt.
+- **Die Fassungen der Pruefwerkzeuge duerfen nicht sinken.** `vitest`,
+  `@vitest/coverage-v8`, `@playwright/test` und `typescript` bestimmen selbst,
+  wie streng geprueft wird — eine Routine "Abhaengigkeiten", die eines davon
+  auf eine aeltere Fassung setzt, kann damit unbemerkt die Werkzeuge
+  schwaechen, die sie selbst kontrollieren. Verglichen werden die fuehrenden
+  Zahlen in `devDependencies` (vorher gegen nachher); ein neu eingefuegtes
+  `overrides`- oder `resolutions`-Feld in `package.json` ist aus demselben
+  Grund ebenfalls ein Verstoss, denn darueber liesse sich eine Fassung
+  erzwingen, ohne den sichtbaren Eintrag zu aendern.
+- **Der Beweiswert der Browsertests darf nicht sinken**, in drei Teilen:
+  Die Zahl der Zusicherungen (`expect(`) je Datei unter `e2e/**` darf nicht
+  fallen — sonst liesse sich eine Pruefung aus einem Test entfernen, ohne dass
+  die Mindestzahl an Tests das bemerkt. Ein Pull-Request darf nicht
+  gleichzeitig `src/components/**` und `e2e/**` anfassen — wer eine Komponente
+  umbaut und im selben Zug die Tests nachzieht, die sie bewachen, hebt die
+  Bewachung auf; das macht die spaetere Routine "Vereinfachung" an genau
+  dieser Stelle absichtlich handlungsunfaehig. Und eine neu hinzugefuegte
+  Zeile mit `test.skip(`, `test.fixme(` oder `test.fail(` in `e2e/**` ist ein
+  Verstoss, weil ein solcher Test bei `playwright test --list` weiterhin als
+  `expectedStatus: "passed"` zaehlt, in der CI aber nichts mehr prueft — die
+  Mindestzahl an Browsertests wuerde das allein nicht sehen.
+
+  **Was die `expect(`-Zaehlung NICHT leistet, ehrlich gesagt:** Sie faengt
+  das Entfernen einer Zusicherung und das Loeschen einer ganzen Datei. Sie
+  faengt NICHT das Aufweichen — `toBeVisible()` statt `toContainText('Frueh')`
+  haelt die Zahl konstant, waehrend der Beweiswert auf null faellt — und sie
+  laesst sich mit einem auskommentierten `// expect(` auffuellen. Der
+  eigentliche Schutz von Punkt 4 liegt in der **Trennregel** (Komponenten und
+  `e2e/**` nicht im selben Pull-Request) und im Abschaltverbot, nicht in
+  dieser Zahl. Wer das nicht weiss, haelt die Zaehlung fuer mehr, als sie ist,
+  und hoert auf hinzusehen — deshalb steht es hier.
 - **Gesperrte Pfade.** Keine erzeugende Routine darf diese Pfade beruehren.
   Bei jedem der Grund:
-  - `.github/workflows/` — der Auftrag, der die Schranken selbst durchsetzt.
+  - `.github/` (nicht nur `.github/workflows/`) — der Auftrag, der die
+    Schranken selbst durchsetzt, und alles, was GitHub sonst dort ausfuehrt,
+    etwa ein spaeterer Ordner `.github/actions/`.
   - `.claude/` — die Schleuse und die uebrige Einrichtung, ueber die eine
     Routine ausserhalb der CI kontrolliert wird.
-  - `tools/pruefe-schleuse.mjs` — verlangt den Changelog-Eintrag vor jedem
-    Commit; ein Angriffspunkt, um diese Pflicht loszuwerden.
-  - `tools/changelog-pruefung.mjs` — dieselbe Pruefung, aus Sicht der Schleuse.
-  - `tools/routine-schranken.mjs` — die Regeln aus diesem Abschnitt selbst.
-  - `tools/pruefe-routine.mjs` — der Aufrufer, der Diff und Browsertests fuer
-    diese Regeln sammelt.
+  - `tools/` (das ganze Verzeichnis, nicht nur einzelne Dateien) — traegt die
+    Schleuse, die Changelog-Pruefung und die Schranken selbst; ein einzeln
+    ungesperrtes Werkzeug darin (etwa ein spaeterer Hook, der auf dem Rechner
+    des Betreibers laeuft) waere sonst eine Luecke in einer sonst
+    geschuetzten Nachbarschaft.
   - `docs/routinen.md` — diese Datei. Eine Routine darf die Regeln, an die sie
     sich haelt, nicht selbst umschreiben.
+  - `CLAUDE.md` — liegt in jeder Nachricht im Kontext jedes Claude,
+    einschliesslich des Torwaechters, der den Pull-Request gegenliest. Ein
+    Pull-Request, der sie "aufraeumt", schriebe an seinen eigenen Pruefer.
   - `vitest.config.ts` — hier liessen sich die Abdeckungsschwellen senken oder
     Dateien aus der Messung ausschliessen, ohne einen Test anzufassen.
   - `playwright.config.ts` — hier liesse sich `testDir` umleiten oder
@@ -86,6 +139,9 @@ Drei Zahlen und eine Liste:
     sicherheitsnahen Serverbausteine. Ein Fehler hier faellt einer Routine
     nicht auf, denn er zeigt sich nicht in gruenen Tests, sondern in einer
     Luecke, die noch keiner gefunden hat.
+  - `src/server/app.ts` — traegt `requireAuth`, `requireManager` und ihre
+    Zuordnung zu den Endpunkten, der teuerste Fallstrick, den `CLAUDE.md`
+    selbst benennt (`PUT /api/users/:id` als Weg zur eigenen Befoerderung).
 
 ## Warum Testdateien nicht gesperrt sind
 
