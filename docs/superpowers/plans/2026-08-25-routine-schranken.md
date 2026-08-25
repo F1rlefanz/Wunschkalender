@@ -476,7 +476,7 @@ Expected: PASS, 23 Tests (10 fuer istGesperrt, 6 fuer pruefeSkripte, 7 fuer prue
 
 ```bash
 git add tools/routine-schranken.mjs tools/routine-schranken.test.mjs
-git commit -m "test(routinen): Schranken fuer routine-Zweige als geprueftе Regeln
+git commit -m "test(routinen): Schranken fuer routine-Zweige als gepruefte Regeln
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
