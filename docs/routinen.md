@@ -90,6 +90,18 @@ Drei Zahlen und eine Liste:
   `overrides`- oder `resolutions`-Feld in `package.json` ist aus demselben
   Grund ebenfalls ein Verstoss, denn darueber liesse sich eine Fassung
   erzwingen, ohne den sichtbaren Eintrag zu aendern.
+- **Der Beweiswert der Browsertests darf nicht sinken**, in drei Teilen:
+  Die Zahl der Zusicherungen (`expect(`) je Datei unter `e2e/**` darf nicht
+  fallen — sonst liesse sich eine Pruefung aus einem Test entfernen, ohne dass
+  die Mindestzahl an Tests das bemerkt. Ein Pull-Request darf nicht
+  gleichzeitig `src/components/**` und `e2e/**` anfassen — wer eine Komponente
+  umbaut und im selben Zug die Tests nachzieht, die sie bewachen, hebt die
+  Bewachung auf; das macht die spaetere Routine "Vereinfachung" an genau
+  dieser Stelle absichtlich handlungsunfaehig. Und eine neu hinzugefuegte
+  Zeile mit `test.skip(`, `test.fixme(` oder `test.fail(` in `e2e/**` ist ein
+  Verstoss, weil ein solcher Test bei `playwright test --list` weiterhin als
+  `expectedStatus: "passed"` zaehlt, in der CI aber nichts mehr prueft — die
+  Mindestzahl an Browsertests wuerde das allein nicht sehen.
 - **Gesperrte Pfade.** Keine erzeugende Routine darf diese Pfade beruehren.
   Bei jedem der Grund:
   - `.github/workflows/` — der Auftrag, der die Schranken selbst durchsetzt.

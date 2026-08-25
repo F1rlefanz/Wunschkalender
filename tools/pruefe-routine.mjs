@@ -110,13 +110,53 @@ function paketStand(quelle) {
   }
 }
 
+/** Zaehlt die Vorkommen von `expect(` in einem Dateiinhalt. */
+function zaehleZusicherungen(inhalt) {
+  return (inhalt.match(/expect\(/g) ?? []).length;
+}
+
+/**
+ * Zusicherungen je e2e-Datei, vorher und nachher.
+ *
+ * Nur Dateien, die im Diff auftauchen. Existiert eine Datei bei einem der
+ * beiden Staende nicht (neu angelegt oder geloescht), zaehlt dort 0 — eine
+ * geloeschte Datei faengt bereits die Mindestzahl an Browsertests ab.
+ */
+function e2eZusicherungen(punkt, dateien) {
+  return dateien
+    .filter((pfad) => pfad.startsWith('e2e/'))
+    .map((pfad) => {
+      let vorher = 0;
+      try {
+        vorher = zaehleZusicherungen(git('show', `${punkt}:${pfad}`));
+      } catch {
+        vorher = 0; // Datei gab es beim Vergleichspunkt noch nicht.
+      }
+      let nachher = 0;
+      try {
+        nachher = zaehleZusicherungen(readFileSync(pfad, 'utf8'));
+      } catch {
+        nachher = 0; // Datei wurde geloescht.
+      }
+      return { pfad, vorher, nachher };
+    });
+}
+
+/** Der Diff, beschraenkt auf e2e/**, fuer die Abschaltungspruefung. */
+function e2eDiffText(punkt) {
+  return git('diff', punkt, 'HEAD', '--', 'e2e/');
+}
+
 const punkt = vergleichspunkt();
+const dateien = geaenderteDateien(punkt);
 const ergebnis = pruefeSchranken({
-  dateien: geaenderteDateien(punkt),
+  dateien,
   geaenderteZeilen: geaenderteZeilen(punkt),
   browsertests: browsertests(),
   paketVorher: paketStand(punkt),
   paketNachher: paketStand('HEAD'),
+  e2eZusicherungen: e2eZusicherungen(punkt, dateien),
+  e2eDiffText: e2eDiffText(punkt),
 });
 
 if (ergebnis.ok) {

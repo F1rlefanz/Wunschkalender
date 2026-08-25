@@ -206,13 +206,92 @@ export function pruefeSkripte(vorher, nachher) {
 }
 
 /**
+ * Punkt 4a: Die Zahl der Zusicherungen (`expect(`) je Browsertestdatei darf
+ * nicht sinken — sonst laesst sich eine Zusicherung entfernen, ohne dass die
+ * Mindestzahl an Tests (MINDEST_BROWSERTESTS) das bemerkt.
+ *
+ * `eintraege` ist eine Liste aus `{ pfad, vorher, nachher }`, je betroffener
+ * Datei unter `e2e/**`.
+ */
+export function pruefeE2eZusicherungen(eintraege) {
+  const probleme = [];
+  for (const { pfad, vorher, nachher } of eintraege ?? []) {
+    if (nachher < vorher) {
+      probleme.push(
+        `Weniger Zusicherungen in ${pfad}: vorher ${vorher}, jetzt ${nachher}. ` +
+          'Ein Browsertest, der weniger prueft, ist Beweiswert, der leise verschwindet.',
+      );
+    }
+  }
+  return probleme;
+}
+
+/**
+ * Punkt 4b: `src/components/**` und `e2e/**` nicht im selben Pull-Request.
+ *
+ * Wer eine Komponente umbaut und im selben Zug die Tests nachzieht, die sie
+ * bewachen, kann die Bewachung aufheben, ohne dass eine der anderen Schranken
+ * das sieht. So eine Aenderung braucht einen Menschen.
+ */
+export function pruefeKomponentenUndE2eGetrennt(dateien) {
+  const komponenten = (dateien ?? []).some((pfad) => normalisiere(pfad).startsWith('src/components/'));
+  const e2e = (dateien ?? []).some((pfad) => normalisiere(pfad).startsWith('e2e/'));
+  if (komponenten && e2e) {
+    return [
+      'Der Pull-Request fasst gleichzeitig src/components/** und e2e/** an. ' +
+        'Eine Komponente und die Browsertests, die sie bewachen, gehoeren nicht in denselben Routine-Pull-Request.',
+    ];
+  }
+  return [];
+}
+
+/**
+ * Punkt 4c: Neue Laufzeit-Abschaltungen in `e2e/**` sind verboten.
+ *
+ * `diffText` ist ein unified diff, beschraenkt auf Dateien unter `e2e/**`.
+ * Gesucht wird nach hinzugefuegten Zeilen (`+`, nicht `+++`) mit
+ * `test.skip(`, `test.fixme(` oder `test.fail(`. Grund: Ein `test.skip(...)`
+ * im Testkoerper meldet beim Auflisten weiterhin `expectedStatus: "passed"`
+ * und wird von der Mindestzahl (MINDEST_BROWSERTESTS) mitgezaehlt, waehrend
+ * der Test in der CI nichts prueft.
+ */
+export function pruefeE2eAbschaltungen(diffText) {
+  const muster = /\btest\.(skip|fixme|fail)\s*\(/;
+  const gefunden = new Set();
+  for (const zeile of String(diffText ?? '').split('\n')) {
+    if (!zeile.startsWith('+') || zeile.startsWith('+++')) continue;
+    const treffer = zeile.match(muster);
+    if (treffer) gefunden.add(treffer[1]);
+  }
+  if (gefunden.size === 0) return [];
+  const namen = [...gefunden].sort().map((art) => `test.${art}(`);
+  return [
+    `Neue Laufzeit-Abschaltung(en) in e2e/**: ${namen.join(', ')}. ` +
+      'Ein stillgelegter Browsertest zaehlt bei "playwright test --list" weiterhin mit, prueft aber nichts mehr.',
+  ];
+}
+
+/**
  * Prueft einen Pull-Request gegen alle Schranken auf einmal.
  *
  * Meldet ausdruecklich ALLE Verstoesse, nicht nur den ersten: Sonst braucht
  * eine Routine drei Laeufe, um drei Probleme zu erfahren.
  */
-export function pruefeSchranken({ dateien, geaenderteZeilen, browsertests, paketVorher, paketNachher }) {
-  const probleme = [...pruefeSkripte(paketVorher, paketNachher)];
+export function pruefeSchranken({
+  dateien,
+  geaenderteZeilen,
+  browsertests,
+  paketVorher,
+  paketNachher,
+  e2eZusicherungen = [],
+  e2eDiffText = '',
+}) {
+  const probleme = [
+    ...pruefeSkripte(paketVorher, paketNachher),
+    ...pruefeE2eZusicherungen(e2eZusicherungen),
+    ...pruefeKomponentenUndE2eGetrennt(dateien),
+    ...pruefeE2eAbschaltungen(e2eDiffText),
+  ];
 
   const beruehrt = dateien.filter(istGesperrt);
   if (beruehrt.length > 0) {

@@ -7,6 +7,9 @@ import {
   fassungSinkt,
   istGesperrt,
   istRoutineZweig,
+  pruefeE2eAbschaltungen,
+  pruefeE2eZusicherungen,
+  pruefeKomponentenUndE2eGetrennt,
   pruefeSchranken,
   pruefeSkripte,
 } from './routine-schranken.mjs';
@@ -219,6 +222,83 @@ describe('fassungSinkt', () => {
   });
 });
 
+describe('pruefeE2eZusicherungen', () => {
+  it('laesst eine gleichbleibende oder steigende Zahl zu', () => {
+    expect(pruefeE2eZusicherungen([{ pfad: 'e2e/wuensche.spec.ts', vorher: 5, nachher: 5 }])).toEqual([]);
+    expect(pruefeE2eZusicherungen([{ pfad: 'e2e/wuensche.spec.ts', vorher: 5, nachher: 7 }])).toEqual([]);
+  });
+
+  it('meldet eine gesunkene Zahl mit Dateiname', () => {
+    const probleme = pruefeE2eZusicherungen([{ pfad: 'e2e/wuensche.spec.ts', vorher: 5, nachher: 3 }]);
+    expect(probleme).toHaveLength(1);
+    expect(probleme[0]).toContain('e2e/wuensche.spec.ts');
+    expect(probleme[0]).toContain('5');
+    expect(probleme[0]).toContain('3');
+  });
+
+  it('meldet mehrere betroffene Dateien einzeln', () => {
+    const probleme = pruefeE2eZusicherungen([
+      { pfad: 'e2e/a.spec.ts', vorher: 4, nachher: 1 },
+      { pfad: 'e2e/b.spec.ts', vorher: 2, nachher: 2 },
+      { pfad: 'e2e/c.spec.ts', vorher: 3, nachher: 0 },
+    ]);
+    expect(probleme).toHaveLength(2);
+  });
+
+  it('kommt mit einer leeren Liste zurecht', () => {
+    expect(pruefeE2eZusicherungen([])).toEqual([]);
+    expect(pruefeE2eZusicherungen(undefined)).toEqual([]);
+  });
+});
+
+describe('pruefeKomponentenUndE2eGetrennt', () => {
+  it('weist ab, wenn beide Bereiche im selben Pull-Request stehen', () => {
+    const probleme = pruefeKomponentenUndE2eGetrennt(['src/components/Calendar.tsx', 'e2e/wuensche.spec.ts']);
+    expect(probleme).toHaveLength(1);
+  });
+
+  it('laesst Aenderungen nur an Komponenten zu', () => {
+    expect(pruefeKomponentenUndE2eGetrennt(['src/components/Calendar.tsx', 'src/hinweise.ts'])).toEqual([]);
+  });
+
+  it('laesst Aenderungen nur an e2e-Tests zu', () => {
+    expect(pruefeKomponentenUndE2eGetrennt(['e2e/wuensche.spec.ts'])).toEqual([]);
+  });
+
+  it('laesst weder Komponenten noch e2e beruehrt zu', () => {
+    expect(pruefeKomponentenUndE2eGetrennt(['README.md'])).toEqual([]);
+  });
+});
+
+describe('pruefeE2eAbschaltungen', () => {
+  it('meldet ein neu hinzugefuegtes test.skip', () => {
+    const diff = ['diff --git a/e2e/x.spec.ts b/e2e/x.spec.ts', '+test.skip(\'etwas\', async () => {})'].join('\n');
+    const probleme = pruefeE2eAbschaltungen(diff);
+    expect(probleme).toHaveLength(1);
+    expect(probleme[0]).toContain('test.skip(');
+  });
+
+  it('meldet test.fixme und test.fail ebenso', () => {
+    expect(pruefeE2eAbschaltungen("+test.fixme('etwas', async () => {})")[0]).toContain('test.fixme(');
+    expect(pruefeE2eAbschaltungen("+test.fail('etwas', async () => {})")[0]).toContain('test.fail(');
+  });
+
+  it('ignoriert entfernte Zeilen und Kontext', () => {
+    const diff = ["-test.skip('etwas', async () => {})", " test.skip('anderes', async () => {})"].join('\n');
+    expect(pruefeE2eAbschaltungen(diff)).toEqual([]);
+  });
+
+  it('ignoriert die Dateikopfzeilen des Diffs (+++/---)', () => {
+    const diff = '+++ b/e2e/x.spec.ts';
+    expect(pruefeE2eAbschaltungen(diff)).toEqual([]);
+  });
+
+  it('kommt mit leerem Diff zurecht', () => {
+    expect(pruefeE2eAbschaltungen('')).toEqual([]);
+    expect(pruefeE2eAbschaltungen(undefined)).toEqual([]);
+  });
+});
+
 describe('pruefeSchranken', () => {
   it('laesst einen unauffaelligen Pull-Request durch', () => {
     expect(pruefeSchranken(sauber)).toEqual({ ok: true, probleme: [] });
@@ -275,6 +355,32 @@ describe('pruefeSchranken', () => {
     expect(MAX_GEAENDERTE_ZEILEN).toBe(400);
     expect(MINDEST_BROWSERTESTS).toBe(20);
     expect(GESPERRTE_PFADE.length).toBeGreaterThan(10);
+  });
+
+  it('bindet die e2e-Zusicherungspruefung ein', () => {
+    const ergebnis = pruefeSchranken({
+      ...sauber,
+      e2eZusicherungen: [{ pfad: 'e2e/wuensche.spec.ts', vorher: 5, nachher: 2 }],
+    });
+    expect(ergebnis.ok).toBe(false);
+    expect(ergebnis.probleme[0]).toContain('e2e/wuensche.spec.ts');
+  });
+
+  it('bindet die Trennung von Komponenten und e2e-Tests ein', () => {
+    const ergebnis = pruefeSchranken({
+      ...sauber,
+      dateien: ['src/components/Calendar.tsx', 'e2e/wuensche.spec.ts'],
+    });
+    expect(ergebnis.ok).toBe(false);
+  });
+
+  it('bindet die Pruefung auf neue e2e-Abschaltungen ein', () => {
+    const ergebnis = pruefeSchranken({
+      ...sauber,
+      e2eDiffText: "+test.skip('etwas', async () => {})",
+    });
+    expect(ergebnis.ok).toBe(false);
+    expect(ergebnis.probleme[0]).toContain('test.skip(');
   });
 });
 
