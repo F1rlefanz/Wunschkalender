@@ -98,15 +98,18 @@ function browsertests() {
 /**
  * `package.json` in beiden Staenden, als geparste Objekte.
  *
- * Fehlt die Datei in einem der beiden Staende oder ist sie unlesbar, gibt es
- * `null` — `pruefeSkripte` meldet dann nichts, statt an einer Ausnahme zu
- * scheitern.
+ * Anders als eine fehlende Datei ist ein unlesbares `package.json` (kaputtes
+ * JSON, ein `git show`, das fehlschlaegt) kein harmloser Fall — das darf
+ * nicht still als "nichts zu melden" durchgehen. Deshalb wird hier laut
+ * abgebrochen statt `null` zurueckzugeben, an das `pruefeSkripte` sich mit
+ * "nichts zu melden" haelt.
  */
 function paketStand(quelle) {
   try {
     return JSON.parse(quelle === 'HEAD' ? readFileSync('package.json', 'utf8') : git('show', `${quelle}:package.json`));
-  } catch {
-    return null;
+  } catch (fehler) {
+    console.error(`package.json bei ${quelle} nicht lesbar: ${fehler.message}`);
+    process.exit(1);
   }
 }
 
