@@ -242,7 +242,11 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
   return (
     <div className="max-w-7xl mx-auto p-raum2 sm:p-raum5">
       {/* Monatskopf */}
-      <div className="flex items-center justify-between gap-raum2 mb-raum5 bg-flaeche p-raum3 rounded-lg shadow-sm border border-rand">
+      <div
+        data-testid="monatskopf"
+        data-monat={currentMonthStr}
+        className="flex items-center justify-between gap-raum2 mb-raum5 bg-flaeche p-raum3 rounded-lg shadow-sm border border-rand"
+      >
         <button
           type="button"
           onClick={prevMonth}
@@ -411,6 +415,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
               </label>
               <textarea
                 id="eigener-hinweis"
+                data-testid="monatshinweis"
                 className="w-full rounded-sm border border-rand-stark bg-flaeche p-raum3 text-basis disabled:bg-flaeche-leise disabled:text-leise disabled:cursor-not-allowed"
                 rows={2}
                 value={localMonthlyComment}
@@ -429,7 +434,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
       {/* Rasteransicht */}
       {viewType === 'grid' && (
-        <div className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
+        <div data-testid="ansicht" className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
           <div className="grid grid-cols-7 border-b border-rand bg-flaeche-leise">
             {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((d) => (
               <div
@@ -472,6 +477,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
               return (
                 <div
                   key={day}
+                  data-testid={`tag-${dateStr}`}
                   className={`group relative min-h-[76px] sm:min-h-[120px] border-b border-r border-rand transition-colors ${
                     isSelected ? 'bg-marke-leise z-10' : ''
                   }`}
@@ -575,7 +581,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
       {/* Tagesliste */}
       {viewType === 'list' && (
-        <div className="space-y-raum4">
+        <div data-testid="ansicht" className="space-y-raum4">
           {days.map((day) => {
             const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const dayWishes = wishesByDate.get(dateStr) || [];
@@ -689,7 +695,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
 
       {/* Mitarbeiter-Matrix */}
       {viewType === 'matrix' && (
-        <div className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
+        <div data-testid="ansicht" className="bg-flaeche rounded-lg shadow-sm border border-rand overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-raum3 border-b border-rand bg-flaeche-leise p-raum4">
             <div>
               <h2 className="font-ueberschrift font-semibold">Mitarbeiter-Wunschmatrix</h2>

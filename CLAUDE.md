@@ -80,8 +80,8 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   **Dass der laufende Monat gesperrt ist, folgt daraus** (#33): Sein Stichtag
   liegt Wochen zurueck; eine eigene Klausel dafuer gibt es nicht mehr. **Server
   und Oberflaeche benutzen dieselbe Funktion**; zwei Fassungen waeren ein Fehler.
-  Wer die Sperre erweitert, prueft die Oberflaeche mit: Loeschknoepfe und das
-  Hinweisfeld muessen verschwinden, sonst laufen sie in einen 403.
+  Wer die Sperre erweitert, prueft die Oberflaeche mit: Loeschknoepfe verschwinden,
+  das Hinweisfeld wird gesperrt - beides verhindert einen 403.
 - `tools/` — Sessionstart- und Schleusen-Skript (in `.claude/settings.json` als Hooks).
 
 ## Fallstricke
