@@ -19,11 +19,20 @@
  * Exit 0 = durchlassen, Exit 1 = abweisen.
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { istRoutineZweig, pruefeSchranken } from './routine-schranken.mjs';
 
 const basis = process.argv[2] ?? 'origin/main';
 const zweigname = process.argv[3] ?? '';
+
+// Fehlt der Zweigname ausgerechnet bei einem echten Pull-Request, ist das ein
+// Fehler in der CI-Konfiguration (etwa eine verlorene Zeile in ci.yml), kein
+// harmloses "kein Routine-Zweig" — sonst haengt die ganze Schranke lautlos
+// daran, dass `${{ github.head_ref }}` weiterhin ankommt.
+if (process.env.GITHUB_EVENT_NAME === 'pull_request' && zweigname.trim() === '') {
+  console.error('GITHUB_EVENT_NAME ist "pull_request", aber der Zweigname fehlt. Das ist ein Fehler in der CI-Konfiguration, kein "kein Routine-Zweig".');
+  process.exit(1);
+}
 
 if (!istRoutineZweig(zweigname)) {
   console.log(`Kein Routine-Zweig ("${zweigname}"), Schranken gelten nicht.`);
@@ -118,29 +127,34 @@ function zaehleZusicherungen(inhalt) {
   return (inhalt.match(/expect\(/g) ?? []).length;
 }
 
+/** Existiert `pfad` bei Commit `punkt`? Reiner Existenz-Check, kein Inhalt. */
+function existiertBeiCommit(punkt, pfad) {
+  try {
+    execFileSync('git', ['cat-file', '-e', `${punkt}:${pfad}`], { stdio: ['ignore', 'ignore', 'ignore'] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Zusicherungen je e2e-Datei, vorher und nachher.
  *
- * Nur Dateien, die im Diff auftauchen. Existiert eine Datei bei einem der
- * beiden Staende nicht (neu angelegt oder geloescht), zaehlt dort 0 — eine
- * geloeschte Datei faengt bereits die Mindestzahl an Browsertests ab.
+ * Nur Dateien, die im Diff auftauchen. "Existiert die Datei nicht" ist die
+ * EINZIGE Bedingung, unter der eine Seite als 0 zaehlt (neu angelegt bzw.
+ * geloescht — eine geloeschte Datei faengt ohnehin schon die Mindestzahl an
+ * Browsertests ab). Existiert die Datei, aber ihr Inhalt laesst sich aus
+ * einem anderen Grund nicht lesen (kaputtes `git show`, ein Dateisystemfehler),
+ * wird NICHT stillschweigend 0 angenommen — das waere dieselbe permissive
+ * Luecke, die paketStand oben schon vermeidet. Stattdessen bricht der Fehler
+ * ungefangen durch und beendet den Prozess laut.
  */
 function e2eZusicherungen(punkt, dateien) {
   return dateien
     .filter((pfad) => pfad.startsWith('e2e/'))
     .map((pfad) => {
-      let vorher = 0;
-      try {
-        vorher = zaehleZusicherungen(git('show', `${punkt}:${pfad}`));
-      } catch {
-        vorher = 0; // Datei gab es beim Vergleichspunkt noch nicht.
-      }
-      let nachher = 0;
-      try {
-        nachher = zaehleZusicherungen(readFileSync(pfad, 'utf8'));
-      } catch {
-        nachher = 0; // Datei wurde geloescht.
-      }
+      const vorher = existiertBeiCommit(punkt, pfad) ? zaehleZusicherungen(git('show', `${punkt}:${pfad}`)) : 0;
+      const nachher = existsSync(pfad) ? zaehleZusicherungen(readFileSync(pfad, 'utf8')) : 0;
       return { pfad, vorher, nachher };
     });
 }

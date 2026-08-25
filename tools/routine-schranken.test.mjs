@@ -331,8 +331,11 @@ describe('pruefeE2eAbschaltungen', () => {
     expect(pruefeE2eAbschaltungen(diff)).toEqual([]);
   });
 
-  it('ignoriert die Dateikopfzeilen des Diffs (+++/---)', () => {
-    const diff = '+++ b/e2e/x.spec.ts';
+  it('ignoriert die Dateikopfzeilen des Diffs (+++/---), auch wenn der Dateiname wie ein Treffer aussieht', () => {
+    // Ohne die +++-Ausnahme wuerde diese Kopfzeile selbst als Treffer zaehlen
+    // (das Muster "test.skip(" steckt im Dateinamen) - der Test waere sonst
+    // auch dann gruen, wenn die Ausnahme geloescht wuerde.
+    const diff = '+++ b/e2e/test.skip(legacy).spec.ts';
     expect(pruefeE2eAbschaltungen(diff)).toEqual([]);
   });
 

@@ -101,6 +101,16 @@ Mehrere Regeln und eine Liste gesperrter Pfade:
   Verstoss, weil ein solcher Test bei `playwright test --list` weiterhin als
   `expectedStatus: "passed"` zaehlt, in der CI aber nichts mehr prueft — die
   Mindestzahl an Browsertests wuerde das allein nicht sehen.
+
+  **Was die `expect(`-Zaehlung NICHT leistet, ehrlich gesagt:** Sie faengt
+  das Entfernen einer Zusicherung und das Loeschen einer ganzen Datei. Sie
+  faengt NICHT das Aufweichen — `toBeVisible()` statt `toContainText('Frueh')`
+  haelt die Zahl konstant, waehrend der Beweiswert auf null faellt — und sie
+  laesst sich mit einem auskommentierten `// expect(` auffuellen. Der
+  eigentliche Schutz von Punkt 4 liegt in der **Trennregel** (Komponenten und
+  `e2e/**` nicht im selben Pull-Request) und im Abschaltverbot, nicht in
+  dieser Zahl. Wer das nicht weiss, haelt die Zaehlung fuer mehr, als sie ist,
+  und hoert auf hinzusehen — deshalb steht es hier.
 - **Gesperrte Pfade.** Keine erzeugende Routine darf diese Pfade beruehren.
   Bei jedem der Grund:
   - `.github/` (nicht nur `.github/workflows/`) — der Auftrag, der die
