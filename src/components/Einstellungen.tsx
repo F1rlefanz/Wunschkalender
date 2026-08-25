@@ -15,7 +15,7 @@ interface EinstellungenProps {
  *
  * Der Stichtag eines *einzelnen* Monats steht bewusst nicht hier, sondern im
  * Kopf des jeweiligen Monats im Kalender: Dort ist der gemeinte Monat der, den
- * man gerade ansieht — hier waere er ein Eintrag in einer Liste (#36).
+ * man gerade ansieht — hier waere er ein Eintrag in einer Liste.
  */
 export function Einstellungen({ settings }: EinstellungenProps) {
   const [eingabe, setEingabe] = useState('');

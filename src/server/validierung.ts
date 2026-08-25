@@ -125,7 +125,7 @@ export const monatshinweisSchema = z.strictObject({
 
 /**
  * Zwei Faelle mit *Zeichenketten* als Unterscheidungsmerkmal, nicht mit
- * `ok: true | false`: Solange `strictNullChecks` aus ist (Issue #19), grenzt
+ * `ok: true | false`: Solange `strictNullChecks` aus ist (Issue #5), grenzt
  * TypeScript eine Union ueber ein Boolean-Literal nicht ein — `eingabe.fehler`
  * waere dann ein Typfehler, obwohl der Fall geprueft ist.
  */

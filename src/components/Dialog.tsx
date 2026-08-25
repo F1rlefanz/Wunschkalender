@@ -13,7 +13,7 @@ interface DialogProps {
 }
 
 /**
- * Ein Dialog auf Grundlage des nativen `<dialog>`-Elements (#16, #17).
+ * Ein Dialog auf Grundlage des nativen `<dialog>`-Elements.
  *
  * `showModal()` bringt mit, was ein selbstgebauter Kasten aus `fixed inset-0`
  * erst nachbauen muesste: Der Fokus bleibt gefangen, Escape schliesst, der

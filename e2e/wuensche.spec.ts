@@ -4,7 +4,7 @@ import { anmelden, DEZEMBER, JANUAR_DANACH, KONTEN, OFFENER_MONAT, raeumeWunschA
 /**
  * Ein Tag ist in der Rasteransicht kein einzelner Knopf, sondern eine Zelle
  * mit mehreren Knoepfen darin: der (immer vorhandene) Auswahl-Umschalter
- * liegt als `absolute inset-0` HINTER dem Inhalt (#16), damit Wunschzettel
+ * liegt als `absolute inset-0` HINTER dem Inhalt, damit Wunschzettel
  * und der "ansehen"-Knopf eigene Knoepfe bleiben. Playwright klickt eine
  * Zielflaeche standardmaessig in ihrer Mitte — die liegt bei einem Tag mit
  * schon vorhandenen Wuenschen genau auf diesen oben liegenden Knoepfen, die
@@ -48,7 +48,7 @@ test('ein Wunsch laesst sich setzen und wieder entfernen', async ({ page }) => {
   await expect(page.getByTestId(`tag-${datum}`)).toContainText('Früh');
 
   // Loeschen laeuft ueber den "ansehen"-Dialog: In der Zelle selbst haengt
-  // der Loeschen-Knopf am Hover-Zustand (#15) und ist damit fuer Playwright
+  // der Loeschen-Knopf am Hover-Zustand und ist damit fuer Playwright
   // ohne echte Zeigerbewegung ein unzuverlaessiger Weg.
   await page.getByTestId(`tag-${datum}`).getByRole('button', { name: /ansehen/i }).click();
   // Es gibt zwei "löschen"-Knoepfe zu diesem Wunsch: den (versteckt hinter

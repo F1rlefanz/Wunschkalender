@@ -1,7 +1,7 @@
 # Betrieb: Hosting, Erreichbarkeit und Sicherung
 
 Entscheidungsvorlage fuer die Krankenhaus-IT. Stand: 2026-08-20.
-Zugehoeriges Issue: [#30](https://github.com/F1rlefanz/Wunschkalender/issues/30).
+Zugehoeriges Issue: [#8](https://github.com/F1rlefanz/Wunschkalender/issues/8).
 
 Dieses Dokument haelt fest, was die Anwendung fuer den Betrieb braucht, welche
 Entscheidung ansteht und was danach einzutragen ist. Die Entscheidung selbst
@@ -55,7 +55,7 @@ Zertifikat.
 2. **Ansprechpartner:** Wer in der IT betreut die Anwendung — Name, Erreichbarkeit?
 3. **Adresse:** Unter welchem Namen ist die Anwendung erreichbar? Die Adresse
    muss feststehen, bevor die Anmeldung ueber ein Microsoft-Dienstkonto
-   eingerichtet werden kann (Rueckleit-Adresse, Issue #29).
+   eingerichtet werden kann (Rueckleit-Adresse, Issue #6).
 4. **Reverse Proxy:** Wie viele Proxys stehen vor der Anwendung? Die Zahl wird
    gebraucht, nicht nur das "ja" (siehe `VERTRAUE_PROXY` unten).
 5. **Zertifikat:** Wer stellt es aus, wer erneuert es?

@@ -77,7 +77,7 @@ if (basis.ok && basis.ausgabe.trim()) {
     if (existsSync('CHANGELOG.md')) {
       // Gefragt ist nicht "steht etwas unter [Unreleased]", sondern "kam zu diesen
       // Commits ein Eintrag hinzu". Sonst blockiert das Datieren einer Version den
-      // eigenen Push: Es leert genau den Abschnitt, den die Pruefung ansah (#34).
+      // eigenen Push: Es leert genau den Abschnitt, den die Pruefung ansah.
       const changelogBasis = lauf(`git show ${basisHash}:CHANGELOG.md`);
       const neueEintraege = neueChangelogEintraege(
         changelogBasis.ok ? changelogBasis.ausgabe : null,

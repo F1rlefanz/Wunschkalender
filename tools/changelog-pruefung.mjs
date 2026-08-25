@@ -4,7 +4,7 @@
  * Die frueher gestellte Frage war „steht etwas unter `## [Unreleased]`?" — die ist
  * falsch, sobald eine Version datiert wird: Dann wandern genau diese Eintraege unter
  * eine Ueberschrift wie `## [0.4.0] – 2026-08-20` und `[Unreleased]` bleibt leer
- * zurueck (Issue #34). Was zaehlt, ist ein Eintrag **zu diesen Commits**, nicht die
+ * zurueck. Was zaehlt, ist ein Eintrag **zu diesen Commits**, nicht die
  * Ueberschrift darueber. Deshalb wird der Changelog gegen den Stand der
  * Vergleichsbasis gehalten: Was dort noch nicht stand, ist neu.
  */

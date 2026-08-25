@@ -56,7 +56,7 @@ Zugang.
 - Nichts Wichtiges darf nur per `hover` erreichbar sein — Touchgeraete haben kein Hover.
   Wo ein Knopf sich bei Zeigergeraeten zurueckhalten soll, gibt es `beim-zeigen`: Die Klasse
   blendet ihn **nur** unter `(hover: hover)` aus und holt ihn beim Tastaturfokus zurueck.
-  Ein nacktes `opacity-0 group-hover:opacity-100` ist der Fehler, den #15 behoben hat.
+  Ein nacktes `opacity-0 group-hover:opacity-100` ist der Fehler, den `beim-zeigen` behoben hat.
 - Genug Abstand zwischen benachbarten Zielen, damit im Kalenderraster nicht der falsche Tag
   getroffen wird.
 
@@ -87,7 +87,7 @@ Eine Aenderung an der Oberflaeche gilt erst als fertig, wenn sie diese nicht bri
   Server nicht erreichbar ist — kein weisser Bildschirm.
 - `viewport-fit` und sichere Bereiche (Notch, Gestenleiste) beruecksichtigt.
 - **Startgewicht im Blick behalten.** Der Hauptbundle liegt bei ~301 kB; der PDF-Export
-  (`jspdf` und `html2canvas`, zusammen mehr als der Rest der Anwendung) wird seit #14 erst
+  (`jspdf` und `html2canvas`, zusammen mehr als der Rest der Anwendung) wird erst
   beim Klick nachgeladen. Solche Pfade gehoeren hinter ein `import()`, nicht in den
   Erststart auf dem Mobilfunknetz.
 

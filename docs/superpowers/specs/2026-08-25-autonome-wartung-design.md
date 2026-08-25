@@ -33,7 +33,7 @@ kompiliert.
 Deshalb: erst das Netz, dann die Routinen.
 
 Ein Umstand macht den Versuch gerade jetzt billig: Die Anwendung laeuft nirgends
-produktiv (Hosting offen, Issue #30). Ein fehlerhafter Merge trifft derzeit
+produktiv (Hosting offen, Issue #8). Ein fehlerhafter Merge trifft derzeit
 `main`, nicht die Station.
 
 ## Aufbau
@@ -254,7 +254,7 @@ Baustelle offen ist.
   deterministische Schritte).
 - Taeglicher Betrieb aller Routinen. Ein Repo dieser Groesse hat nicht jeden Tag
   etwas zu finden; leere Laeufe kosten trotzdem.
-- Selbstaendiges Ausrollen. Solange Issue #30 offen ist, endet Autonomie bei
+- Selbstaendiges Ausrollen. Solange Issue #8 offen ist, endet Autonomie bei
   `main`.
 
 ## Offene Punkte fuer den Umsetzungsplan

@@ -7,7 +7,7 @@ und exportiert den Monat als PDF fuer die Dienstplanung.
 Die Anwendung ist ein **Kommunikationsmittel, keine Regeldurchsetzung**: Sie sammelt
 Wuensche und stellt sie lesbar dar. Wer wie viele Wuensche hat und wie sie verrechnet
 werden, entscheidet die Stationsleitung beim Schreiben des Plans. Bewertende Merkmale
-— „zu viele Frei-Wuensche an diesem Tag" — gehoeren deshalb nicht hinein (#4).
+— „zu viele Frei-Wuensche an diesem Tag" — gehoeren deshalb nicht hinein.
 
 Zwei Rollen, im Code `'Employee'` und `'Manager'`: Mitarbeitende sehen nur die eigenen
 Wuensche, die Leitung sieht alle und verwaltet Benutzer.
@@ -19,7 +19,7 @@ Wuensche, die Leitung sieht alle und verwaltet Benutzer.
 | Was ist offen und warum? | **GitHub Issues** (`gh issue list`) — nicht in Dateien im Repo |
 | Was hat sich fuer Nutzer geaendert? | `CHANGELOG.md` |
 | Wie funktioniert die Codebasis? | diese Datei |
-| Wo laeuft das, wer sichert? | `docs/betrieb.md` (Vorlage fuer die IT, Issue #30) |
+| Wo laeuft das, wer sichert? | `docs/betrieb.md` (Vorlage fuer die IT, Issue #8) |
 | Wie sieht es aus, und warum so? | `docs/gestaltung.md` |
 | Wie wird hier gearbeitet? | `.claude/skills/` |
 | Was duerfen autonome Routinen? | `docs/routinen.md` |
@@ -55,7 +55,7 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   vier Wege; ein fuenfter passt auf 360 px nicht mehr ohne Umbau — mit Zielen von 44 px weicht dort
   bereits der Kalender-Weg, weil das Markenzeichen daneben dasselbe tut. `Calendar` haelt drei Ansichten
   in einer Datei (`viewType`: `'grid' | 'list' | 'matrix'`); wer dort etwas aendert, prueft alle drei.
-- `src/index.css` — die Gestaltungsgrundlage (#21): Farbrollen, fluide Skalen,
+- `src/index.css` — die Gestaltungsgrundlage: Farbrollen, fluide Skalen,
   Radien. **Die einzige Stelle mit Farbwerten**; Komponenten sprechen Rollen an
   (`bg-flaeche`, `text-leise`), nie `slate-`/`blue-`. `src/gestaltung.test.ts`
   rechnet die Kontraste bei jedem `npm test` nach. Wer eine neue Farbkombination
@@ -65,7 +65,7 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   nativen `<dialog>`: Fokusfalle, Escape und Fokusrueckgabe kommen vom Browser.
   Jeder neue Dialog benutzt das; ein eigener `fixed inset-0`-Kasten ist ein
   Rueckschritt. `src/meldungen.tsx` traegt die nicht blockierenden
-  Rueckmeldungen (`useMeldung()`); `alert`/`confirm`/`prompt` sind verboten (#17).
+  Rueckmeldungen (`useMeldung()`); `alert`/`confirm`/`prompt` sind verboten.
 - `src/types.ts` — gemeinsame Typen fuer Client und Server.
 - `src/hinweise.ts` — welche Monatshinweise unter der Ueberschrift eines Monats
   stehen und wann ein eintreffendes Socket-Ereignis ein Eingabefeld ueberschreiben
@@ -77,8 +77,8 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   hat, oder den automatischen Vorschlag `Monatsanfang minus Vorlauf` (Vorgabe 56
   Tage). Offen ist ein Monat **bis einschliesslich** seinem Stichtag. Ein
   gesetzter Stichtag wird vom Vorschlag **nie** ueberschrieben, auch nicht bei
-  geaendertem Vorlauf (#36) — er ist Rueckfallebene, keine laufende Korrektur.
-  **Dass der laufende Monat gesperrt ist, folgt daraus** (#33): Sein Stichtag
+  geaendertem Vorlauf — er ist Rueckfallebene, keine laufende Korrektur.
+  **Dass der laufende Monat gesperrt ist, folgt daraus**: Sein Stichtag
   liegt Wochen zurueck; eine eigene Klausel dafuer gibt es nicht mehr. **Server
   und Oberflaeche benutzen dieselbe Funktion**; zwei Fassungen waeren ein Fehler.
   Wer die Sperre erweitert, prueft die Oberflaeche mit: Loeschknoepfe verschwinden,
@@ -118,15 +118,15 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   Plaene liegen auf der Station in einem offenen Hefter; die App strenger zu machen als
   das Papier loest kein Problem. Dass die Rasteransicht fuer Mitarbeitende nur die eigenen
   Eintraege zeigt, ist **Uebersichtlichkeit beim Eintragen**, keine Sicherheitsmassnahme.
-  Wer daran etwas aendert, aendert Bedienkomfort. Spaetere Anonymisierung: Issue #31.
+  Wer daran etwas aendert, aendert Bedienkomfort. Spaetere Anonymisierung: Issue #9.
 - **Eine geloeschte Person ist weg, samt Wuenschen und Hinweisen.** Das haelt das
   Datenbankschema selbst ein (`ON DELETE CASCADE`), nicht Aufraeumcode im Endpunkt.
-  Deaktivieren statt Loeschen wurde geprueft und verworfen (Issue #5): Vergangene
+  Deaktivieren statt Loeschen wurde geprueft und verworfen: Vergangene
   Monate zeigen dann Luecken statt Namen — das ist entschieden, kein Versehen.
 - **Eine Schemaaenderung ist ein neuer Schritt, kein neues `CREATE TABLE`.**
   `src/server/database.ts` fuehrt eine durchnummerierte Liste `SCHEMA_SCHRITTE`;
   `PRAGMA user_version` haelt fest, wie weit eine Datenbank ist, und jeder fehlende
-  Schritt laeuft beim Start in **einer** Transaktion (#32). Wer eine Spalte braucht,
+  Schritt laeuft beim Start in **einer** Transaktion. Wer eine Spalte braucht,
   haengt einen Schritt mit der naechsten Nummer an und ruehrt die bestehenden nicht
   mehr an — die sind draussen schon gelaufen. Das Grundschema im ersten Schritt
   mitzuaendern erreicht nur frische Datenbanken.
@@ -135,13 +135,13 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   bekommen. Eine eingestreute Farbe (`bg-white`, `text-slate-700`) bricht ihn still —
   sichtbar wird das erst nachts auf dem Telefon. Deshalb: neue Rolle anlegen statt
   Wert einstreuen.
-- **Der Erststart wiegt ~301 kB** (gzip ~90 kB). Der PDF-Export liegt seit #14 in
+- **Der Erststart wiegt ~301 kB** (gzip ~90 kB). Der PDF-Export liegt in
   `src/pdf.ts` und wird per `import()` erst beim Klick nachgeladen — `jspdf` und
   `html2canvas` (zusammen ~625 kB) zahlt so nur, wer exportiert. `src/pdf.ts` ist die
   einzige Stelle mit einem `jspdf`-Import; ein statischer Import von dort holt beides
   zurueck in den Erststart. Neue schwere Abhaengigkeiten gehoeren ebenso hinter ein
   `import()`.
 - **`tsconfig` ist nicht `strict`.** Fehlende Typen fallen erst spaet auf. An der API-Grenze
-  (`src/api/client.ts`) steht bewusst noch `any` — das ist Schuld, kein Vorbild (Issue #19).
+  (`src/api/client.ts`) steht bewusst noch `any` — das ist Schuld, kein Vorbild (Issue #5).
   Ohne `strictNullChecks` grenzt TypeScript ausserdem eine Union ueber ein Boolean-Feld nicht
   ein; Ergebnistypen unterscheiden ihre Faelle deshalb ueber Zeichenketten (`art: 'gut'`).

@@ -41,7 +41,7 @@ describe('Automatischer Vorschlag', () => {
 
   test('sperrt den laufenden Monat und alles davor von selbst', () => {
     // Kein Sonderfall mehr, sondern Folge der Regel: Der Stichtag des laufenden
-    // Monats liegt immer Wochen in der Vergangenheit (#33).
+    // Monats liegt immer Wochen in der Vergangenheit.
     const jetzt = berlinerZeit('2026-08-21T12:00:00+02:00');
     expect(gesperrt('2026-08', jetzt)).toBe(true);
     expect(gesperrt('2026-07', jetzt)).toBe(true);

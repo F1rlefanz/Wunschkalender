@@ -45,7 +45,7 @@ export interface Settings {
   vorlaufTage: number;
   /**
    * Ausdruecklich gesetzte Stichtage, `YYYY-MM` auf `YYYY-MM-DD`. Sie schlagen
-   * den Vorschlag und werden von ihm nie ueberschrieben (#36).
+   * den Vorschlag und werden von ihm nie ueberschrieben.
    */
   stichtage: Record<string, string>;
 }

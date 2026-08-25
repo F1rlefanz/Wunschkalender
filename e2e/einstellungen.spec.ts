@@ -13,7 +13,7 @@ import { anmelden, KONTEN, raeumeStichtagAuf, STICHTAG_MONAT, zumMonat } from '.
  * Zwei Browserkontexte wie in echtzeit.spec.ts: Die Leitung setzt den
  * Stichtag im Kalenderkopf (nicht in Einstellungen.tsx — dort steht nur der
  * globale Vorlauf, der Stichtag eines einzelnen Monats sitzt bewusst im
- * Monatskopf, #36). Eine zweite, angemeldete Person bekommt die Wirkung OHNE
+ * Monatskopf). Eine zweite, angemeldete Person bekommt die Wirkung OHNE
  * Neuladen zu sehen — das belegt sowohl den REST-Weg als auch das
  * `settings_updated`-Ereignis.
  */
@@ -51,7 +51,7 @@ test('ein von der Leitung gesetzter Stichtag sperrt und entsperrt den Monat live
 
   // Ohne Neuladen bei der Mitarbeiterin: Das Hinweisfeld wird gesperrt.
   await expect(mitarbeitSeite.getByTestId('monatshinweis')).toBeDisabled({ timeout: 5000 });
-  // Die Leitung selbst bleibt ausgenommen (#33) — bedienbar trotz Sperre.
+  // Die Leitung selbst bleibt ausgenommen — bedienbar trotz Sperre.
   await expect(leitungSeite.getByTestId('monatshinweis')).toBeEnabled();
 
   // Die Leitung nimmt den gesetzten Stichtag zurueck — zurueck zur Automatik.

@@ -10,7 +10,7 @@ export const STATIONS_ZEITZONE = 'Europe/Berlin';
 /**
  * Vorlauf des automatischen Vorschlags in Tagen: acht Wochen. Der Wunschplan
  * einer Station liegt Wochen im Voraus aus — der November wird Ende August
- * geschrieben, nicht Ende Oktober (#36).
+ * geschrieben, nicht Ende Oktober.
  */
 export const VORGABE_VORLAUF_TAGE = 56;
 
@@ -129,12 +129,12 @@ export function automatischerStichtag(monat: string, vorlaufTage = VORGABE_VORLA
  *
  * - Ein ausdruecklich gesetzter Stichtag gilt und wird vom Vorschlag **nie**
  *   ueberschrieben, auch nicht, wenn sich der Vorlauf spaeter aendert. Der
- *   Vorschlag ist eine Rueckfallebene, keine laufende Korrektur (#36).
+ *   Vorschlag ist eine Rueckfallebene, keine laufende Korrektur.
  * - Sonst gilt der automatische Vorschlag: Monatsanfang minus Vorlauf.
  * - Offen ist ein Monat **bis einschliesslich** seinem Stichtag. "Wuensche
  *   eintragen bis 06.09." heisst auf der Station, dass der 06.09. mitzaehlt.
  * - Dass der laufende Monat und alles davor gesperrt sind, folgt daraus von
- *   selbst: Deren Stichtag liegt immer Wochen in der Vergangenheit (#33).
+ *   selbst: Deren Stichtag liegt immer Wochen in der Vergangenheit.
  * - Die Leitung ist nie gesperrt; sie plant. Den Stichtag bekommt sie trotzdem
  *   genannt — sonst kann sie den Termin nicht ankuendigen.
  * - Ein unlesbarer Monat wird gesperrt, nicht durchgelassen: Im Zweifel lieber
