@@ -48,6 +48,8 @@ async function startServer() {
     console.log(`Sitzungsgeheimnis erzeugt und abgelegt unter ${SECRET_FILE}.`);
   }
 
+  // Wie die Anwendung erreichbar ist, sagt der Betrieb ueber die Umgebung —
+  // die Vorgabe ist kein Proxy und kein HSTS. Siehe docs/betrieb.md.
   const betrieb = leseBetriebsmodus(process.env);
   if (betrieb.warnung) console.warn(`WARNUNG: ${betrieb.warnung}`);
 

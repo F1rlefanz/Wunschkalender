@@ -21,9 +21,6 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
-### Geändert
-- Interner Umbau des Serverstarts (keine sichtbare Auswirkung): Die Anwendung laesst sich jetzt automatisiert pruefen, ohne einen echten Server zu starten.
-
 ## [0.11.0] – 2026-08-21
 
 ### Geändert
