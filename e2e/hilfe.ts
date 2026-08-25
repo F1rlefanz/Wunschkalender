@@ -45,6 +45,24 @@ export const DEZEMBER = monatVonIndex(dezemberIndex);
 export const JANUAR_DANACH = monatVonIndex(dezemberIndex + 1);
 
 /**
+ * Eigener Monat fuer den Stichtag-Test (Aufgabe 7): Muss sich von allen
+ * anderen hier berechneten Monaten unterscheiden, sonst beeinflusst der Test
+ * ueber die gemeinsame Testdatenbank die anderen. Die Kandidaten 5–9 Monate
+ * nach heute sind weit genug von OFFENER_MONAT (+2) und GESPERRTER_MONAT (-1)
+ * entfernt; DEZEMBER/JANUAR_DANACH wandern mit dem Kalenderjahr, deshalb der
+ * erste Kandidat, der mit keinem der vier kollidiert.
+ */
+const VERGEBENE_INDIZES = new Set([
+  heuteIndex + 2,
+  heuteIndex - 1,
+  dezemberIndex,
+  dezemberIndex + 1,
+]);
+const stichtagIndex = [5, 6, 7, 8, 9].map((offset) => heuteIndex + offset).find((i) => !VERGEBENE_INDIZES.has(i))!;
+/** Eigens fuer den Stichtag-Test — von keiner anderen Testdatei benutzt. */
+export const STICHTAG_MONAT = monatVonIndex(stichtagIndex);
+
+/**
  * Loescht eine Person mit diesem Namen ueber die REST-API, falls sie existiert
  * — noetig, weil Server und Testdatenbank fuer den ganzen Browserlauf geteilt
  * werden und `retries: 1` (CI) einen fehlgeschlagenen Test sonst mit bereits
