@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import request from 'supertest';
+import { sign } from 'cookie-signature';
 import { anmelden, erzeugeTestumgebung, PASSWORT, type Testumgebung } from './testhilfe';
+
+const SITZUNGSGEHEIMNIS = 'geheimnis-nur-fuer-tests';
+
+/** Baut ein Sitzungscookie mit einer selbst gewaehlten Kennung, so wie ein
+ *  Angreifer es bei einer Session-Fixation-Attacke der Zielperson unterschieben
+ *  wuerde — signiert mit demselben Geheimnis wie die Testumgebung. */
+function faelscheCookie(sid: string): string {
+  const signiert = 's:' + sign(sid, SITZUNGSGEHEIMNIS);
+  return `wunschkalender.sid=${encodeURIComponent(signiert)}`;
+}
 
 let u: Testumgebung;
 
@@ -53,22 +64,41 @@ test('unbekannte Felder im Koerper weist das Schema ab', async () => {
   expect(antwort.status).toBe(400);
 });
 
-test('eine gefaelschte Sitzungskennung oeffnet nichts', async () => {
-  // Gegen Session-Fixation: `regenerate` vergibt bei der Anmeldung eine neue,
-  // signierte Kennung. Eine veraenderte faellt an der Signatur durch.
-  const agent = request.agent(u.app);
+test('eine dem Opfer untergeschobene, im Speicher bereits vorhandene Sitzung bleibt nach der Anmeldung wirkungslos', async () => {
+  // Session-Fixation: Ein Angreifer erzeugt vorab eine echte, im Sitzungs-
+  // speicher liegende (aber nicht angemeldete) Sitzung und unterschiebt der
+  // Zielperson deren signiertes Cookie (etwa per Link). Meldet die Zielperson
+  // sich mit genau diesem Cookie an, darf die Kennung dabei NICHT dieselbe
+  // bleiben — sonst kennt der Angreifer die Kennung der jetzt authentifizierten
+  // Sitzung. `regenerate` vergibt deshalb bei jeder Anmeldung eine frische
+  // Kennung. (Ein bloss erfundenes, im Speicher unbekanntes Cookie taugt fuer
+  // diese Gegenprobe nicht: `express-session` erzeugt dafuer ohnehin schon
+  // beim Nachschlagen eine neue Kennung, unabhaengig vom App-Code.)
+  const untergeschobeneKennung = 'von-angreifer-vorbereitete-kennung';
+  const untergeschobenesCookie = faelscheCookie(untergeschobeneKennung);
+  const ablauf = Date.now() + 60_000;
+  u.db
+    .prepare(
+      `INSERT INTO sessions (sid, sess, expire, user_id) VALUES (?, ?, ?, NULL)`,
+    )
+    .run(untergeschobeneKennung, JSON.stringify({ cookie: { originalMaxAge: 60_000 } }), ablauf);
 
-  const anmeldung = await agent.post('/api/login').send({ name: u.leitung.name, password: PASSWORT });
+  // Die Zielperson meldet sich an, traegt dabei aber das untergeschobene Cookie.
+  const anmeldung = await request(u.app)
+    .post('/api/login')
+    .set('Cookie', untergeschobenesCookie)
+    .send({ name: u.leitung.name, password: PASSWORT });
   expect(anmeldung.status).toBe(200);
-  const echtesCookie = (anmeldung.headers['set-cookie'] as unknown as string[])[0].split(';')[0];
+  const neuesCookie = (anmeldung.headers['set-cookie'] as unknown as string[])[0].split(';')[0];
 
-  // Zur Gegenprobe: das echte Cookie oeffnet.
-  await request(u.app).get('/api/wishes').set('Cookie', echtesCookie).expect(200);
+  // Ohne `regenerate` waere die neue, angemeldete Sitzung dieselbe Kennung
+  // wie die untergeschobene — hier muss sie sich unterscheiden.
+  expect(neuesCookie.split('=')[1]).not.toBe(untergeschobenesCookie.split('=')[1]);
 
-  const gefaelscht = echtesCookie.replace(/=s%3A[^.]+/, '=s%3Afremde-kennung');
-  expect(gefaelscht).not.toBe(echtesCookie);
-  const antwort = await request(u.app).get('/api/wishes').set('Cookie', gefaelscht);
-  expect(antwort.status).toBe(401);
+  // Der Angreifer, der die untergeschobene Kennung von Anfang an kennt, darf
+  // damit keinen Zugriff bekommen.
+  const angreiferZugriff = await request(u.app).get('/api/wishes').set('Cookie', untergeschobenesCookie);
+  expect(angreiferZugriff.status).toBe(401);
 });
 
 test('/api/me sagt vor der Anmeldung 401 und danach, wer man ist', async () => {
