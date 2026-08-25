@@ -17,3 +17,7 @@ sitzungsgeheimnis
 
 # Interne Arbeitsdateien (Notizen, Analysen) - nicht fuer GitHub
 ..Projektdateien/
+
+# Playwright
+playwright-report/
+test-results/

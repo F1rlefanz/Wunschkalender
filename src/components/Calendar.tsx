@@ -242,7 +242,11 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
   return (
     <div className="max-w-7xl mx-auto p-raum2 sm:p-raum5">
       {/* Monatskopf */}
-      <div className="flex items-center justify-between gap-raum2 mb-raum5 bg-flaeche p-raum3 rounded-lg shadow-sm border border-rand">
+      <div
+        data-testid="monatskopf"
+        data-monat={currentMonthStr}
+        className="flex items-center justify-between gap-raum2 mb-raum5 bg-flaeche p-raum3 rounded-lg shadow-sm border border-rand"
+      >
         <button
           type="button"
           onClick={prevMonth}
