@@ -95,21 +95,26 @@ export function istRoutineZweig(name) {
   return /^routine\/.+/i.test(trimmed);
 }
 
+/** Lifecycle-Skripte, die npm ohne Zutun ausfuehrt — siehe pruefeSkripte. */
+const LIFECYCLE_SKRIPTE = ['preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'prepublishOnly', 'prepack', 'postpack'];
+
 /**
  * Vergleicht die Teile von `package.json`, die das Testnetz tragen.
  *
  * `package.json` steht nicht auf der Sperrliste, weil die Routine
  * "Abhaengigkeiten" genau diese Datei aendern muss. Geschuetzt werden deshalb
- * gezielt zwei Stellen:
+ * gezielt mehrere Stellen:
  *
  * - **`scripts`** — `test`, `test:coverage`, `test:e2e` und `lint` umzubiegen
  *   waere der Zweizeiler, der jede Pruefung ins Leere laufen laesst, ohne dass
- *   ein einziger Test angefasst wird.
+ *   ein einziger Test angefasst wird. Hinzufuegen ist erlaubt, Aendern und
+ *   Entfernen nicht.
+ * - **Neue Lifecycle-Skripte** (`postinstall` und Verwandte) — `npm ci` fuehrt
+ *   sie ohne Zutun aus, noch bevor irgendeine Pruefung laeuft, und kann damit
+ *   den Arbeitsbaum umschreiben, bevor der Diff etwas davon sieht.
  * - **`engines`** — die Node-Untergrenze abzusenken bringt die CI zum harten
  *   Absturz statt zu einem lesbaren Fehlschlag. Genau so war sie in diesem
  *   Projekt schon einmal tagelang unbemerkt rot.
- *
- * Hinzufuegen ist erlaubt, Aendern und Entfernen nicht.
  */
 export function pruefeSkripte(vorher, nachher) {
   if (!vorher || !nachher) return [];
@@ -121,6 +126,14 @@ export function pruefeSkripte(vorher, nachher) {
       probleme.push(`Das Skript "${name}" wurde entfernt. Skripte tragen die Pruefungen — sie sind nicht Sache einer Routine.`);
     } else if (jetzt !== befehl) {
       probleme.push(`Das Skript "${name}" wurde geaendert (war: ${befehl}, jetzt: ${jetzt}). Skripte umzubiegen laesst jede Pruefung ins Leere laufen.`);
+    }
+  }
+
+  for (const name of LIFECYCLE_SKRIPTE) {
+    const warVorher = (vorher.scripts ?? {})[name] !== undefined;
+    const istNachher = (nachher.scripts ?? {})[name] !== undefined;
+    if (!warVorher && istNachher) {
+      probleme.push(`Neues Lifecycle-Skript "${name}". npm fuehrt es bei "npm ci" ohne Zutun aus, noch bevor eine Pruefung laeuft.`);
     }
   }
 

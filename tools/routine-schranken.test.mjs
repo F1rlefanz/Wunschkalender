@@ -134,6 +134,22 @@ describe('pruefeSkripte', () => {
     // Beruehrt ein Pull-Request die Datei gar nicht, gibt es nichts zu melden.
     expect(pruefeSkripte(null, null)).toEqual([]);
   });
+
+  it('meldet ein neues postinstall-Skript', () => {
+    // npm ci fuehrt es ohne Zutun aus, noch bevor irgendeine Pruefung laeuft.
+    const nachher = { ...paket, scripts: { ...paket.scripts, postinstall: 'node aendere-etwas.mjs' } };
+    const probleme = pruefeSkripte(paket, nachher);
+    expect(probleme).toHaveLength(1);
+    expect(probleme[0]).toContain('postinstall');
+  });
+
+  it('meldet jedes neue Lifecycle-Skript aus der Liste', () => {
+    for (const name of ['preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'prepublishOnly', 'prepack', 'postpack']) {
+      const nachher = { ...paket, scripts: { ...paket.scripts, [name]: 'node x.mjs' } };
+      const probleme = pruefeSkripte(paket, nachher);
+      expect(probleme.some((p) => p.includes(name))).toBe(true);
+    }
+  });
 });
 
 describe('pruefeSchranken', () => {

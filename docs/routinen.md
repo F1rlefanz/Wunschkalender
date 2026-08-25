@@ -65,16 +65,22 @@ Drei Zahlen und eine Liste:
   oder stillgelegter Browsertest wuerde die Abdeckungsschwelle also nicht
   senken, obwohl die gesamte Oberflaeche an genau diesen Tests haengt. Die
   Mindestzahl faengt genau das ab.
-- **Skripte und Node-Untergrenze in `package.json` sind geschuetzt**, obwohl
-  die Datei selbst nicht auf der Sperrliste steht — die Routine
-  "Abhaengigkeiten" muss sie aendern koennen. Geprueft wird trotzdem gezielt:
-  Die Skripte `test`, `test:coverage`, `test:e2e`, `lint` (und jedes andere
-  bestehende Skript) duerfen nicht umgebogen oder entfernt werden, denn genau
-  das waere der Zweizeiler, der jede Pruefung ins Leere laufen laesst, ohne
-  einen Test anzufassen. Die Node-Untergrenze unter `engines` darf sich nicht
+- **Skripte, Lifecycle-Skripte und Node-Untergrenze in `package.json` sind
+  geschuetzt**, obwohl die Datei selbst nicht auf der Sperrliste steht — die
+  Routine "Abhaengigkeiten" muss sie aendern koennen. Geprueft wird trotzdem
+  gezielt: Die Skripte `test`, `test:coverage`, `test:e2e`, `lint` (und jedes
+  andere bestehende Skript) duerfen nicht umgebogen oder entfernt werden, denn
+  genau das waere der Zweizeiler, der jede Pruefung ins Leere laufen laesst,
+  ohne einen Test anzufassen. Ein **neu hinzugekommenes** Lifecycle-Skript
+  (`postinstall` und Verwandte) ist ebenfalls ein Verstoss: `npm ci` fuehrt
+  ein solches Skript ohne Zutun aus, noch bevor irgendeine Pruefung laeuft,
+  und koennte den Arbeitsbaum umschreiben, bevor der Diff etwas davon sieht —
+  deshalb laeuft `npm ci` im Schranken-Auftrag selbst zusaetzlich mit
+  `--ignore-scripts`. Die Node-Untergrenze unter `engines` darf sich nicht
   aendern, denn eine zu niedrige Grenze laesst die CI abstuerzen statt lesbar
   zu scheitern — genau so ist es in diesem Projekt schon einmal tagelang
-  unbemerkt geblieben. Hinzufuegen neuer Skripte bleibt erlaubt.
+  unbemerkt geblieben. Hinzufuegen neuer (nicht-lifecycle) Skripte bleibt
+  erlaubt.
 - **Gesperrte Pfade.** Keine erzeugende Routine darf diese Pfade beruehren.
   Bei jedem der Grund:
   - `.github/workflows/` — der Auftrag, der die Schranken selbst durchsetzt.

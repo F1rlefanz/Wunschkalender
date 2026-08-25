@@ -78,7 +78,11 @@ jobs:
           node-version: '24'
           cache: npm
 
-      - run: npm ci
+      # --ignore-scripts: Dieser Auftrag braucht nur die Pakete zum Auflisten
+      # der Browsertests, keine Installationsskripte — ein neues `postinstall`
+      # im geprueften Pull-Request soll den Arbeitsbaum nicht vor der Pruefung
+      # umschreiben koennen.
+      - run: npm ci --ignore-scripts
 
       - name: Schranken pruefen
         run: npm run pruefe:routine -- origin/${{ github.base_ref }} "${{ github.head_ref }}"
