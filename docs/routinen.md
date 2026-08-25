@@ -38,9 +38,22 @@ Messwert) dafuer steht.
 Die Regeln in diesem Abschnitt sind keine Bitte an ein Modell, sondern Code:
 `tools/routine-schranken.mjs`, dort als reine Funktionen getestet (23 Tests)
 und von `tools/pruefe-routine.mjs` gegen den echten Diff eines Branches
-angewendet. Der CI-Auftrag `Schranken fuer Routine-Zweige` ruft das fuer jeden
-`routine/*`-Branch auf und schliesst rot ab, wenn eine Schranke verletzt ist —
-ohne dass jemand den Pull-Request gelesen haben muss.
+angewendet. Der CI-Auftrag `Schranken fuer Routine-Zweige` laeuft bei **jedem**
+Pull-Request, nicht nur bei einem `routine/*`-Branch, und schliesst rot ab,
+wenn eine Schranke verletzt ist — ohne dass jemand den Pull-Request gelesen
+haben muss.
+
+Das ist bewusst so und nicht ueber ein `if:` in der Workflow-Datei geloest:
+Ein uebersprungener Auftrag bekommt die Conclusion `skipped`, und `skipped`
+zaehlt bei GitHubs Required Status Checks als bestanden — ein Zweig, der
+seinen Namen nicht mit `routine/` beginnt (Tippfehler oder Absicht), wuerde
+die komplette Schranke sonst ohne jedes Fehlverhalten umgehen. Stattdessen
+entscheidet `istRoutineZweig(name)` in `tools/routine-schranken.mjs`, ob die
+Schranken ueberhaupt gelten; `tools/pruefe-routine.mjs` bekommt den
+Zweignamen als zweites Argument (`${{ github.head_ref }}` aus der CI) und
+beendet sich bei "kein Routine-Zweig" mit Exit 0, ohne eine einzige Regel
+anzuwenden. Ein spaeterer Torwaechter kann so auf die Anwesenheit des
+Auftrags pruefen, nicht nur auf seine Farbe.
 
 Drei Zahlen und eine Liste:
 

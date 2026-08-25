@@ -6,16 +6,29 @@
  * Browsertests — und reicht sie an die reinen Funktionen weiter. Die Regeln
  * stehen dort und sind dort getestet; hier steht nur das Beschaffen.
  *
- * Aufruf: node tools/pruefe-routine.mjs [vergleichszweig]
+ * Aufruf: node tools/pruefe-routine.mjs [vergleichszweig] [zweigname]
  * Vorgabe fuer den Vergleichszweig: origin/main
+ * Vorgabe fuer den Zweignamen: leer (dann: kein Routine-Zweig)
+ *
+ * Laeuft der Zweigname nicht auf `istRoutineZweig(...)` zu (etwa bei einem
+ * Push auf `main`, wo `head_ref` leer ist, oder einem Zweig, den keine
+ * Routine erzeugt hat), gelten die Schranken nicht — Exit 0 ohne weitere
+ * Pruefung. Das ist Absicht: Der CI-Auftrag laeuft dadurch bei JEDEM
+ * Pull-Request und wird nie `skipped`, siehe docs/routinen.md.
  *
  * Exit 0 = durchlassen, Exit 1 = abweisen.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { pruefeSchranken } from './routine-schranken.mjs';
+import { istRoutineZweig, pruefeSchranken } from './routine-schranken.mjs';
 
 const basis = process.argv[2] ?? 'origin/main';
+const zweigname = process.argv[3] ?? '';
+
+if (!istRoutineZweig(zweigname)) {
+  console.log(`Kein Routine-Zweig ("${zweigname}"), Schranken gelten nicht.`);
+  process.exit(0);
+}
 
 const git = (...argumente) =>
   execFileSync('git', argumente, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -107,11 +120,11 @@ const ergebnis = pruefeSchranken({
 });
 
 if (ergebnis.ok) {
-  console.log(`Schranken eingehalten (Vergleich gegen ${basis}).`);
+  console.log(`Schranken eingehalten (Vergleich gegen ${basis}, Zweig "${zweigname}").`);
   process.exit(0);
 }
 
-console.error(`Schranken verletzt (Vergleich gegen ${basis}):\n`);
+console.error(`Schranken verletzt (Vergleich gegen ${basis}, Zweig "${zweigname}"):\n`);
 for (const problem of ergebnis.probleme) console.error(`- ${problem}\n`);
 console.error(
   'Diese Pruefung ist mechanisch, keine Meinung. Der Torwaechter schliesst einen\n' +

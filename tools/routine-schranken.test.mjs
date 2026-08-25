@@ -4,6 +4,7 @@ import {
   MAX_GEAENDERTE_ZEILEN,
   MINDEST_BROWSERTESTS,
   istGesperrt,
+  istRoutineZweig,
   pruefeSchranken,
   pruefeSkripte,
 } from './routine-schranken.mjs';
@@ -191,5 +192,27 @@ describe('pruefeSchranken', () => {
     expect(MAX_GEAENDERTE_ZEILEN).toBe(400);
     expect(MINDEST_BROWSERTESTS).toBe(20);
     expect(GESPERRTE_PFADE.length).toBeGreaterThan(10);
+  });
+});
+
+describe('istRoutineZweig', () => {
+  it('erkennt Routine-Zweige unabhaengig von Tiefe und Datum', () => {
+    expect(istRoutineZweig('routine/toter-code/2026-09-01')).toBe(true);
+    expect(istRoutineZweig('routine/x')).toBe(true);
+  });
+
+  it('lehnt aehnlich klingende, aber falsche Namen ab', () => {
+    expect(istRoutineZweig('wartung/x')).toBe(false);
+    expect(istRoutineZweig('routines/x')).toBe(false);
+  });
+
+  it('lehnt einen leeren oder fehlenden Namen ab', () => {
+    expect(istRoutineZweig('')).toBe(false);
+    expect(istRoutineZweig(undefined)).toBe(false);
+    expect(istRoutineZweig(null)).toBe(false);
+  });
+
+  it('ist unabhaengig von Gross- und Kleinschreibung, wie GitHub selbst', () => {
+    expect(istRoutineZweig('Routine/X')).toBe(true);
   });
 });

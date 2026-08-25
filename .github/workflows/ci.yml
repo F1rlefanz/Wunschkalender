@@ -62,9 +62,10 @@ jobs:
   schranken:
     name: Schranken fuer Routine-Zweige
     runs-on: ubuntu-latest
-    # Nur fuer Zweige, die eine Routine erzeugt hat. Fuer alles andere gelten
-    # die Schranken nicht — ein Mensch darf package.json aendern.
-    if: startsWith(github.head_ref, 'routine/')
+    # Kein `if:` mehr: Dieser Auftrag laeuft bei JEDEM Pull-Request. Ob die
+    # Schranken gelten, entscheidet das Skript selbst anhand des Zweignamens
+    # — ein uebersprungener Auftrag gilt bei Required Status Checks als
+    # bestanden, siehe docs/routinen.md.
     steps:
       - uses: actions/checkout@v4
         with:
@@ -80,4 +81,4 @@ jobs:
       - run: npm ci
 
       - name: Schranken pruefen
-        run: npm run pruefe:routine -- origin/${{ github.base_ref }}
+        run: npm run pruefe:routine -- origin/${{ github.base_ref }} "${{ github.head_ref }}"

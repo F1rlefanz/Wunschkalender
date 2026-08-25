@@ -82,6 +82,20 @@ export function istGesperrt(pfad) {
 }
 
 /**
+ * Ist `name` ein Zweig, den eine Routine erzeugt hat?
+ *
+ * Ohne Ruecksicht auf Gross- und Kleinschreibung, wie GitHub selbst Zweignamen
+ * vergleicht. Ein leerer oder fehlender Name (etwa bei einem Push auf `main`,
+ * wo es keinen `head_ref` gibt) gilt als "kein Routine-Zweig", nicht als Fehler.
+ */
+export function istRoutineZweig(name) {
+  if (!name) return false;
+  const trimmed = String(name).trim();
+  if (trimmed === '') return false;
+  return /^routine\/.+/i.test(trimmed);
+}
+
+/**
  * Vergleicht die Teile von `package.json`, die das Testnetz tragen.
  *
  * `package.json` steht nicht auf der Sperrliste, weil die Routine
