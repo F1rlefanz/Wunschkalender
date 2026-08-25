@@ -36,9 +36,8 @@ Messwert) dafuer steht.
 ## Die mechanischen Schranken
 
 Die Regeln in diesem Abschnitt sind keine Bitte an ein Modell, sondern Code:
-`tools/routine-schranken.mjs`, dort als reine Funktionen getestet (23 Tests)
-und von `tools/pruefe-routine.mjs` gegen den echten Diff eines Branches
-angewendet. Der CI-Auftrag `Schranken fuer Routine-Zweige` laeuft bei **jedem**
+`tools/routine-schranken.mjs`, dort als reine Funktionen getestet und von
+`tools/pruefe-routine.mjs` gegen den echten Diff eines Branches angewendet. Der CI-Auftrag `Schranken fuer Routine-Zweige` laeuft bei **jedem**
 Pull-Request, nicht nur bei einem `routine/*`-Branch, und schliesst rot ab,
 wenn eine Schranke verletzt ist — ohne dass jemand den Pull-Request gelesen
 haben muss.
