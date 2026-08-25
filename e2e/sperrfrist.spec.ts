@@ -49,8 +49,20 @@ test('kein Klick im gesperrten Monat erzeugt einen Serverfehler', async ({ page 
   });
 
   const tage = page.getByTestId(/^tag-/);
-  const anzahl = Math.min(await tage.count(), 5);
+  // Belegt, dass ueberhaupt etwas gerendert wurde — sonst bestuende die
+  // Zusicherung unten auch auf einer leeren oder kaputten Seite. Ein Monat
+  // hat mindestens 28 Tage.
+  const gesamtanzahl = await tage.count();
+  expect(gesamtanzahl, 'keine Tageszellen gerendert').toBeGreaterThanOrEqual(28);
+
+  const anzahl = Math.min(gesamtanzahl, 5);
   for (let i = 0; i < anzahl; i++) await tage.nth(i).click();
+
+  // Ohne Warten wird eine Antwort, die noch unterwegs ist, nicht gezaehlt.
+  // 'networkidle' wartet, bis 500ms lang keine Netzwerkaktivitaet mehr
+  // aufgetreten ist — genug fuer einen durch den Klick ausgeloesten
+  // Serveraufruf samt Antwort, ohne willkuerlich lange zu warten.
+  await page.waitForLoadState('networkidle');
 
   expect(fehler).toEqual([]);
 });
