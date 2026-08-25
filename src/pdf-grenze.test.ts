@@ -39,9 +39,16 @@ test('nur pdf.ts importiert jspdf, jspdf-autotable oder html2canvas', () => {
     if (AUSNAHMEN.includes(datei)) continue;
     const inhalt = fs.readFileSync(datei, 'utf-8');
     for (const paket of VERBOTENE_PAKETE) {
-      // Sowohl statisches `import ... from 'jspdf'` als auch `import('jspdf')`
-      // treffen — beides holte das Paket in den Erststart zurueck.
-      const muster = new RegExp(`from\\s+['"]${paket}['"]|import\\(\\s*['"]${paket}['"]\\s*\\)`);
+      // Vier Formen, die das Paket alle gleichermassen in den Erststart
+      // zurueckholten: `import ... from 'jspdf'`, `import('jspdf')`,
+      // `require('jspdf')` und ein blosser Seiteneffekt-Import
+      // `import 'jspdf';` ganz ohne `from`.
+      const muster = new RegExp(
+        `from\\s+['"]${paket}['"]` +
+          `|import\\(\\s*['"]${paket}['"]\\s*\\)` +
+          `|require\\(\\s*['"]${paket}['"]\\s*\\)` +
+          `|import\\s+['"]${paket}['"]`,
+      );
       if (muster.test(inhalt)) {
         verstoesse.push(`${path.relative(WURZEL, datei)} importiert '${paket}'`);
       }

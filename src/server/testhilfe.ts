@@ -12,6 +12,16 @@ import type { User } from '../types';
 /** Mindestens 8 Zeichen, sonst weist `hashPassword` es ab. */
 export const PASSWORT = 'Test-Passwort-1';
 
+/**
+ * Das Sitzungsgeheimnis der Testumgebung — eine einzige Quelle. Ein Test, der
+ * eigene Sitzungscookies signiert (etwa fuer eine Session-Fixation-Gegenprobe
+ * in `api-anmeldung.test.ts`), muss dasselbe Geheimnis benutzen wie
+ * `erzeugeTestumgebung`. Ein zweites, dupliziertes Literal koennte
+ * unbemerkt auseinanderlaufen: Die Signatur passte dann nicht mehr, und der
+ * betroffene Test wuerde lautlos zahnlos statt rot.
+ */
+export const SITZUNGSGEHEIMNIS = 'geheimnis-nur-fuer-tests';
+
 export interface Testumgebung {
   app: express.Express;
   db: Database;
@@ -45,7 +55,7 @@ export async function erzeugeTestumgebung(): Promise<Testumgebung> {
 
   const { app } = await erzeugeApp({
     db,
-    sitzungsgeheimnis: 'geheimnis-nur-fuer-tests',
+    sitzungsgeheimnis: SITZUNGSGEHEIMNIS,
     betrieb: { proxyHops: 0, hsts: false, warnung: null },
     auslieferung: 'keine',
   });

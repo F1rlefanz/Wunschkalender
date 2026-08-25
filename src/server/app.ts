@@ -6,7 +6,7 @@ import path from 'path';
 import type { Database } from 'better-sqlite3';
 import { Server as SocketIOServer } from 'socket.io';
 import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
-import { createStore, type Store } from './store';
+import { createStore } from './store';
 import { SqliteSessionStore } from './session-store';
 import type { Betriebsmodus } from './betriebsmodus';
 import { hashPassword, verifyPassword } from './passwords';

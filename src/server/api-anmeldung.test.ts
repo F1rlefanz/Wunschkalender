@@ -1,13 +1,15 @@
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import request from 'supertest';
 import { sign } from 'cookie-signature';
-import { anmelden, erzeugeTestumgebung, PASSWORT, type Testumgebung } from './testhilfe';
-
-const SITZUNGSGEHEIMNIS = 'geheimnis-nur-fuer-tests';
+import { anmelden, erzeugeTestumgebung, PASSWORT, SITZUNGSGEHEIMNIS, type Testumgebung } from './testhilfe';
 
 /** Baut ein Sitzungscookie mit einer selbst gewaehlten Kennung, so wie ein
  *  Angreifer es bei einer Session-Fixation-Attacke der Zielperson unterschieben
- *  wuerde — signiert mit demselben Geheimnis wie die Testumgebung. */
+ *  wuerde — signiert mit demselben Geheimnis wie die Testumgebung. Das
+ *  Geheimnis kommt bewusst aus `testhilfe.ts` statt aus einem eigenen
+ *  Literal: Driften beide auseinander, verifiziert die Signatur nicht mehr —
+ *  `express-session` vergibt dann ohnehin eine neue Kennung, und der Test
+ *  bliebe lautlos gruen, ohne noch etwas zu pruefen. */
 function faelscheCookie(sid: string): string {
   const signiert = 's:' + sign(sid, SITZUNGSGEHEIMNIS);
   return `wunschkalender.sid=${encodeURIComponent(signiert)}`;
@@ -94,6 +96,18 @@ test('eine dem Opfer untergeschobene, im Speicher bereits vorhandene Sitzung ble
   // Ohne `regenerate` waere die neue, angemeldete Sitzung dieselbe Kennung
   // wie die untergeschobene — hier muss sie sich unterscheiden.
   expect(neuesCookie.split('=')[1]).not.toBe(untergeschobenesCookie.split('=')[1]);
+
+  // Belegt, dass die untergeschobene Sitzung wirklich geladen und von
+  // `regenerate` verbraucht wurde, statt bloss an einer falschen Signatur
+  // gescheitert zu sein: `Store.prototype.regenerate` (express-session)
+  // zerstoert die alte Sitzung im Speicher, bevor es eine neue Kennung
+  // vergibt. Driftet das Testgeheimnis einmal auseinander, faellt schon die
+  // Signaturpruefung durch, die Zeile bliebe unberuehrt stehen — und diese
+  // Zusicherung faengt genau das ab, statt lautlos zahnlos zu werden.
+  const zeileNochDa = u.db
+    .prepare('SELECT 1 FROM sessions WHERE sid = ?')
+    .get(untergeschobeneKennung);
+  expect(zeileNochDa).toBeUndefined();
 
   // Der Angreifer, der die untergeschobene Kennung von Anfang an kennt, darf
   // damit keinen Zugriff bekommen.

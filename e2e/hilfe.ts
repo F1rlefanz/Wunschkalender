@@ -66,14 +66,30 @@ export const STICHTAG_MONAT = monatVonIndex(stichtagIndex);
  * Loescht eine Person mit diesem Namen ueber die REST-API, falls sie existiert
  * — noetig, weil Server und Testdatenbank fuer den ganzen Browserlauf geteilt
  * werden und `retries: 1` (CI) einen fehlgeschlagenen Test sonst mit bereits
- * angelegten Daten neu starten liesse. Muss vor der Anmeldung als Leitung
- * aufgerufen werden (braucht die angemeldete Sitzung von `page`).
+ * angelegten Daten neu starten liesse. Muss nach der Anmeldung, aber vor dem
+ * Anlegen der Person aufgerufen werden (braucht die angemeldete Sitzung von
+ * `page`, die einen `GET`/`DELETE` auf `/api/users` darf).
  */
 export async function raeumeBenutzerAuf(seite: Page, name: string) {
   const antwort = await seite.request.get('/api/users');
   const benutzer = await antwort.json();
   const treffer = benutzer.find((b: { id: string; name: string }) => b.name === name);
   if (treffer) await seite.request.delete(`/api/users/${treffer.id}`);
+}
+
+/**
+ * Setzt den Stichtag eines Monats auf Automatik zurueck, falls die Leitung
+ * einen gesetzt hat — dieselbe Absicherung wie `raeumeBenutzerAuf` und
+ * `raeumeWunschAuf`, fuer `einstellungen.spec.ts`: Der Test setzt einen
+ * Stichtag probeweise auf die Vergangenheit und nimmt ihn erst am Ende
+ * zurueck. Scheitert er dazwischen, bliebe der Monat in der geteilten
+ * Testdatenbank gesperrt, und der naechste Lauf (Wiederholungsversuch oder
+ * ein erneuter Entwicklungslauf) scheiterte sofort an der Zusicherung, dass
+ * das Hinweisfeld bedienbar ist. Gutmuetig, wenn kein Stichtag gesetzt ist:
+ * `DELETE` auf einen bereits automatischen Monat antwortet mit 200.
+ */
+export async function raeumeStichtagAuf(seite: Page, monat: string) {
+  await seite.request.delete(`/api/stichtage/${monat}`);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { anmelden, KONTEN, STICHTAG_MONAT, zumMonat } from './hilfe';
+import { anmelden, KONTEN, raeumeStichtagAuf, STICHTAG_MONAT, zumMonat } from './hilfe';
 
 /**
  * Der Weg, auf dem die Leitung die Sperrfrist eines einzelnen Monats setzt,
@@ -25,6 +25,12 @@ test('ein von der Leitung gesetzter Stichtag sperrt und entsperrt den Monat live
 
   await anmelden(leitungSeite, KONTEN.leitung);
   await anmelden(mitarbeitSeite, KONTEN.mitarbeit);
+  // Aufraeumen vor dem eigentlichen Test: Dieser Test setzt den Stichtag
+  // probeweise auf die Vergangenheit und nimmt ihn erst am Ende zurueck.
+  // Scheitert er dazwischen, bliebe der Monat in der geteilten Testdatenbank
+  // gesperrt — derselbe Rueckfall, den Befund 4 fuer Benutzer und Wuensche
+  // schon abstellt.
+  await raeumeStichtagAuf(leitungSeite, STICHTAG_MONAT);
   await zumMonat(leitungSeite, STICHTAG_MONAT);
   await zumMonat(mitarbeitSeite, STICHTAG_MONAT);
 
