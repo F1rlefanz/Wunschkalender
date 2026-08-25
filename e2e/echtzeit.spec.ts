@@ -38,19 +38,35 @@ test('was A eintraegt, sieht B ohne Neuladen', async ({ browser }) => {
 
 test('Getipptes wird von einem eintreffenden Ereignis nicht ueberschrieben', async ({ browser }) => {
   // Sonst geht mitten im Satz verloren, was jemand gerade schreibt.
+  //
+  // A und B sind bewusst DIESELBE Person (KONTEN.mitarbeit) in zwei
+  // Browserkontexten — zwei Geraete derselben Pflegekraft, der realistische
+  // Fall auf einer Station. Mit zwei VERSCHIEDENEN Personen (fixe
+  // Fix-Runde 1) prueft der Test nichts: `eigenerHinweis` in
+  // `src/hinweise.ts` filtert streng auf `userId === benutzer.id`
+  // (Zeile 26–33). B's Hinweis wird fuer A dann nie zu `meinHinweis`
+  // (`Calendar.tsx` Zeile 81–84), `serverText` bliebe fuer A durchgehend
+  // leer, der `useEffect` (Zeile 88–97) feuerte nie neu, und
+  // `uebernehmeServerstand` wuerde nie befragt — der Test bliebe selbst dann
+  // gruen, wenn man die Vorrangregel ersatzlos loescht.
   const kontextA = await browser.newContext();
   const kontextB = await browser.newContext();
   const seiteA = await kontextA.newPage();
   const seiteB = await kontextB.newPage();
 
   await anmelden(seiteA, KONTEN.mitarbeit);
-  await anmelden(seiteB, KONTEN.zweite);
+  await anmelden(seiteB, KONTEN.mitarbeit);
   await zumMonat(seiteA, OFFENER_MONAT);
   await zumMonat(seiteB, OFFENER_MONAT);
 
+  // A tippt zuerst und speichert bewusst nicht — sonst gaebe es nichts, das
+  // gegen das eintreffende Ereignis Vorrang haben koennte.
   await seiteA.getByTestId('monatshinweis').fill('Ich tippe gerade noch');
+  await expect(seiteA.getByTestId('monatshinweis')).toHaveValue('Ich tippe gerade noch');
 
-  // B loest ein Ereignis aus, das bei A ankommt.
+  // B (dasselbe Konto, anderes Geraet) schreibt einen anderen Text ins
+  // selbe Feld und speichert ihn (Fokus verlassen genuegt). Bei A trifft
+  // dadurch ein Ereignis mit A's EIGENER userId ein.
   await seiteB.getByTestId('monatshinweis').fill('Von der anderen Seite');
   await seiteB.getByTestId('monatshinweis').blur();
 
