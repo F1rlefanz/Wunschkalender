@@ -115,6 +115,13 @@ Die Wege, die auf der Station tatsaechlich gegangen werden:
 nicht sinken. Ohne diese Schranke koennte eine Routine einen Test
 „vereinfachen", der ihr im Weg steht, und die CI bliebe gruen.
 
+**Bekannte Luecke:** `vitest.config.ts` misst die Abdeckung ueber `src/**` und
+`server.ts`; `e2e/**` ist ausdruecklich ausgeschlossen. Ein `test.skip` in einer
+Browsertest-Datei oder das Loeschen einer ganzen Datei laesst die
+Abdeckungsschwelle deshalb unberuehrt, obwohl die Oberflaeche ausschliesslich an
+diesen Tests haengt. Die Schranke dafuer steht nicht hier, sondern in Teil 2/3
+(`--forbid-only`, Mindestzahl an Browsertests).
+
 ### Kosten
 
 Playwright ist eine gewichtige neue Entwicklungs-Abhaengigkeit; die CI waechst
@@ -141,7 +148,13 @@ pruefbar.
 - Gesperrte Pfade, an die keine erzeugende Routine ruehrt:
   `.github/workflows/`, `.claude/`, `tools/pruefe-schleuse.mjs`,
   `docs/routinen.md`, `src/server/passwords.ts`, `src/server/session-*.ts`,
-  `src/server/validierung.ts` sowie die Testdateien des Netzes selbst.
+  `src/server/validierung.ts` sowie die Testdateien des Netzes selbst. Dazu die
+  Konfiguration des Netzes, denn ueber jede laesst es sich mit einem Zweizeiler
+  aushebeln, ohne einen Test anzufassen: `vitest.config.ts` (Schwellen senken
+  oder `coverage.exclude` erweitern), `playwright.config.ts` (`testDir`
+  umleiten), `package.json` (die Skripte `test`, `test:coverage`, `test:e2e`
+  umbiegen) und `tsconfig.json` (`include` kuerzen, damit `e2e/` nicht mehr
+  typgeprueft wird).
   Eine Routine darf ihre eigene Sicherung nicht anfassen.
 - Kein Verhaltenswechsel ohne einen Test, der ihn zeigt.
 - Feste Form der Pull-Request-Beschreibung: was, warum, welcher Beweis.
@@ -155,11 +168,17 @@ fuer `routine/*`-Branches** laeuft und den Diff gegen `main` mechanisch prueft:
 
 - kein gesperrter Pfad beruehrt,
 - nicht mehr als 400 geaenderte Zeilen,
-- Abdeckung nicht gesunken.
+- Abdeckung nicht gesunken,
+- Playwright mit `--forbid-only` und einer Mindestzahl erwarteter Browsertests —
+  sonst faengt die Abdeckungsschwelle ein geloeschtes `e2e/**`-Verhalten nicht
+  (siehe Teil 1, Abdeckungsschwelle).
 
 Rot heisst: Der Torwaechter schliesst den Pull-Request in Schritt 1, ohne ihn
-ueberhaupt zu lesen. Damit haengt keine der drei wichtigsten Schranken am
-Wohlverhalten eines Agenten — auch nicht am Wohlverhalten des Torwaechters.
+ueberhaupt zu lesen. Damit haengt keine dieser Schranken am Wohlverhalten eines
+Agenten — auch nicht am Wohlverhalten des Torwaechters. Eine Einschraenkung
+bleibt: Dieser CI-Schritt selbst laeuft aus der Workflow-Datei des Head-Branches
+und ist deshalb kein Schutz gegen eine Aenderung an genau dieser Datei — dafuer
+siehe die Voraussetzung vor Teil 3.
 
 ### Die vier Routinen
 
@@ -176,6 +195,20 @@ Code anfassen.
 Der Fuzzer aendert bewusst keinen Code. Ein Fehler, den er findet, wird erst
 behoben, wenn ein Test ihn rot faerbt — sonst repariert eine Routine eine
 Vermutung.
+
+## Voraussetzung fuer Teil 3: Branch Protection auf GitHub
+
+GitHub fuehrt Workflows bei `pull_request` **aus dem Head-Branch des Pull-Requests**
+aus. Eine Routine, die `.github/workflows/ci.yml` aendert, aendert damit ihre
+eigene Pruefung — der gesperrte Pfad oben ist nur eine Anweisung an das Modell,
+genau die Sorte Schranke, die der vorige Abschnitt als unzureichend verwirft.
+Wirksam ist ausschliesslich eine **Branch Protection Rule mit Required Status
+Checks** auf `main`, in den GitHub-Repository-Einstellungen. Ein fehlender oder
+umbenannter Required Check blockiert den Merge dann ebenso wie ein roter.
+
+Das ist eine Handlung des Nutzers auf GitHub, keine Repository-Aenderung — sie
+kann nicht in diesem Repo eingerichtet werden. Sie muss stehen, **bevor** der
+Torwaechter Merge-Rechte bekommt; ohne sie ist jede Schranke in Teil 2 Kosmetik.
 
 ## Teil 3: Der Torwaechter
 
@@ -229,7 +262,9 @@ Baustelle offen ist.
 
 ## Offene Punkte fuer den Umsetzungsplan
 
-- Genaue Hoehe der Abdeckungsschwelle — erst messbar, wenn das Netz steht.
+- ~~Genaue Hoehe der Abdeckungsschwelle~~ — beantwortet: gemessen und gesetzt.
+  Gesamt 32/86/82/32, `src/server/**` 92/83/98/92, Logikdateien 96/89/98/96
+  (Statements/Branches/Functions/Lines), je gemessener Wert abgerundet minus 2.
 - Ob `knip` oder `ts-prune` fuer die Routine „Toter Code" die bessere Grundlage
   ist.
 - Ob der Torwaechter bei drei aufeinanderfolgenden verworfenen Pull-Requests
