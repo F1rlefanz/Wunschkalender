@@ -176,6 +176,29 @@ describe('pruefeSkripte', () => {
     }
   });
 
+  it('meldet ein neues "pre<name>"-Skript zu einem bestehenden eigenen Skript', () => {
+    // npm fuehrt "npm run pruefe:routine" nie ohne dieses Hook-Skript aus -
+    // gerade DAS Skript, das die Schranken selbst aufruft, ist betroffen.
+    const mitEigenemSkript = { ...paket, scripts: { ...paket.scripts, 'pruefe:routine': 'node tools/pruefe-routine.mjs' } };
+    const nachher = { ...mitEigenemSkript, scripts: { ...mitEigenemSkript.scripts, 'prepruefe:routine': 'node beliebig.mjs' } };
+    const probleme = pruefeSkripte(mitEigenemSkript, nachher);
+    expect(probleme.some((p) => p.includes('prepruefe:routine'))).toBe(true);
+  });
+
+  it('meldet ein neues "pre<name>"-Skript zu test:coverage', () => {
+    const mitCoverage = { ...paket, scripts: { ...paket.scripts, 'test:coverage': 'vitest run --coverage' } };
+    const nachher = { ...mitCoverage, scripts: { ...mitCoverage.scripts, 'pretest:coverage': 'node beliebig.mjs' } };
+    const probleme = pruefeSkripte(mitCoverage, nachher);
+    expect(probleme.some((p) => p.includes('pretest:coverage'))).toBe(true);
+  });
+
+  it('laesst ein neues Skript zu, dessen "pre"/"post"-Ziel gar nicht existiert', () => {
+    // "prefix-irgendwas" beginnt zufaellig mit "pre", ist aber kein Hook zu
+    // einem echten Skript "fix-irgendwas" - das darf nicht mitgefangen werden.
+    const nachher = { ...paket, scripts: { ...paket.scripts, 'prefix-irgendwas': 'node x.mjs' } };
+    expect(pruefeSkripte(paket, nachher)).toEqual([]);
+  });
+
   it('meldet ein neu eingefuegtes overrides-Feld', () => {
     const nachher = { ...paket, overrides: { vitest: '2.0.0' } };
     const probleme = pruefeSkripte(paket, nachher);

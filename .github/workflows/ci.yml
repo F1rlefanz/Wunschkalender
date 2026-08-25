@@ -84,5 +84,16 @@ jobs:
       # umschreiben koennen.
       - run: npm ci --ignore-scripts
 
+      # Direkter node-Aufruf statt "npm run pruefe:routine": npm fuehrt bei
+      # JEDEM "npm run <name>" automatisch ein vorhandenes "pre<name>" aus -
+      # ein neu hinzugefuegtes "prepruefe:routine" haette sonst vor dieser
+      # Pruefung beliebigen Code mit Schreibrecht auf den Arbeitsbaum laufen
+      # lassen koennen. Und ${{ github.head_ref }} laeuft ueber env: in eine
+      # Shell-Variable statt direkt in "run:" interpoliert zu werden - Git
+      # erlaubt in Zweignamen Anfuehrungszeichen, Dollarzeichen und Semikolons,
+      # eine direkte Interpolation waere eine Befehlsinjektion.
       - name: Schranken pruefen
-        run: npm run pruefe:routine -- origin/${{ github.base_ref }} "${{ github.head_ref }}"
+        env:
+          BASIS: origin/${{ github.base_ref }}
+          ZWEIG: ${{ github.head_ref }}
+        run: node tools/pruefe-routine.mjs "$BASIS" "$ZWEIG"

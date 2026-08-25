@@ -156,6 +156,11 @@ const LIFECYCLE_SKRIPTE = ['preinstall', 'install', 'postinstall', 'prepare', 'p
  * - **Neue Lifecycle-Skripte** (`postinstall` und Verwandte) — `npm ci` fuehrt
  *   sie ohne Zutun aus, noch bevor irgendeine Pruefung laeuft, und kann damit
  *   den Arbeitsbaum umschreiben, bevor der Diff etwas davon sieht.
+ * - **Neue `pre<name>`/`post<name>`-Skripte zu einem bestehenden `<name>`** —
+ *   dieselbe Automatik gilt fuer JEDES Skript, nicht nur die Installations-
+ *   Lifecycle-Namen: `npm run <name>` fuehrt automatisch ein vorhandenes
+ *   `pre<name>` davor und `post<name>` danach aus. Ein neu hinzugefuegtes
+ *   `prepruefe:routine` liefe also vor der Schranken-Pruefung selbst.
  * - **`engines`** — die Node-Untergrenze abzusenken bringt die CI zum harten
  *   Absturz statt zu einem lesbaren Fehlschlag. Genau so war sie in diesem
  *   Projekt schon einmal tagelang unbemerkt rot.
@@ -183,6 +188,20 @@ export function pruefeSkripte(vorher, nachher) {
     const istNachher = (nachher.scripts ?? {})[name] !== undefined;
     if (!warVorher && istNachher) {
       probleme.push(`Neues Lifecycle-Skript "${name}". npm fuehrt es bei "npm ci" ohne Zutun aus, noch bevor eine Pruefung laeuft.`);
+    }
+  }
+
+  const bekannteSkriptnamen = new Set([...Object.keys(vorher.scripts ?? {}), ...Object.keys(nachher.scripts ?? {})]);
+  for (const name of Object.keys(nachher.scripts ?? {})) {
+    if ((vorher.scripts ?? {})[name] !== undefined) continue; // nicht neu
+    const treffer = name.match(/^(pre|post)(.+)$/);
+    if (!treffer) continue;
+    const ziel = treffer[2];
+    if (bekannteSkriptnamen.has(ziel)) {
+      probleme.push(
+        `Neues Skript "${name}" laeuft automatisch vor bzw. nach "npm run ${ziel}" (npm-Konvention "pre<name>"/"post<name>"), ` +
+          'nicht nur bei den acht Installations-Lifecycle-Namen.',
+      );
     }
   }
 
