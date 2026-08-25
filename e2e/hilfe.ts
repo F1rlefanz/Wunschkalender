@@ -44,6 +44,40 @@ export const DEZEMBER = monatVonIndex(dezemberIndex);
 /** ... und der unmittelbar folgende Januar, ueber den Jahreswechsel hinweg. */
 export const JANUAR_DANACH = monatVonIndex(dezemberIndex + 1);
 
+/**
+ * Loescht eine Person mit diesem Namen ueber die REST-API, falls sie existiert
+ * — noetig, weil Server und Testdatenbank fuer den ganzen Browserlauf geteilt
+ * werden und `retries: 1` (CI) einen fehlgeschlagenen Test sonst mit bereits
+ * angelegten Daten neu starten liesse. Muss vor der Anmeldung als Leitung
+ * aufgerufen werden (braucht die angemeldete Sitzung von `page`).
+ */
+export async function raeumeBenutzerAuf(seite: Page, name: string) {
+  const antwort = await seite.request.get('/api/users');
+  const benutzer = await antwort.json();
+  const treffer = benutzer.find((b: { id: string; name: string }) => b.name === name);
+  if (treffer) await seite.request.delete(`/api/users/${treffer.id}`);
+}
+
+/**
+ * Loescht alle eigenen Wuensche an diesem Datum ueber die REST-API, falls
+ * vorhanden — aus demselben Grund wie `raeumeBenutzerAuf`: Scheitert ein Test
+ * nach dem Anlegen eines Wunsches, liegen im CI-Wiederholungsversuch sonst
+ * zwei Wuensche auf dem Tag, von denen nur einer geloescht wird. Muss nach
+ * der Anmeldung aufgerufen werden.
+ */
+export async function raeumeWunschAuf(seite: Page, datum: string) {
+  const [meAntwort, wuenscheAntwort] = await Promise.all([
+    seite.request.get('/api/me'),
+    seite.request.get('/api/wishes'),
+  ]);
+  const { user } = await meAntwort.json();
+  const wuensche: Array<{ id: string; userId: string; date: string }> = await wuenscheAntwort.json();
+  const eigene = wuensche.filter((w) => w.userId === user.id && w.date === datum);
+  for (const wunsch of eigene) {
+    await seite.request.delete(`/api/wishes/${wunsch.id}`);
+  }
+}
+
 /** Meldet im aktuellen Kontext an und wartet, bis der Kalender steht. */
 export async function anmelden(seite: Page, konto: { name: string; passwort: string }) {
   await seite.goto('/');

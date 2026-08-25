@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { anmelden, KONTEN, OFFENER_MONAT, zumMonat } from './hilfe';
+import { anmelden, KONTEN, OFFENER_MONAT, raeumeWunschAuf, zumMonat } from './hilfe';
 
 test('was A eintraegt, sieht B ohne Neuladen', async ({ browser }) => {
   // Schreiben laeuft optimistisch ueber Sockets: Fehlt das io.emit oder der
@@ -11,6 +11,11 @@ test('was A eintraegt, sieht B ohne Neuladen', async ({ browser }) => {
 
   await anmelden(seiteA, KONTEN.mitarbeit);
   await anmelden(seiteB, KONTEN.zweite);
+  // Dieser Test raeumt den eingetragenen Wunsch nie wieder weg — ohne
+  // Aufraeumen wuerde jeder erneute Lauf (CI-Wiederholung oder wiederholtes
+  // Ausfuehren im Entwicklungsbetrieb) einen weiteren Wunsch auf denselben
+  // Tag haeufen.
+  await raeumeWunschAuf(seiteA, `${OFFENER_MONAT}-20`);
   await zumMonat(seiteA, OFFENER_MONAT);
   await zumMonat(seiteB, OFFENER_MONAT);
 

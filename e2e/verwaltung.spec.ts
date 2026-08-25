@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { anmelden, KONTEN } from './hilfe';
+import { anmelden, KONTEN, raeumeBenutzerAuf } from './hilfe';
 
 test('Mitarbeitende sehen die Benutzerverwaltung gar nicht', async ({ page }) => {
   await anmelden(page, KONTEN.mitarbeit);
@@ -8,6 +8,11 @@ test('Mitarbeitende sehen die Benutzerverwaltung gar nicht', async ({ page }) =>
 
 test('die Leitung legt eine Person an und wieder weg', async ({ page }) => {
   await anmelden(page, KONTEN.leitung);
+  // Aufraeumen vor dem eigentlichen Test: Scheitert dieser Testlauf nach dem
+  // Anlegen, antwortet der Server im CI-Wiederholungsversuch sonst mit 409
+  // ("Name bereits vergeben"), weil Server und Testdatenbank fuer den ganzen
+  // Lauf geteilt werden.
+  await raeumeBenutzerAuf(page, 'Testperson Einmalig');
   await page.getByRole('button', { name: /benutzer|verwaltung/i }).first().click();
 
   await page.getByRole('button', { name: /hinzufügen|anlegen|neu/i }).first().click();

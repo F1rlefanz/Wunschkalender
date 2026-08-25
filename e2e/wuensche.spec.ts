@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { anmelden, DEZEMBER, JANUAR_DANACH, KONTEN, OFFENER_MONAT, zumMonat } from './hilfe';
+import { anmelden, DEZEMBER, JANUAR_DANACH, KONTEN, OFFENER_MONAT, raeumeWunschAuf, zumMonat } from './hilfe';
 
 /**
  * Ein Tag ist in der Rasteransicht kein einzelner Knopf, sondern eine Zelle
@@ -29,9 +29,13 @@ async function wunschEintragen(page: import('@playwright/test').Page, schicht: '
 
 test('ein Wunsch laesst sich setzen und wieder entfernen', async ({ page }) => {
   await anmelden(page, KONTEN.mitarbeit);
-  await zumMonat(page, OFFENER_MONAT);
-
   const datum = `${OFFENER_MONAT}-15`;
+  // Aufraeumen vor dem eigentlichen Test: geteilte Testdatenbank plus
+  // CI-Wiederholungsversuch (`retries: 1`) wuerde sonst nach einem
+  // Fehlschlag zwischen "Anlegen" und "Loeschen" zwei Wuensche auf dem Tag
+  // hinterlassen, von denen nur einer entfernt wird.
+  await raeumeWunschAuf(page, datum);
+  await zumMonat(page, OFFENER_MONAT);
   await tagAuswaehlen(page, datum);
   await wunschEintragen(page, 'Früh');
 
@@ -59,9 +63,13 @@ test('derselbe Wunsch erscheint in allen drei Ansichten', async ({ page }) => {
   // Raster, Liste und Matrix liegen in einer Datei. Wer eine aendert, bricht
   // leicht die anderen — genau das faengt dieser Test.
   await anmelden(page, KONTEN.mitarbeit);
-  await zumMonat(page, OFFENER_MONAT);
-
   const datum = `${OFFENER_MONAT}-15`;
+  // Derselbe Tag wie im vorherigen Test — und dieser hier raeumt seinen
+  // Wunsch nie wieder weg (er prueft absichtlich, dass er in allen Ansichten
+  // stehen bleibt). Ohne Aufraeumen wuerde jeder Wiederholungsversuch einen
+  // weiteren Wunsch auf denselben Tag haeufen.
+  await raeumeWunschAuf(page, datum);
+  await zumMonat(page, OFFENER_MONAT);
   await tagAuswaehlen(page, datum);
   await wunschEintragen(page, 'Nacht');
 
@@ -81,9 +89,11 @@ test('ein Wunsch liegt im richtigen Monat, auch ueber den Jahreswechsel', async 
   // Die Sperrfrist rechnet mit jahr * 12 + monat. Dezember zu Januar ist die
   // Stelle, an der Datumslogik am haeufigsten um einen Monat verrutscht.
   await anmelden(page, KONTEN.leitung); // die Leitung ist nirgends gesperrt
-  await zumMonat(page, DEZEMBER);
-
   const dezemberTag = `${DEZEMBER}-31`;
+  // Auch dieser Test raeumt seinen Wunsch nicht weg — dieselbe Vorsichtsmassnahme
+  // wie in den beiden Tests oben.
+  await raeumeWunschAuf(page, dezemberTag);
+  await zumMonat(page, DEZEMBER);
   await tagAuswaehlen(page, dezemberTag);
   await wunschEintragen(page, 'Spät');
   await expect(page.getByTestId(`tag-${dezemberTag}`)).toContainText('Spät');
