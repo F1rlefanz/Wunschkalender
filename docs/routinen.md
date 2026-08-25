@@ -104,17 +104,21 @@ Drei Zahlen und eine Liste:
   Mindestzahl an Browsertests wuerde das allein nicht sehen.
 - **Gesperrte Pfade.** Keine erzeugende Routine darf diese Pfade beruehren.
   Bei jedem der Grund:
-  - `.github/workflows/` — der Auftrag, der die Schranken selbst durchsetzt.
+  - `.github/` (nicht nur `.github/workflows/`) — der Auftrag, der die
+    Schranken selbst durchsetzt, und alles, was GitHub sonst dort ausfuehrt,
+    etwa ein spaeterer Ordner `.github/actions/`.
   - `.claude/` — die Schleuse und die uebrige Einrichtung, ueber die eine
     Routine ausserhalb der CI kontrolliert wird.
-  - `tools/pruefe-schleuse.mjs` — verlangt den Changelog-Eintrag vor jedem
-    Commit; ein Angriffspunkt, um diese Pflicht loszuwerden.
-  - `tools/changelog-pruefung.mjs` — dieselbe Pruefung, aus Sicht der Schleuse.
-  - `tools/routine-schranken.mjs` — die Regeln aus diesem Abschnitt selbst.
-  - `tools/pruefe-routine.mjs` — der Aufrufer, der Diff und Browsertests fuer
-    diese Regeln sammelt.
+  - `tools/` (das ganze Verzeichnis, nicht nur einzelne Dateien) — traegt die
+    Schleuse, die Changelog-Pruefung und die Schranken selbst; ein einzeln
+    ungesperrtes Werkzeug darin (etwa ein spaeterer Hook, der auf dem Rechner
+    des Betreibers laeuft) waere sonst eine Luecke in einer sonst
+    geschuetzten Nachbarschaft.
   - `docs/routinen.md` — diese Datei. Eine Routine darf die Regeln, an die sie
     sich haelt, nicht selbst umschreiben.
+  - `CLAUDE.md` — liegt in jeder Nachricht im Kontext jedes Claude,
+    einschliesslich des Torwaechters, der den Pull-Request gegenliest. Ein
+    Pull-Request, der sie "aufraeumt", schriebe an seinen eigenen Pruefer.
   - `vitest.config.ts` — hier liessen sich die Abdeckungsschwellen senken oder
     Dateien aus der Messung ausschliessen, ohne einen Test anzufassen.
   - `playwright.config.ts` — hier liesse sich `testDir` umleiten oder
@@ -126,6 +130,9 @@ Drei Zahlen und eine Liste:
     sicherheitsnahen Serverbausteine. Ein Fehler hier faellt einer Routine
     nicht auf, denn er zeigt sich nicht in gruenen Tests, sondern in einer
     Luecke, die noch keiner gefunden hat.
+  - `src/server/app.ts` — traegt `requireAuth`, `requireManager` und ihre
+    Zuordnung zu den Endpunkten, der teuerste Fallstrick, den `CLAUDE.md`
+    selbst benennt (`PUT /api/users/:id` als Weg zur eigenen Befoerderung).
 
 ## Warum Testdateien nicht gesperrt sind
 

@@ -39,6 +39,26 @@ describe('istGesperrt', () => {
     expect(istGesperrt('tools/pruefe-routine.mjs')).toBe(true);
   });
 
+  it('sperrt das ganze tools/-Verzeichnis, nicht nur einzelne Dateien', () => {
+    // Ein neues Werkzeug in tools/ (etwa ein spaeterer SessionStart-Hook)
+    // laeuft auf dem Rechner des Betreibers und darf nicht ungeschuetzt sein.
+    expect(istGesperrt('tools/sitzungsstart.mjs')).toBe(true);
+    expect(istGesperrt('tools/irgendein-neues-werkzeug.mjs')).toBe(true);
+  });
+
+  it('sperrt CLAUDE.md — sie liegt im Kontext des Torwaechters selbst', () => {
+    expect(istGesperrt('CLAUDE.md')).toBe(true);
+  });
+
+  it('sperrt src/server/app.ts — traegt requireAuth/requireManager', () => {
+    expect(istGesperrt('src/server/app.ts')).toBe(true);
+  });
+
+  it('sperrt .github/ vollstaendig, nicht nur .github/workflows/', () => {
+    expect(istGesperrt('.github/workflows/ci.yml')).toBe(true);
+    expect(istGesperrt('.github/actions/irgendwas/action.yml')).toBe(true);
+  });
+
   it('sperrt die Konfiguration des Testnetzes', () => {
     // Ueber jede dieser Dateien laesst sich das Netz mit einem Zweizeiler
     // aushebeln, ohne einen einzigen Test anzufassen.

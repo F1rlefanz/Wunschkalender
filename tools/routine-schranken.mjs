@@ -41,13 +41,17 @@ export const GEPRUEFTE_WERKZEUGE = ['vitest', '@vitest/coverage-v8', '@playwrigh
  */
 export const GESPERRTE_PFADE = [
   // Die Sicherungen selbst.
-  '.github/workflows/',
+  '.github/',
   '.claude/',
-  'tools/pruefe-schleuse.mjs',
-  'tools/changelog-pruefung.mjs',
-  'tools/routine-schranken.mjs',
-  'tools/pruefe-routine.mjs',
+  // Ganzes Verzeichnis statt einzelner Dateien: ein neues Werkzeug in tools/
+  // (etwa ein spaeterer SessionStart-Hook) waere sonst ungeschuetzt, obwohl es
+  // auf dem Rechner des Betreibers laeuft.
+  'tools/',
   'docs/routinen.md',
+  // Liegt in jeder Nachricht im Kontext jedes Claude, einschliesslich des
+  // Torwaechters, der den Pull-Request gegenliest. Eine Routine, die diese
+  // Datei "aufraeumt", schreibt an ihren eigenen Pruefer.
+  'CLAUDE.md',
   // Die Konfiguration des Testnetzes: ueber jede dieser Dateien laesst es sich
   // mit einem Zweizeiler aushebeln, ohne einen Test anzufassen.
   'vitest.config.ts',
@@ -62,6 +66,9 @@ export const GESPERRTE_PFADE = [
   'src/server/session-store.ts',
   'src/server/session-secret.ts',
   'src/server/validierung.ts',
+  // Traegt requireAuth/requireManager und ihre Zuordnung zu den Endpunkten —
+  // der teuerste Fallstrick, den CLAUDE.md selbst benennt.
+  'src/server/app.ts',
 ];
 
 /** Normalisiert einen Pfad: `\` zu `/`, `./` und `..` aufgeloest, klein. */
