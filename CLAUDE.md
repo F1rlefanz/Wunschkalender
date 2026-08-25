@@ -22,6 +22,7 @@ Wuensche, die Leitung sieht alle und verwaltet Benutzer.
 | Wo laeuft das, wer sichert? | `docs/betrieb.md` (Vorlage fuer die IT, Issue #30) |
 | Wie sieht es aus, und warum so? | `docs/gestaltung.md` |
 | Wie wird hier gearbeitet? | `.claude/skills/` |
+| Was duerfen autonome Routinen? | `docs/routinen.md` |
 
 Diese Datei liegt in **jeder** Nachricht im Kontext. Deshalb gilt ein Zeichenbudget, das
 `tools/pruefe-schleuse.mjs` prueft. Wenn es reisst: auslagern, nicht die Schwelle anheben.

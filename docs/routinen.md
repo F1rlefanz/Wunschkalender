@@ -1,0 +1,131 @@
+# Regeln fuer autonome Wartungsroutinen
+
+Diese Datei ist die eine Quelle, auf die jede autonome Wartungsroutine verweist.
+Die Routinen selbst leben als `SKILL.md`-Dateien ausserhalb dieses Repos (unter
+`~/.claude/scheduled-tasks/`); die Regeln stehen bewusst hier, nicht dort. Vier
+Kopien derselben Regel driften irgendwann auseinander, eine Datei im Repo wird
+mit dem Code versioniert und ist selbst pruefbar.
+
+## Wozu das hier gut ist
+
+Autonome Wartungsroutinen erzeugen Pull-Requests, die kein Mensch liest. Der
+Betreiber dieser Anwendung prueft sie nicht durch Lesen — die Sicherung muss
+also maschinisch sein: Tests, die bei einer echten Verhaltensaenderung rot
+werden, und die Schranken in diesem Dokument. Eine Anweisung an ein
+Sprachmodell reicht fuer Gewohnheiten, nicht fuer Grenzen; deshalb stehen die
+harten Regeln in Code und CI, nicht nur im Prompt einer Routine.
+
+## Der gemeinsame Rahmen
+
+Jede erzeugende Routine haelt sich an dieselben Grundregeln, unabhaengig davon,
+was sie inhaltlich tut:
+
+Sie arbeitet immer auf einem eigenen Branch nach dem Muster
+`routine/<name>/<JJJJ-MM-TT>`, nie direkt auf `main`. Pro Lauf entsteht
+hoechstens ein Pull-Request. Findet eine Routine nichts zu tun, beendet sie
+sich still — ein "ich habe nachgesehen und nichts gefunden" ist Rauschen, das
+niemand lesen soll. Bevor ein Pull-Request entsteht, muessen
+`npm run lint && npm test && npm run build` lokal gruen sein; eine Routine, die
+das ueberspringt, verschiebt ihre eigene Fehlersuche auf den Torwaechter, der
+sie nicht leisten kann. Kein Verhaltenswechsel ohne einen Test, der ihn zeigt
+— eine Aenderung, die kein Test sieht, ist fuer diese Sicherung unsichtbar und
+damit so gut wie nicht geschehen. Die Pull-Request-Beschreibung hat eine feste
+Form: was sich aendert, warum, und welcher Beweis (welcher Test, welcher
+Messwert) dafuer steht.
+
+## Die mechanischen Schranken
+
+Die Regeln in diesem Abschnitt sind keine Bitte an ein Modell, sondern Code:
+`tools/routine-schranken.mjs`, dort als reine Funktionen getestet (23 Tests)
+und von `tools/pruefe-routine.mjs` gegen den echten Diff eines Branches
+angewendet. Der CI-Auftrag `Schranken fuer Routine-Zweige` ruft das fuer jeden
+`routine/*`-Branch auf und schliesst rot ab, wenn eine Schranke verletzt ist —
+ohne dass jemand den Pull-Request gelesen haben muss.
+
+Drei Zahlen und eine Liste:
+
+- **Hoechstens 400 geaenderte Zeilen** (hinzugefuegt plus entfernt). Eine
+  groessere Aenderung, die niemand liest, ist eine Wette. Braucht eine Routine
+  mehr Raum, legt sie ein Issue mit Vorschlag an statt eines Pull-Requests.
+- **Mindestens 20 Browsertests.** Die Abdeckungsmessung schliesst `e2e/**`
+  ausdruecklich aus (siehe Abschnitt "Die bewusste Luecke"); ein geloeschter
+  oder stillgelegter Browsertest wuerde die Abdeckungsschwelle also nicht
+  senken, obwohl die gesamte Oberflaeche an genau diesen Tests haengt. Die
+  Mindestzahl faengt genau das ab.
+- **Skripte und Node-Untergrenze in `package.json` sind geschuetzt**, obwohl
+  die Datei selbst nicht auf der Sperrliste steht — die Routine
+  "Abhaengigkeiten" muss sie aendern koennen. Geprueft wird trotzdem gezielt:
+  Die Skripte `test`, `test:coverage`, `test:e2e`, `lint` (und jedes andere
+  bestehende Skript) duerfen nicht umgebogen oder entfernt werden, denn genau
+  das waere der Zweizeiler, der jede Pruefung ins Leere laufen laesst, ohne
+  einen Test anzufassen. Die Node-Untergrenze unter `engines` darf sich nicht
+  aendern, denn eine zu niedrige Grenze laesst die CI abstuerzen statt lesbar
+  zu scheitern — genau so ist es in diesem Projekt schon einmal tagelang
+  unbemerkt geblieben. Hinzufuegen neuer Skripte bleibt erlaubt.
+- **Gesperrte Pfade.** Keine erzeugende Routine darf diese Pfade beruehren.
+  Bei jedem der Grund:
+  - `.github/workflows/` — der Auftrag, der die Schranken selbst durchsetzt.
+  - `.claude/` — die Schleuse und die uebrige Einrichtung, ueber die eine
+    Routine ausserhalb der CI kontrolliert wird.
+  - `tools/pruefe-schleuse.mjs` — verlangt den Changelog-Eintrag vor jedem
+    Commit; ein Angriffspunkt, um diese Pflicht loszuwerden.
+  - `tools/changelog-pruefung.mjs` — dieselbe Pruefung, aus Sicht der Schleuse.
+  - `tools/routine-schranken.mjs` — die Regeln aus diesem Abschnitt selbst.
+  - `tools/pruefe-routine.mjs` — der Aufrufer, der Diff und Browsertests fuer
+    diese Regeln sammelt.
+  - `docs/routinen.md` — diese Datei. Eine Routine darf die Regeln, an die sie
+    sich haelt, nicht selbst umschreiben.
+  - `vitest.config.ts` — hier liessen sich die Abdeckungsschwellen senken oder
+    Dateien aus der Messung ausschliessen, ohne einen Test anzufassen.
+  - `playwright.config.ts` — hier liesse sich `testDir` umleiten oder
+    `forbidOnly` abschalten und damit ein `test.only` unbemerkt lassen.
+  - `tsconfig.json` — hier liesse sich `include` kuerzen, sodass `e2e/` nicht
+    mehr typgeprueft wird.
+  - `src/server/passwords.ts`, `src/server/session-store.ts`,
+    `src/server/session-secret.ts`, `src/server/validierung.ts` — die
+    sicherheitsnahen Serverbausteine. Ein Fehler hier faellt einer Routine
+    nicht auf, denn er zeigt sich nicht in gruenen Tests, sondern in einer
+    Luecke, die noch keiner gefunden hat.
+
+## Warum Testdateien nicht gesperrt sind
+
+Die Sperrliste oben verbietet gezielte Dateien und Verzeichnisse — Testdateien
+stehen absichtlich nicht darauf. Die Regel lautet nicht "Tests sind
+unantastbar", sondern "der Beweiswert einer Aenderung darf nicht sinken". Ein
+Verbot, Testdateien anzufassen, wuerde die Routine "Toter Code" von Anfang an
+blockieren, deren Auftrag ausdruecklich einschliesst, Tests ohne echte
+Zusicherung zu entfernen — Reste, die nichts mehr pruefen und nur noch
+Laufzeit kosten. Ein pauschales Verbot verhindert also auch das Sinnvolle.
+Stattdessen wird das **Wegnehmen gezaehlt**: Die Mindestzahl an Browsertests
+und die Abdeckungsschwellen aus `vitest.config.ts` duerfen nicht sinken. Wer
+einen Test entfernt, ohne dass eine dieser Zahlen unter ihre Schwelle faellt,
+hat tatsaechlich nur totes Gewicht entfernt; wer eine Zahl darunter druecken
+wuerde, faellt der CI auf, ganz ohne dass jemand die Datei gelesen haben muss.
+
+## Die bewusste Luecke bei der Abdeckung
+
+Die Abdeckungsschwellen in `vitest.config.ts` liegen nicht auf dem gemessenen
+Stand, sondern jeweils zwei Punkte darunter (Statements/Lines 32 statt 34,
+Functions 86 statt rund 89, Branches 82 statt rund 84, ebenso bei den
+Bereichsschwellen fuer `src/server/**` und die reinen Logikdateien). Das ist
+Absicht: Ohne diesen Spielraum wuerde schon eine harmlose neue Zeile — eine,
+die richtig ist, aber noch keinen eigenen Test hat — die CI rot faerben, ohne
+dass etwas kaputt ist. Der Preis dafuer ist, dass eine Routine diese zwei
+Punkte Luft ausschoepfen kann, bevor die Schranke greift. Wer die Zahlen in
+`vitest.config.ts` aendert — die Schwellen selbst oder den Abstand zum
+gemessenen Wert — aendert eine Absprache, keine Kleinigkeit, und `vitest.config.ts`
+steht deshalb auch auf der Sperrliste oben.
+
+## Was die Schranken nicht leisten
+
+Der CI-Auftrag `Schranken fuer Routine-Zweige` laeuft aus der Workflow-Datei
+des Pull-Request-Zweiges selbst, denn GitHub fuehrt Workflows bei
+`pull_request` aus dem Head-Branch aus. Gegen eine Aenderung an genau dieser
+Datei (`.github/workflows/ci.yml`) schuetzt der Auftrag deshalb nicht selbst —
+er wuerde in der veraenderten Fassung laufen. Wirksam ist ausschliesslich eine
+Branch Protection Rule mit Required Status Checks auf `main`, eingerichtet in
+den GitHub-Repository-Einstellungen: Ein fehlender oder umbenannter Required
+Check blockiert dann den Merge ebenso wie ein roter. Das ist eine Handlung auf
+GitHub, keine Aenderung in diesem Repo — sie kann hier nicht eingerichtet
+werden, muss aber stehen, bevor irgendeine Routine Merge-Rechte bekommt. Ohne
+sie ist alles in diesem Dokument Kosmetik.
