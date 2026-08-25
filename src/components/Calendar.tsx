@@ -415,6 +415,7 @@ export function Calendar({ wishes, monthlyComments, currentUser, settings, users
               </label>
               <textarea
                 id="eigener-hinweis"
+                data-testid="monatshinweis"
                 className="w-full rounded-sm border border-rand-stark bg-flaeche p-raum3 text-basis disabled:bg-flaeche-leise disabled:text-leise disabled:cursor-not-allowed"
                 rows={2}
                 value={localMonthlyComment}
