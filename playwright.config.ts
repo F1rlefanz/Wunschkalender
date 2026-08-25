@@ -7,6 +7,10 @@ export default defineConfig({
   // Ein Fehlschlag soll ein Fehlschlag sein. In der CI eine Wiederholung, um
   // Netz- und Startzufaelle von echten Fehlern zu trennen.
   retries: process.env.CI ? 1 : 0,
+  // Ein vergessenes test.only legt 19 von 20 Tests still, ohne dass etwas rot
+  // wird. Unter CI ist das ein Fehlschlag, lokal bleibt es ein nuetzliches
+  // Werkzeug.
+  forbidOnly: !!process.env.CI,
   fullyParallel: false,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: {
