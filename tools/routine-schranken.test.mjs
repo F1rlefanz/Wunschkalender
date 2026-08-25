@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  GEPRUEFTE_WERKZEUGE,
   GESPERRTE_PFADE,
   MAX_GEAENDERTE_ZEILEN,
   MINDEST_BROWSERTESTS,
+  fassungSinkt,
   istGesperrt,
   istRoutineZweig,
   pruefeSchranken,
@@ -149,6 +151,71 @@ describe('pruefeSkripte', () => {
       const probleme = pruefeSkripte(paket, nachher);
       expect(probleme.some((p) => p.includes(name))).toBe(true);
     }
+  });
+
+  it('meldet ein neu eingefuegtes overrides-Feld', () => {
+    const nachher = { ...paket, overrides: { vitest: '2.0.0' } };
+    const probleme = pruefeSkripte(paket, nachher);
+    expect(probleme).toHaveLength(1);
+    expect(probleme[0]).toContain('overrides');
+  });
+
+  it('meldet ein neu eingefuegtes resolutions-Feld', () => {
+    const nachher = { ...paket, resolutions: { vitest: '2.0.0' } };
+    const probleme = pruefeSkripte(paket, nachher);
+    expect(probleme).toHaveLength(1);
+    expect(probleme[0]).toContain('resolutions');
+  });
+
+  it('laesst ein bestehendes overrides-Feld unveraendert zu', () => {
+    const mitOverrides = { ...paket, overrides: { vitest: '3.2.4' } };
+    const nachher = { ...mitOverrides, dependencies: { express: '^4.22.0' } };
+    expect(pruefeSkripte(mitOverrides, nachher)).toEqual([]);
+  });
+
+  it('meldet eine gesenkte Fassung eines Pruefwerkzeugs', () => {
+    const mitVitest = { ...paket, devDependencies: { ...paket.devDependencies, vitest: '^3.2.4' } };
+    const nachher = { ...mitVitest, devDependencies: { ...mitVitest.devDependencies, vitest: '^2.9.0' } };
+    const probleme = pruefeSkripte(mitVitest, nachher);
+    expect(probleme).toHaveLength(1);
+    expect(probleme[0]).toContain('vitest');
+  });
+
+  it('laesst eine gestiegene Fassung eines Pruefwerkzeugs zu', () => {
+    const mitVitest = { ...paket, devDependencies: { ...paket.devDependencies, vitest: '^3.2.4' } };
+    const nachher = { ...mitVitest, devDependencies: { ...mitVitest.devDependencies, vitest: '^3.3.0' } };
+    expect(pruefeSkripte(mitVitest, nachher)).toEqual([]);
+  });
+});
+
+describe('fassungSinkt', () => {
+  it('erkennt eine gesunkene Fassung ueber die fuehrenden Zahlen', () => {
+    expect(fassungSinkt('^3.2.4', '^2.9.0')).toBe(true);
+  });
+
+  it('laesst eine gestiegene Fassung zu', () => {
+    expect(fassungSinkt('^3.2.4', '^3.3.0')).toBe(false);
+  });
+
+  it('kommt mit ~ und exakten Fassungen zurecht', () => {
+    expect(fassungSinkt('~1.62.1', '1.62.0')).toBe(true);
+    expect(fassungSinkt('1.62.1', '~1.63.0')).toBe(false);
+  });
+
+  it('behandelt eine gleichgebliebene Fassung als nicht gesunken', () => {
+    expect(fassungSinkt('^3.2.4', '^3.2.4')).toBe(false);
+  });
+
+  it('behandelt einen fehlenden Eintrag danach als Sinken', () => {
+    expect(fassungSinkt('^3.2.4', undefined)).toBe(true);
+  });
+
+  it('behandelt einen fehlenden Eintrag davor als kein Sinken', () => {
+    expect(fassungSinkt(undefined, '^3.2.4')).toBe(false);
+  });
+
+  it('haelt die Liste der gepruefte Werkzeuge fest', () => {
+    expect(GEPRUEFTE_WERKZEUGE).toEqual(['vitest', '@vitest/coverage-v8', '@playwright/test', 'typescript']);
   });
 });
 

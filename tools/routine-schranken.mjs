@@ -26,6 +26,14 @@ export const MAX_GEAENDERTE_ZEILEN = 400;
 export const MINDEST_BROWSERTESTS = 20;
 
 /**
+ * Die vier Werkzeuge, deren Fassung in `devDependencies` nicht sinken darf.
+ *
+ * Wer eines dieser Werkzeuge auf eine aeltere Fassung setzt, kann damit
+ * genau die Schwellen wirkungslos machen, die dieses Skript selbst benutzt.
+ */
+export const GEPRUEFTE_WERKZEUGE = ['vitest', '@vitest/coverage-v8', '@playwright/test', 'typescript'];
+
+/**
  * Was keine erzeugende Routine anfassen darf.
  *
  * Ein Eintrag mit `/` am Ende ist ein Verzeichnis-Praefix, alles andere ein
@@ -95,6 +103,35 @@ export function istRoutineZweig(name) {
   return /^routine\/.+/i.test(trimmed);
 }
 
+/** Zieht die fuehrenden Zahlen einer Versionsangabe (`^3.2.4` -> [3, 2, 4]). */
+function zerlegeFassung(angabe) {
+  const treffer = String(angabe ?? '').match(/\d+/g);
+  return treffer ? treffer.map(Number) : [];
+}
+
+/**
+ * Ist `nachher` eine niedrigere Fassung als `vorher`?
+ *
+ * Ein Vergleich der fuehrenden Zahlen genuegt (`^3.2.4` -> `^3.3.0` ist in
+ * Ordnung, `^3.2.4` -> `^2.9.0` nicht). Fehlt der Eintrag nachher, wo er
+ * vorher da war, zaehlt das als Sinken — das Werkzeug ist dann ja weg. Fehlt
+ * er vorher und kommt nachher hinzu, ist das kein Sinken.
+ */
+export function fassungSinkt(vorher, nachher) {
+  if (vorher === undefined) return false;
+  if (nachher === undefined) return true;
+  const v = zerlegeFassung(vorher);
+  const n = zerlegeFassung(nachher);
+  const laenge = Math.max(v.length, n.length);
+  for (let i = 0; i < laenge; i += 1) {
+    const a = v[i] ?? 0;
+    const b = n[i] ?? 0;
+    if (b > a) return false;
+    if (b < a) return true;
+  }
+  return false;
+}
+
 /** Lifecycle-Skripte, die npm ohne Zutun ausfuehrt — siehe pruefeSkripte. */
 const LIFECYCLE_SKRIPTE = ['preinstall', 'install', 'postinstall', 'prepare', 'prepublish', 'prepublishOnly', 'prepack', 'postpack'];
 
@@ -115,6 +152,11 @@ const LIFECYCLE_SKRIPTE = ['preinstall', 'install', 'postinstall', 'prepare', 'p
  * - **`engines`** — die Node-Untergrenze abzusenken bringt die CI zum harten
  *   Absturz statt zu einem lesbaren Fehlschlag. Genau so war sie in diesem
  *   Projekt schon einmal tagelang unbemerkt rot.
+ * - **`overrides`/`resolutions`** — ein neu eingefuegtes Feld kann dieselben
+ *   Werkzeuge betreffen wie die Fassungspruefung unten, nur unauffaelliger.
+ * - **Die Fassungen der Pruefwerkzeuge** (`GEPRUEFTE_WERKZEUGE`) duerfen nicht
+ *   sinken — sonst bestimmt die Routine selbst, mit welchem Werkzeug sie
+ *   geprueft wird.
  */
 export function pruefeSkripte(vorher, nachher) {
   if (!vorher || !nachher) return [];
@@ -141,6 +183,23 @@ export function pruefeSkripte(vorher, nachher) {
   const nachherNode = (nachher.engines ?? {}).node;
   if (vorherNode !== nachherNode) {
     probleme.push(`Die Node-Anforderung in "engines" wurde geaendert (war: ${vorherNode}, jetzt: ${nachherNode}). Eine zu niedrige Untergrenze laesst die CI abstuerzen statt lesbar scheitern.`);
+  }
+
+  for (const feld of ['overrides', 'resolutions']) {
+    if (vorher[feld] === undefined && nachher[feld] !== undefined) {
+      probleme.push(`Neues Feld "${feld}" in package.json. Darueber liesse sich die Fassung eines Pruefwerkzeugs unauffaellig erzwingen.`);
+    }
+  }
+
+  for (const werkzeug of GEPRUEFTE_WERKZEUGE) {
+    const vorherFassung = (vorher.devDependencies ?? {})[werkzeug];
+    const nachherFassung = (nachher.devDependencies ?? {})[werkzeug];
+    if (fassungSinkt(vorherFassung, nachherFassung)) {
+      probleme.push(
+        `Die Fassung von "${werkzeug}" sinkt (war: ${vorherFassung ?? '(fehlt)'}, jetzt: ${nachherFassung ?? '(fehlt)'}). ` +
+          'Damit liessen sich die Schwellen unterlaufen, die dieses Werkzeug durchsetzt.',
+      );
+    }
   }
 
   return probleme;

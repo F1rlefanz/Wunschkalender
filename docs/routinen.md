@@ -81,6 +81,15 @@ Drei Zahlen und eine Liste:
   zu scheitern — genau so ist es in diesem Projekt schon einmal tagelang
   unbemerkt geblieben. Hinzufuegen neuer (nicht-lifecycle) Skripte bleibt
   erlaubt.
+- **Die Fassungen der Pruefwerkzeuge duerfen nicht sinken.** `vitest`,
+  `@vitest/coverage-v8`, `@playwright/test` und `typescript` bestimmen selbst,
+  wie streng geprueft wird — eine Routine "Abhaengigkeiten", die eines davon
+  auf eine aeltere Fassung setzt, kann damit unbemerkt die Werkzeuge
+  schwaechen, die sie selbst kontrollieren. Verglichen werden die fuehrenden
+  Zahlen in `devDependencies` (vorher gegen nachher); ein neu eingefuegtes
+  `overrides`- oder `resolutions`-Feld in `package.json` ist aus demselben
+  Grund ebenfalls ein Verstoss, denn darueber liesse sich eine Fassung
+  erzwingen, ohne den sichtbaren Eintrag zu aendern.
 - **Gesperrte Pfade.** Keine erzeugende Routine darf diese Pfade beruehren.
   Bei jedem der Grund:
   - `.github/workflows/` — der Auftrag, der die Schranken selbst durchsetzt.
