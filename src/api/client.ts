@@ -1,4 +1,4 @@
-import { Wish, MonthlyComment, Settings } from '../types';
+import { Wish, MonthlyComment, Settings, Beispielauskunft } from '../types';
 
 /**
  * Holt die Begruendung aus der Serverantwort. Ohne das bliebe von einer
@@ -15,6 +15,22 @@ async function fehlermeldung(response: Response, fallback: string): Promise<stri
 }
 
 export const api = {
+  /**
+   * Ob die Anwendung als Testfassung mit erfundenen Daten laeuft. Ohne
+   * Anmeldung abfragbar — die Anmeldeseite braucht die Auskunft. Ein Fehler
+   * gilt als "aus": Im Zweifel keinen Hinweisstreifen zeigen, statt einen
+   * falschen.
+   */
+  async beispielmodus(): Promise<Beispielauskunft> {
+    try {
+      const response = await fetch('/api/beispielmodus');
+      if (!response.ok) return { an: false };
+      return await response.json();
+    } catch {
+      return { an: false };
+    }
+  },
+
   async getSettings(): Promise<Settings> {
     const response = await fetch('/api/settings');
     if (!response.ok) throw new Error('Failed to fetch settings');

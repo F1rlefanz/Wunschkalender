@@ -24,6 +24,7 @@ import {
   pruefe,
   wunschSchema,
 } from './validierung';
+import { BEISPIEL_KONTEN, BEISPIEL_PASSWORT } from './beispieldaten';
 
 /** Zehn Jahre. "Kein Ablauf" gaebe ein Cookie, das beim Schliessen des Browsers stirbt. */
 const COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60 * 1000;
@@ -36,6 +37,12 @@ export interface AppOptionen {
   auslieferung: 'vite' | 'statisch' | 'keine';
   /** Wurzel fuer 'statisch'. Vorgabe: <cwd>/dist */
   distPfad?: string;
+  /**
+   * Ob die Anwendung als Testfassung mit erfundenen Daten laeuft. Die
+   * Oberflaeche fragt das vor der Anmeldung ab — sie muss den Hinweisstreifen
+   * zeigen und die oeffentlich bekannten Zugangsdaten nennen koennen.
+   */
+  beispielmodus?: boolean;
 }
 
 export interface AppBausteine {
@@ -57,6 +64,7 @@ export async function erzeugeApp({
   betrieb,
   auslieferung,
   distPfad,
+  beispielmodus = false,
 }: AppOptionen): Promise<AppBausteine> {
   const store = createStore(db);
   const sessionStore = new SqliteSessionStore(db);
@@ -225,6 +233,16 @@ export async function erzeugeApp({
     const user = userId ? store.findUserById(userId) : undefined;
     if (!user) return res.status(401).json({ user: null });
     res.json({ user });
+  });
+
+  /**
+   * Oeffentlich und mit Absicht: Die Anmeldeseite muss den Hinweisstreifen und
+   * die Beispiel-Zugangsdaten zeigen koennen, bevor sich jemand angemeldet hat.
+   * Ist der Modus aus, verraet die Antwort nichts weiter.
+   */
+  app.get('/api/beispielmodus', (_req, res) => {
+    if (!beispielmodus) return res.json({ an: false });
+    res.json({ an: true, passwort: BEISPIEL_PASSWORT, konten: BEISPIEL_KONTEN });
   });
 
   // ----- Ab hier ist eine Anmeldung Pflicht -----

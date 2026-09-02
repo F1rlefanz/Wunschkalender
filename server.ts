@@ -6,6 +6,10 @@ import { leseBetriebsmodus } from './src/server/betriebsmodus';
 import { MIN_PASSWORD_LENGTH } from './src/server/passwords';
 import { erzeugeApp } from './src/server/app';
 import { loeseDatenpfade, stelleDatenordnerBereit } from './src/server/daten-ordner';
+import {
+  beispielmodusGewuenscht,
+  richteBeispieldatenEin,
+} from './src/server/beispieldaten';
 
 async function startServer() {
   // Wo die Daten liegen, sagt der Betrieb ueber DATEN_ORDNER; ohne Angabe
@@ -22,6 +26,20 @@ async function startServer() {
         `${migration.comments} Hinweise aus db.json uebernommen.`,
     );
     for (const warnung of migration.warnings) console.warn(`  Achtung: ${warnung}`);
+  }
+
+  // Vor dem Leitungskonto: Der Beispielmodus bringt seine eigene Leitung mit,
+  // und er darf nur auf eine leere Datenbank. Siehe src/server/beispieldaten.ts.
+  const beispiel = await richteBeispieldatenEin(db, process.env, new Date());
+  if (beispiel.art === 'verweigert') {
+    console.error(`FEHLER: ${beispiel.grund}`);
+    process.exit(1);
+  }
+  if (beispiel.art === 'angelegt') {
+    console.log(
+      `Beispieldaten angelegt: ${beispiel.konten} Konten, ${beispiel.wuensche} Wuensche, ` +
+        `${beispiel.hinweise} Hinweise. Testfassung — nicht fuer den Echtbetrieb.`,
+    );
   }
 
   const seed = await ensureManagerAccount(db);
@@ -59,6 +77,7 @@ async function startServer() {
     sitzungsgeheimnis: secret.secret,
     betrieb,
     auslieferung: process.env.NODE_ENV === 'production' ? 'statisch' : 'vite',
+    beispielmodus: beispielmodusGewuenscht(process.env),
   });
 
   const PORT = Number(process.env.PORT) || 3000;

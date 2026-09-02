@@ -16,6 +16,18 @@ export type ShiftType = (typeof SHIFT_TYPES)[number];
 
 export type Role = 'Manager' | 'Employee';
 
+/**
+ * Was der Server ueber die Testfassung verraet. Der Endpunkt ist oeffentlich:
+ * Die Anmeldeseite muss den Hinweis zeigen und die Zugangsdaten nennen
+ * koennen, bevor sich jemand angemeldet hat. Ist der Modus aus, steht in
+ * `an: false` alles, was es zu sagen gibt.
+ */
+export interface Beispielauskunft {
+  an: boolean;
+  passwort?: string;
+  konten?: { name: string; rolle: Role }[];
+}
+
 export interface User {
   id: string;
   name: string;
