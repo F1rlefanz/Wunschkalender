@@ -1,0 +1,33 @@
+# Testfassung auf Render — erfundene Daten, kein Echtbetrieb.
+#
+# Einrichten: bei Render mit dem GitHub-Konto anmelden, "New" -> "Blueprint",
+# dieses Repository waehlen. Render baut aus demselben `Dockerfile` wie die CI.
+#
+# Mit dem Produktivbetrieb hat das nichts zu tun: Wo die Anwendung im Haus
+# steht, entscheidet die Krankenhaus-IT (siehe docs/betrieb.md, Issue #8).
+services:
+  - type: web
+    name: wunschkalender-testfassung
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    branch: main
+    # Einen Health-Endpunkt gibt es noch nicht (Issue #4); bis dahin ist die
+    # ausgelieferte Oberflaeche der Beleg, dass der Prozess antwortet.
+    healthCheckPath: /
+    envVars:
+      # Pflicht: Render beendet TLS davor. Ohne diesen Wert glaubt Express der
+      # Weiterleitung nicht, und das Sitzungscookie ginge ohne `Secure` hinaus.
+      - key: VERTRAUE_PROXY
+        value: "1"
+      - key: HSTS
+        value: "1"
+      # Der Schalter der Testfassung. Im Echtbetrieb bleibt er ungesetzt.
+      - key: BEISPIELDATEN
+        value: an
+      - key: SESSION_SECRET
+        generateValue: true
+    # Kein Datentraeger, und das ist hier richtig: Die Testfassung soll bei
+    # jedem Neustart mit frischen Beispieldaten beginnen. Wer darin
+    # herumprobiert, richtet keinen Schaden an.

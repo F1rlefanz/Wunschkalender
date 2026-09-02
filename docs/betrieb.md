@@ -1,6 +1,6 @@
 # Betrieb: Hosting, Erreichbarkeit und Sicherung
 
-Entscheidungsvorlage fuer die Krankenhaus-IT. Stand: 2026-08-20.
+Entscheidungsvorlage fuer die Krankenhaus-IT. Stand: 2026-09-02.
 Zugehoeriges Issue: [#8](https://github.com/F1rlefanz/Wunschkalender/issues/8).
 
 Dieses Dokument haelt fest, was die Anwendung fuer den Betrieb braucht, welche
@@ -63,24 +63,65 @@ Zertifikat.
    naechster Abschnitt — die Datei laesst sich nicht einfach im laufenden
    Betrieb kopieren.
 7. **Aktualisierungen:** Wer spielt neue Fassungen ein?
+8. **Container oder nackt?** Beide Wege sind vorbereitet (siehe „Wie man sie
+   hinstellt"). Wenn im Haus ohnehin Container laufen, ist das der kuerzere Weg;
+   ein schlichter Server tut es aber auch.
 
 ## Was die Anwendung braucht
 
-- Node.js 20 oder neuer.
+- Node.js 22 oder neuer (oder einen Container-Laufzeitdienst, siehe unten).
 - Einen Port, den der Proxy erreicht (`PORT`, Vorgabe 3000). Die Anwendung
   lauscht auf allen Adressen.
 - Ein beschreibbares Verzeichnis fuer `data.sqlite` und `sitzungsgeheimnis`.
-- Start im Produktivbetrieb: `npm run build`, dann `npm start`
-  (setzt `NODE_ENV=production`).
+
+## Wie man sie hinstellt
+
+Zwei Wege. Welcher passt, entscheidet, was im Haus ohnehin laeuft — die
+Anwendung ist in beiden Faellen dieselbe.
+
+### Weg A — Container
+
+Das Repository enthaelt ein `Dockerfile`. Der CI-Auftrag `Container` baut das
+Abbild bei jeder Aenderung, startet es und prueft am laufenden Behaelter, dass
+die Oberflaeche antwortet und `/api/wishes` ohne Anmeldung mit 401 abgewiesen
+wird.
+
+```bash
+docker build -t wunschkalender .
+docker run -d --name wunschkalender   -p 3000:3000   -v /srv/wunschkalender:/daten   -e VERTRAUE_PROXY=1 -e HSTS=1   -e SESSION_SECRET='<langes Zufallsgeheimnis>'   wunschkalender
+```
+
+Der Datentraeger unter `/daten` ist **nicht** optional: Ohne ihn sind Konten und
+Wuensche beim naechsten Neustart weg. Der Prozess laeuft im Behaelter nicht als
+`root`.
+
+### Weg B — Nackt auf einem Server
+
+```bash
+npm ci
+npm run build
+npm start          # setzt NODE_ENV=production
+```
+
+Dieselben Umgebungsvariablen. Ohne `DATEN_ORDNER` liegen die Dateien im
+Arbeitsverzeichnis.
 
 ### Umgebungsvariablen
 
 | Variable | Vorgabe | Bedeutung |
 |---|---|---|
 | `PORT` | `3000` | Port, auf dem die Anwendung lauscht |
+| `DATEN_ORDNER` | Arbeitsverzeichnis | Wo `data.sqlite` und `sitzungsgeheimnis` liegen. Im Abbild `/daten` |
 | `VERTRAUE_PROXY` | `0` | Anzahl der Reverse Proxys davor. `0` heisst: keiner |
 | `HSTS` | aus | `1` setzt `Strict-Transport-Security` |
 | `SESSION_SECRET` | wird erzeugt | Sitzungsgeheimnis; ohne Angabe legt die Anwendung `sitzungsgeheimnis` an |
+| `BEISPIELDATEN` | aus | Testfassung mit erfundenen Daten. **Im Echtbetrieb ungesetzt lassen** |
+
+**`BEISPIELDATEN` bleibt im Echtbetrieb ungesetzt.** Der Schalter legt Konten
+mit einem Passwort an, das auf der Anmeldeseite steht. Er greift nur auf einer
+leeren Datenbank: Findet er Konten vor, die nicht aus dem Beispielmodus
+stammen, verweigert die Anwendung den Start, statt sich ueber eine echte
+Aufstellung zu legen.
 
 **`VERTRAUE_PROXY` muss zur tatsaechlichen Aufstellung passen.** Steht ein Proxy
 davor, der HTTPS beendet, meldet er die urspruengliche Verbindung ueber
@@ -114,6 +155,26 @@ entsprechend behandelt. `sitzungsgeheimnis` ebenfalls sichern: Geht die Datei
 verloren, sind alle Angemeldeten abgemeldet — mehr nicht, aber es faellt auf.
 
 Aufbewahrung, Ort und Haeufigkeit legt die IT fest.
+
+## Die Testfassung zum Ansehen
+
+Damit man die Anwendung zeigen kann, bevor irgendetwas entschieden ist, laeuft
+eine Testfassung ausserhalb des Hauses — bei Render, aus demselben
+`Dockerfile`, eingerichtet ueber die `render.yaml` im Repository.
+
+- **Erfundene Daten.** Fuenf ausgedachte Konten, ausgedachte Wuensche. Keine
+  Namen echter Kolleginnen, auch nicht abgewandelt.
+- **Ohne dauerhaften Speicher.** Bei jedem Neustart beginnt sie von vorn. Wer
+  darin herumprobiert, richtet keinen Schaden an.
+- Ein Streifen ueber der Anwendung sagt durchgehend, dass es die Testfassung
+  ist.
+- Der kostenlose Tarif schlaeft nach 15 Minuten ohne Zugriff ein; der erste
+  Aufruf danach dauert etwa eine Minute.
+
+Adresse: _(nach der Einrichtung eintragen)_
+
+Mit dem Produktivbetrieb hat das nichts zu tun. Die Entscheidung oben bleibt
+davon unberuehrt.
 
 ## Unabhaengig von der Entscheidung
 
