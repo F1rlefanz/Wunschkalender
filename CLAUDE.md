@@ -46,7 +46,8 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   in `src/server/store.ts`, damit er testbar ist.
 - `src/server/` — Serverbausteine mit Tests: `database` (Schema und Schemaschritte), `store` (Datenzugriff),
   `migration` (einmalig aus `db.json`), `passwords` (Argon2), `session-store`,
-  `session-secret`, `seed` (Leitungskonto beim Erststart).
+  `session-secret`, `seed` (Leitungskonto beim Erststart), `daten-ordner`
+  (`DATEN_ORDNER`), `beispieldaten` (Testfassung).
 - `src/App.tsx` — haelt den gesamten Anwendungszustand und die Socket-Verbindung.
   Schreiben laeuft ueber `src/api/client.ts` (REST); die Antwort wird **nicht** in den
   State geschrieben — die Aktualisierung kommt ueber das Socket-Ereignis zurueck.
@@ -141,6 +142,11 @@ Vite als Middleware einhaengt und im Produktionsmodus `dist/` statisch ausliefer
   einzige Stelle mit einem `jspdf`-Import; ein statischer Import von dort holt beides
   zurueck in den Erststart. Neue schwere Abhaengigkeiten gehoeren ebenso hinter ein
   `import()`.
+- **Der Beispielmodus darf nie im Echtbetrieb anspringen.** `BEISPIELDATEN=an`
+  legt Konten mit einem Passwort an, das auf der Anmeldeseite steht. Zwei
+  Sicherungen halten ihn: der ausdrueckliche Schalter **und** die Weigerung,
+  auf einer Datenbank zu starten, die Konten ohne die Marke `beispieldaten`
+  enthaelt. Wer daran etwas aendert, laesst beide stehen.
 - **`tsconfig` ist nicht `strict`.** Fehlende Typen fallen erst spaet auf. An der API-Grenze
   (`src/api/client.ts`) steht bewusst noch `any` — das ist Schuld, kein Vorbild (Issue #5).
   Ohne `strictNullChecks` grenzt TypeScript ausserdem eine Union ueber ein Boolean-Feld nicht

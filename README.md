@@ -18,7 +18,7 @@ erkennt Überschneidungen und exportiert den Stand als PDF für die Dienstplanun
 
 ## Entwicklung
 
-**Voraussetzung:** Node.js 20 oder neuer.
+**Voraussetzung:** Node.js 22 oder neuer (`engines` in `package.json`).
 
 ```bash
 npm install

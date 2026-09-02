@@ -1,4 +1,3 @@
-import path from 'path';
 import { createDatabase } from './src/server/database';
 import { migrateFromJson } from './src/server/migration';
 import { ensureManagerAccount } from './src/server/seed';
@@ -6,21 +5,41 @@ import { resolveSessionSecret } from './src/server/session-secret';
 import { leseBetriebsmodus } from './src/server/betriebsmodus';
 import { MIN_PASSWORD_LENGTH } from './src/server/passwords';
 import { erzeugeApp } from './src/server/app';
-
-const DB_FILE = path.join(process.cwd(), 'data.sqlite');
-const LEGACY_JSON = path.join(process.cwd(), 'db.json');
-const SECRET_FILE = path.join(process.cwd(), 'sitzungsgeheimnis');
+import { loeseDatenpfade, stelleDatenordnerBereit } from './src/server/daten-ordner';
+import {
+  beispielmodusGewuenscht,
+  richteBeispieldatenEin,
+} from './src/server/beispieldaten';
 
 async function startServer() {
-  const db = createDatabase(DB_FILE);
+  // Wo die Daten liegen, sagt der Betrieb ueber DATEN_ORDNER; ohne Angabe
+  // bleibt es das Arbeitsverzeichnis. Siehe docs/betrieb.md.
+  const pfade = loeseDatenpfade(process.env, process.cwd());
+  stelleDatenordnerBereit(pfade);
 
-  const migration = await migrateFromJson(db, LEGACY_JSON);
+  const db = createDatabase(pfade.datenbank);
+
+  const migration = await migrateFromJson(db, pfade.altJson);
   if (migration.migrated) {
     console.log(
       `Migration abgeschlossen: ${migration.users} Benutzer, ${migration.wishes} Wuensche, ` +
         `${migration.comments} Hinweise aus db.json uebernommen.`,
     );
     for (const warnung of migration.warnings) console.warn(`  Achtung: ${warnung}`);
+  }
+
+  // Vor dem Leitungskonto: Der Beispielmodus bringt seine eigene Leitung mit,
+  // und er darf nur auf eine leere Datenbank. Siehe src/server/beispieldaten.ts.
+  const beispiel = await richteBeispieldatenEin(db, process.env, new Date());
+  if (beispiel.art === 'verweigert') {
+    console.error(`FEHLER: ${beispiel.grund}`);
+    process.exit(1);
+  }
+  if (beispiel.art === 'angelegt') {
+    console.log(
+      `Beispieldaten angelegt: ${beispiel.konten} Konten, ${beispiel.wuensche} Wuensche, ` +
+        `${beispiel.hinweise} Hinweise. Testfassung — nicht fuer den Echtbetrieb.`,
+    );
   }
 
   const seed = await ensureManagerAccount(db);
@@ -43,9 +62,9 @@ async function startServer() {
     );
   }
 
-  const secret = resolveSessionSecret(SECRET_FILE, process.env.SESSION_SECRET);
+  const secret = resolveSessionSecret(pfade.geheimnis, process.env.SESSION_SECRET);
   if (secret.source === 'erzeugt') {
-    console.log(`Sitzungsgeheimnis erzeugt und abgelegt unter ${SECRET_FILE}.`);
+    console.log(`Sitzungsgeheimnis erzeugt und abgelegt unter ${pfade.geheimnis}.`);
   }
 
   // Wie die Anwendung erreichbar ist, sagt der Betrieb ueber die Umgebung —
@@ -58,6 +77,7 @@ async function startServer() {
     sitzungsgeheimnis: secret.secret,
     betrieb,
     auslieferung: process.env.NODE_ENV === 'production' ? 'statisch' : 'vite',
+    beispielmodus: beispielmodusGewuenscht(process.env),
   });
 
   const PORT = Number(process.env.PORT) || 3000;
@@ -65,7 +85,7 @@ async function startServer() {
     console.log(
       `Server laeuft auf Port ${PORT} (Mindestlaenge fuer Passwoerter: ${MIN_PASSWORD_LENGTH}, ` +
         `Sitzungsgeheimnis: ${secret.source}, vertraute Proxys: ${betrieb.proxyHops}, ` +
-        `HSTS: ${betrieb.hsts ? 'an' : 'aus'})`,
+        `HSTS: ${betrieb.hsts ? 'an' : 'aus'}, Datenordner: ${pfade.ordner})`,
     );
   });
 }

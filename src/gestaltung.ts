@@ -99,6 +99,7 @@ export const TEXTPAARE: Paarung[] = [
   { vorne: 'spaet-text', hinten: 'spaet', zweck: 'Kennzeichnung der Spaetschicht' },
   { vorne: 'nacht-text', hinten: 'nacht', zweck: 'Kennzeichnung der Nachtschicht' },
   { vorne: 'frei-text', hinten: 'frei', zweck: 'Kennzeichnung von Frei' },
+  { vorne: 'hinweis-text', hinten: 'hinweis', zweck: 'Streifen der Testfassung' },
 ];
 
 /**

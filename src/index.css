@@ -98,6 +98,11 @@
   --haus-fehler-leise: #fdeceb;
   --haus-fehler-leise-text: #8c1210;
 
+  /* Der Streifen der Testfassung. Bewusst keine der Schichtfarben: Die stehen
+     fuer eine Schichtart, nicht fuer einen Zustand der Anwendung. */
+  --haus-hinweis: #fdf2c9;
+  --haus-hinweis-text: #6b4b00;
+
   --haus-fokus: #1f5fbf;
 
   /* Die rote Leiste ist das Erkennungszeichen des Hauses — die Kopfzeile
@@ -161,6 +166,9 @@
     --haus-fehler-leise: #4a1512;
     --haus-fehler-leise-text: #ffd6d0;
 
+    --haus-hinweis: #4a3d10;
+    --haus-hinweis-text: #f5e3a8;
+
     --haus-fokus: #9dc2ff;
 
     /* Nachts das dunkle Bordeaux des Corporate Designs statt des vollen
@@ -213,6 +221,9 @@
   --color-fehler-kontrast: var(--haus-fehler-kontrast);
   --color-fehler-leise: var(--haus-fehler-leise);
   --color-fehler-leise-text: var(--haus-fehler-leise-text);
+
+  --color-hinweis: var(--haus-hinweis);
+  --color-hinweis-text: var(--haus-hinweis-text);
 
   --color-fokus: var(--haus-fokus);
 

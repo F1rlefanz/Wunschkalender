@@ -21,6 +21,15 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.12.0] – 2026-09-02
+
+### Hinzugefügt
+- **Es gibt eine Testfassung zum Ansehen, mit erfundenen Daten.** Ein Streifen
+  über der Anwendung sagt durchgehend, dass nichts davon echt ist; die
+  Zugangsdaten stehen auf der Anmeldeseite, ein Klick auf einen Namen trägt ihn
+  ein. Mit der Anwendung auf der Station hat sie nichts zu tun — sie beginnt bei
+  jedem Neustart von vorn.
+
 ## [0.11.0] – 2026-08-21
 
 ### Geändert

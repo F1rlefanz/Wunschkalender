@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { api } from '../api/client';
 import { Lock, User as UserIcon } from 'lucide-react';
 import { User } from '../types';
+import { BeispielZugangsdaten } from './Testfassung';
 
 interface GatekeeperProps {
   onSuccess: (user: User) => void;
@@ -103,6 +104,15 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
             Benutzerverwaltung ein neues setzen.
           </p>
         </form>
+
+        {/* Nur in der Testfassung. Ein Klick auf einen Namen traegt ihn ein;
+            das Passwort steht darueber und ist fuer alle dasselbe. */}
+        <BeispielZugangsdaten
+          onWaehlen={(gewaehlt) => {
+            setName(gewaehlt);
+            setError('');
+          }}
+        />
       </div>
     </div>
   );

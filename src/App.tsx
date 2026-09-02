@@ -14,6 +14,7 @@ import { api } from './api/client';
 import { Wish, ShiftType, MonthlyComment, User, Settings } from './types';
 import { MeldungsBereich, Meldungen, useMeldung } from './meldungen';
 import { io } from 'socket.io-client';
+import { Testfassungsstreifen } from './components/Testfassung';
 
 /**
  * Der Meldungsbereich liegt um die ganze Anwendung, damit auch der
@@ -23,6 +24,9 @@ import { io } from 'socket.io-client';
 export default function App() {
   return (
     <MeldungsBereich>
+      {/* Ueber allem, auch ueber der Anmeldung: Wer hier landet, soll wissen,
+          dass die Daten erfunden sind, bevor er etwas eintippt. */}
+      <Testfassungsstreifen />
       <Anwendung />
       <Meldungen />
     </MeldungsBereich>
