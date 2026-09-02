@@ -44,7 +44,12 @@ const probleme = [];
 // 1. Nie Zugangsdaten veroeffentlichen.
 //    Die Muster decken auch db.json.migriert (Klartext-Passwoerter aus der
 //    Migration), die WAL-Begleitdateien und das Sitzungsgeheimnis ab.
-const getrackt = lauf('git ls-files db.json* data.sqlite* sitzungsgeheimnis');
+//    Die Muster mit `*/` davor sind noetig, seit DATEN_ORDNER die Dateien in
+//    einen Unterordner legen kann: Ein Pfadmuster ohne sie greift nur im
+//    Wurzelverzeichnis.
+const getrackt = lauf(
+  'git ls-files -- db.json* data.sqlite* sitzungsgeheimnis */db.json* */data.sqlite* */sitzungsgeheimnis',
+);
 if (getrackt.ok && getrackt.ausgabe.trim()) {
   const dateien = getrackt.ausgabe.trim().split(/\s+/).join(', ');
   probleme.push(`Diese Dateien sind von Git getrackt: ${dateien}. Sie enthalten Benutzerkonten, Passwoerter oder das Sitzungsgeheimnis und duerfen nicht ins Repository. Entfernen mit \`git rm --cached <datei>\`.`);
