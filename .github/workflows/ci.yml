@@ -59,6 +59,51 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  container:
+    name: Container
+    runs-on: ubuntu-latest
+    needs: pruefen
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Abbild bauen
+        run: docker build -t wunschkalender:pruefung .
+
+      # Ein Abbild, das nie gestartet wurde, ist eine Behauptung. Die drei
+      # Proben darunter sind der Beleg, dass es traegt.
+      - name: Behaelter starten und auf Antwort warten
+        run: |
+          docker run -d --name wk -p 3000:3000 wunschkalender:pruefung
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null 2>&1; then
+              echo "Behaelter antwortet."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Behaelter antwortet nach 60 s nicht."
+          docker logs wk
+          exit 1
+
+      - name: Die Oberflaeche wird ausgeliefert
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/)
+          test "$code" = "200" || { echo "GET / lieferte $code statt 200"; exit 1; }
+
+      - name: Die Absicherung ist im Abbild wirklich drin
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/wishes)
+          test "$code" = "401" || { echo "GET /api/wishes lieferte $code statt 401"; exit 1; }
+
+      - name: Der Prozess laeuft nicht als root
+        run: |
+          uid=$(docker run --rm wunschkalender:pruefung id -u)
+          test "$uid" != "0" || { echo "Der Behaelter laeuft als root."; exit 1; }
+
+      - name: Protokoll bei Fehlschlag
+        if: failure()
+        run: docker logs wk || true
+
   schranken:
     name: Schranken fuer Routine-Zweige
     runs-on: ubuntu-latest

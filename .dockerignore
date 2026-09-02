@@ -1,0 +1,19 @@
+# Was nicht ins Abbild gehoert. node_modules ausdruecklich: Die nativen Module
+# muessen im Abbild gebaut werden, eine vom Windows-Rechner mitkopierte Fassung
+# waere unbrauchbar.
+node_modules/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+.git/
+.github/
+..Projektdateien/
+*.log
+
+# Niemals ins Abbild: Benutzerkonten, Passwoerter, Sitzungsgeheimnis.
+db.json*
+data.sqlite*
+sitzungsgeheimnis
+.env*
