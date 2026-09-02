@@ -21,6 +21,8 @@ nicht, unter welcher Überschrift er steht.
 
 ## [Unreleased]
 
+## [0.12.0] – 2026-09-02
+
 ### Hinzugefügt
 - **Es gibt eine Testfassung zum Ansehen, mit erfundenen Daten.** Ein Streifen
   über der Anwendung sagt durchgehend, dass nichts davon echt ist; die
